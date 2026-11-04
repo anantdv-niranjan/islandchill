@@ -1,5 +1,26 @@
+import {
+  X,
+  User,
+  AlertTriangle,
+  Mail,
+  Printer,
+  Heart,
+  ShieldAlert,
+  Bandage,
+  FlaskConical,
+  FileEdit,
+  CheckCircle2,
+  XCircle,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+  ShieldCheck,
+  ClipboardList
+} from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { frappe } from '../services/frappe';
+import Badge from './ui/Badge';
+import { StageStatusBadge, StageAuditCard } from './StageAuditCard';
 
 export function SafetyIncidentFormModal({ onClose, onSubmit, saving, employeeList, handleSearchEmployees, showEmployeeDropdown, setShowEmployeeDropdown, activeSearchField, workOrders = [] }) {
   const [injuredName, setInjuredName] = useState('');
@@ -83,10 +104,15 @@ export function SafetyIncidentFormModal({ onClose, onSubmit, saving, employeeLis
       <div className="modal-panel" style={{ width: '960px', maxWidth: '95%' }}>
         <div className="modal-header">
           <div>
-            <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0 }}>Carpenters Water Fiji PTE Limited</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0 }}>Carpenters Water Fiji PTE Limited</h3>
+              <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '4px', backgroundColor: 'rgba(239, 68, 68, 0.12)', color: 'var(--danger)', fontWeight: '600' }}>
+                Auto-creates Plant Incident
+              </span>
+            </div>
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>OHSF 1 & 2: Accident and Disease Notification Report</span>
           </div>
-          <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }} onClick={onClose}>✕</button>
+          <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)' }} onClick={onClose}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmitForm}>
           <div className="modal-content" style={{ maxHeight: '75vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -122,7 +148,7 @@ export function SafetyIncidentFormModal({ onClose, onSubmit, saving, employeeLis
                             setShowEmployeeDropdown(false);
                           }}
                         >
-                          👤 {emp.employee_name || emp.name} ({emp.designation || 'Staff'})
+                          {emp.employee_name || emp.name} ({emp.designation || 'Staff'})
                         </div>
                       ))}
                     </div>
@@ -179,7 +205,7 @@ export function SafetyIncidentFormModal({ onClose, onSubmit, saving, employeeLis
             {/* Section 2: Details of Incident */}
             <div>
               <h4 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', marginBottom: '12px', color: 'var(--accent)', fontSize: '13px' }}>2. Incident / Disease Details</h4>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
                 <div>
                   <label style={{ fontSize: '11px', fontWeight: '600', display: 'block', marginBottom: '4px' }}>Date and Time of Occurrence *</label>
                   <input type="datetime-local" className="form-input" required min={new Date().toISOString().slice(0, 16)} value={incidentTime} onChange={e => setIncidentTime(e.target.value)} />
@@ -299,7 +325,7 @@ export function SafetyIncidentFormModal({ onClose, onSubmit, saving, employeeLis
                             setShowEmployeeDropdown(false);
                           }}
                         >
-                          👤 {emp.employee_name || emp.name} ({emp.designation || 'Staff'})
+                          {emp.employee_name || emp.name} ({emp.designation || 'Staff'})
                         </div>
                       ))}
                     </div>
@@ -329,7 +355,7 @@ export function SafetyIncidentFormModal({ onClose, onSubmit, saving, employeeLis
                             setShowEmployeeDropdown(false);
                           }}
                         >
-                          👤 {emp.employee_name || emp.name} ({emp.designation || 'Supervisor'})
+                          {emp.employee_name || emp.name} ({emp.designation || 'Supervisor'})
                         </div>
                       ))}
                     </div>
@@ -389,10 +415,15 @@ export function SafetyFirstAidFormModal({ onClose, onSubmit, employeeList, handl
       <div className="modal-panel" style={{ width: '720px', maxWidth: '95%' }}>
         <div className="modal-header">
           <div>
-            <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0 }}>Carpenters Water (Fiji) Limited</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0 }}>Carpenters Water (Fiji) Limited</h3>
+              <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '4px', backgroundColor: 'rgba(14, 165, 233, 0.12)', color: 'var(--info)', fontWeight: '600' }}>
+                Auto-creates Plant Incident
+              </span>
+            </div>
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Standard Form 17: First Aid Registry Log</span>
           </div>
-          <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }} onClick={onClose}>✕</button>
+          <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)' }} onClick={onClose}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmitForm}>
           <div className="modal-content" style={{ maxHeight: '75vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -443,7 +474,7 @@ export function SafetyFirstAidFormModal({ onClose, onSubmit, employeeList, handl
                         setShowEmployeeDropdown(false);
                       }}
                     >
-                      👤 {emp.employee_name || emp.name} ({emp.designation || 'Staff'})
+                      {emp.employee_name || emp.name} ({emp.designation || 'Staff'})
                     </div>
                   ))}
                 </div>
@@ -509,7 +540,7 @@ export function SafetyFirstAidFormModal({ onClose, onSubmit, employeeList, handl
                           setShowEmployeeDropdown(false);
                         }}
                       >
-                        👤 {emp.employee_name || emp.name} ({emp.designation || 'Supervisor'})
+                        {emp.employee_name || emp.name} ({emp.designation || 'Supervisor'})
                       </div>
                     ))}
                   </div>
@@ -596,7 +627,7 @@ export function SafetySwabFormModal({ onClose, onSubmit, saving, employeeList, h
             <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0 }}>Carpenters Waters (Fiji) Limited</h3>
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Standard Form 14: Environmental Swab Test microbiology Register</span>
           </div>
-          <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }} onClick={onClose}>✕</button>
+          <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)' }} onClick={onClose}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmitForm}>
           <div className="modal-content" style={{ maxHeight: '75vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -626,7 +657,7 @@ export function SafetySwabFormModal({ onClose, onSubmit, saving, employeeList, h
                           setShowEmployeeDropdown(false);
                         }}
                       >
-                        👤 {emp.employee_name || emp.name} ({emp.designation || 'Staff'})
+                        {emp.employee_name || emp.name} ({emp.designation || 'Staff'})
                       </div>
                     ))}
                   </div>
@@ -651,7 +682,7 @@ export function SafetySwabFormModal({ onClose, onSubmit, saving, employeeList, h
 
             {checkContamination() && (
               <div style={{ padding: '10px 14px', borderRadius: '6px', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', fontSize: '12px', fontWeight: '700', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-                ⚠️ Contamination Warning: One or more zones exceed safety threshold =&lt; 15cfu (excluding Warehouse).
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><AlertTriangle size={15} /><span>Contamination Warning: One or more zones exceed safety threshold =&lt; 15cfu (excluding Warehouse). Automatically creates Plant Incident with Critical severity upon submission.</span></span>
               </div>
             )}
 
@@ -729,7 +760,7 @@ export function SafetySwabFormModal({ onClose, onSubmit, saving, employeeList, h
             </div>
 
             <div style={{ fontSize: '11px', color: 'var(--text-muted)', borderTop: '1px solid var(--border-color)', paddingTop: '10px' }}>
-              * Acceptance threshold is =&lt; 15cfu. Warehouse counts are recorded but excluded from compliance limits.
+              * Acceptance threshold is =&lt; 15cfu. Warehouse counts are recorded but excluded from compliance limits. Counts exceeding 15cfu will automatically create a Plant Incident.
             </div>
 
           </div>
@@ -755,7 +786,7 @@ export function SafetyReportViewerModal({ record, onClose, setEmailModal }) {
             <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0 }}>Carpenters Water Fiji PTE Limited</h3>
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Archived Safety Document Details ({record.id})</span>
           </div>
-          <button className="no-print" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }} onClick={onClose}>✕</button>
+          <button className="no-print" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)' }} onClick={onClose}><X size={18} /></button>
         </div>
         <div className="modal-content" style={{ maxHeight: '75vh', overflowY: 'auto', fontSize: '12px' }}>
 
@@ -775,6 +806,22 @@ export function SafetyReportViewerModal({ record, onClose, setEmailModal }) {
               <strong>{record.timestamp}</strong>
             </div>
           </div>
+
+          {/* 3-Stage Workflow Status & Audit Trail */}
+          <StageAuditCard record={record} />
+
+          {/* Linked Plant Incident Banner */}
+          {record.linked_incident && (
+            <div style={{ marginBottom: '16px', padding: '10px 14px', borderRadius: '6px', backgroundColor: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <ShieldAlert size={16} color="var(--danger)" />
+                <span style={{ fontSize: '12px', fontWeight: '600' }}>
+                  Linked Plant Incident: <span style={{ color: 'var(--danger)', fontWeight: '700' }}>{record.linked_incident}</span>
+                </span>
+              </div>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Auto-synced with Plant Incidents</span>
+            </div>
+          )}
 
           {/* OHSF Incident Report Render */}
           {record.type === 'Incident Report' && (
@@ -882,7 +929,7 @@ export function SafetyReportViewerModal({ record, onClose, setEmailModal }) {
                           <td style={{ padding: '6px', textAlign: 'center' }}>{mould}</td>
                           <td style={{ padding: '6px', textAlign: 'center' }}>{hpc}</td>
                           <td style={{ padding: '6px', textAlign: 'center', fontWeight: '700', color: warning ? 'var(--danger)' : 'var(--success)' }}>
-                            {warning ? '⚠️ Fail (>15cfu)' : 'Pass'}
+                            {warning ? 'Fail (>15cfu)' : 'Pass'}
                           </td>
                         </tr>
                       );
@@ -956,8 +1003,8 @@ export function SafetyReportViewerModal({ record, onClose, setEmailModal }) {
 
         </div>
         <div className="modal-footer no-print" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-          <button type="button" className="primary-btn" onClick={() => setEmailModal({ reportId: record.id, reportType: record.type || 'Safety Report' })} style={{ backgroundColor: '#a27b5c', borderColor: '#a27b5c' }}>📧 Send Email</button>
-          <button type="button" className="primary-btn" onClick={() => window.print()} style={{ backgroundColor: 'var(--accent)', borderColor: 'var(--accent)' }}>🖨️ Print Report</button>
+          <button type="button" className="primary-btn" onClick={() => setEmailModal({ reportId: record.id, reportType: record.type || 'Safety Report' })} style={{ backgroundColor: '#a27b5c', borderColor: '#a27b5c' }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Mail size={14} /><span>Send Email</span></span></button>
+          <button type="button" className="primary-btn" onClick={() => window.print()} style={{ backgroundColor: 'var(--accent)', borderColor: 'var(--accent)' }}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Printer size={14} /><span>Print Report</span></span></button>
           <button type="button" className="secondary-btn" onClick={onClose}>Close Report</button>
         </div>
       </div>
@@ -1050,7 +1097,7 @@ export function SafetyForm37Modal({ onClose, onSubmit, saving, employeeList, han
             <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0 }}>Island Chill - Carpenters Waters (Fiji) Limited</h3>
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Standard Form 37: OHS Induction Procedure Checklist</span>
           </div>
-          <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }} onClick={onClose}>✕</button>
+          <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)' }} onClick={onClose}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-content" style={{ maxHeight: '70vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '12px' }}>
@@ -1068,7 +1115,7 @@ export function SafetyForm37Modal({ onClose, onSubmit, saving, employeeList, han
                   <div className="autocomplete-dropdown">
                     {employeeList.map(emp => (
                       <div key={emp.name} className="dropdown-item" onClick={() => { setName(`${emp.employee_name || emp.name} (${emp.name})`); setShowEmployeeDropdown(false); }}>
-                        👤 {emp.employee_name || emp.name}
+                        {emp.employee_name || emp.name}
                       </div>
                     ))}
                   </div>
@@ -1163,7 +1210,7 @@ export function SafetyForm37Modal({ onClose, onSubmit, saving, employeeList, han
                     <div className="autocomplete-dropdown">
                       {employeeList.map(emp => (
                         <div key={emp.name} className="dropdown-item" onClick={() => { setInductorName(`${emp.employee_name || emp.name} (${emp.name})`); setShowEmployeeDropdown(false); }}>
-                          👤 {emp.employee_name || emp.name}
+                          {emp.employee_name || emp.name}
                         </div>
                       ))}
                     </div>
@@ -1196,7 +1243,7 @@ export function SafetyForm37Modal({ onClose, onSubmit, saving, employeeList, han
                     <div className="autocomplete-dropdown">
                       {employeeList.map(emp => (
                         <div key={emp.name} className="dropdown-item" onClick={() => { setApprovedByName(`${emp.employee_name || emp.name} (${emp.name})`); setShowEmployeeDropdown(false); }}>
-                          👤 {emp.employee_name || emp.name}
+                          {emp.employee_name || emp.name}
                         </div>
                       ))}
                     </div>
@@ -1234,7 +1281,8 @@ export default function SafetyTab({
   setSafetyPage,
   setActiveSafetyForm,
   setViewingSafetyRecord,
-  workOrders = []
+  workOrders = [],
+  formPermissions = null
 }) {
   // Safety dashboard cards calculations
   const getDaysSinceLastIncident = () => {
@@ -1274,40 +1322,51 @@ export default function SafetyTab({
 
       {/* Dashboard metrics widgets */}
       <div className="metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
-        <div className="metric-card">
-          <div className="metric-header">
-            <span className="metric-title" style={{ fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Incident-Free Streak</span>
-            <span className="metric-icon">💚</span>
+        <div className="metric-card" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px 18px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+          <div className="metric-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="metric-title" style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }}>Incident-Free Streak</span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Heart size={18} color="var(--success)" />
+            </div>
           </div>
-          <div className="metric-value" style={{ fontSize: '24px', fontWeight: '800', margin: '8px 0', color: 'var(--success)' }}>
+          <div className="metric-value" style={{ fontSize: '24px', fontWeight: '800', margin: '10px 0 6px 0', color: 'var(--success)' }}>
             {getDaysSinceLastIncident()} Days
           </div>
           <div className="metric-footer text-muted" style={{ fontSize: '11px' }}>Since last logged accident</div>
         </div>
-        <div className="metric-card">
-          <div className="metric-header">
-            <span className="metric-title" style={{ fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Safety Incidents</span>
-            <span className="metric-icon">🛡️</span>
+
+        <div className="metric-card" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px 18px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+          <div className="metric-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="metric-title" style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }}>Safety Incidents</span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: safetyIncidents > 0 ? 'rgba(239, 68, 68, 0.12)' : 'rgba(107, 114, 128, 0.1)', border: safetyIncidents > 0 ? '1px solid rgba(239, 68, 68, 0.25)' : '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <ShieldAlert size={18} color={safetyIncidents > 0 ? 'var(--danger)' : 'var(--text-muted)'} />
+            </div>
           </div>
-          <div className="metric-value" style={{ fontSize: '24px', fontWeight: '800', margin: '8px 0', color: safetyIncidents > 0 ? 'var(--danger)' : 'var(--text)' }}>
+          <div className="metric-value" style={{ fontSize: '24px', fontWeight: '800', margin: '10px 0 6px 0', color: safetyIncidents > 0 ? 'var(--danger)' : 'var(--text-heading)' }}>
             {safetyIncidents}
           </div>
           <div className="metric-footer text-muted" style={{ fontSize: '11px' }}>OHSF 1/2 notification reports</div>
         </div>
-        <div className="metric-card">
-          <div className="metric-header">
-            <span className="metric-title" style={{ fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>First Aid Logs</span>
-            <span className="metric-icon">🩹</span>
+
+        <div className="metric-card" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px 18px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+          <div className="metric-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="metric-title" style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }}>First Aid Logs</span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Bandage size={18} color="var(--accent)" />
+            </div>
           </div>
-          <div className="metric-value" style={{ fontSize: '24px', fontWeight: '800', margin: '8px 0' }}>{firstAidLogs}</div>
+          <div className="metric-value" style={{ fontSize: '24px', fontWeight: '800', margin: '10px 0 6px 0', color: 'var(--text-heading)' }}>{firstAidLogs}</div>
           <div className="metric-footer text-muted" style={{ fontSize: '11px' }}>Standard Form 17 entries</div>
         </div>
-        <div className="metric-card">
-          <div className="metric-header">
-            <span className="metric-title" style={{ fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Swab Compliance</span>
-            <span className="metric-icon">🧪</span>
+
+        <div className="metric-card" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px 18px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+          <div className="metric-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="metric-title" style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)' }}>Swab Compliance</span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: getSwabComplianceRate() >= 95 ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)', border: getSwabComplianceRate() >= 95 ? '1px solid rgba(16, 185, 129, 0.25)' : '1px solid rgba(245, 158, 11, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <FlaskConical size={18} color={getSwabComplianceRate() >= 95 ? 'var(--success)' : 'var(--warning)'} />
+            </div>
           </div>
-          <div className="metric-value" style={{ fontSize: '24px', fontWeight: '800', margin: '8px 0', color: getSwabComplianceRate() >= 95 ? 'var(--success)' : 'var(--warning)' }}>
+          <div className="metric-value" style={{ fontSize: '24px', fontWeight: '800', margin: '10px 0 6px 0', color: getSwabComplianceRate() >= 95 ? 'var(--success)' : 'var(--warning)' }}>
             {getSwabComplianceRate()}%
           </div>
           <div className="metric-footer text-muted" style={{ fontSize: '11px' }}>Swab counts =&lt; 15cfu</div>
@@ -1323,10 +1382,25 @@ export default function SafetyTab({
         {/* OHSF Form */}
         <div className="inv-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '16px' }}>
           <div>
-            <span className="badge" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', fontSize: '10px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '4px' }}>
-              REGULATORY
-            </span>
-            <h4 style={{ fontSize: '14px', fontWeight: '700', marginTop: '12px', marginBottom: '4px', color: 'var(--text-heading)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+              <Badge
+                variant="error"
+                size="md"
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  padding: 0,
+                  borderRadius: '8px',
+                  flexShrink: 0
+                }}
+              >
+                <ShieldAlert size={18} />
+              </Badge>
+              <Badge variant="error" size="sm">
+                REGULATORY
+              </Badge>
+            </div>
+            <h4 style={{ fontSize: '14px', fontWeight: '700', marginTop: '8px', marginBottom: '4px', color: 'var(--text-heading)' }}>
               OHSF 1/2 Notification
             </h4>
             <p className="text-muted" style={{ fontSize: '11px', marginBottom: '12px' }}>
@@ -1341,7 +1415,7 @@ export default function SafetyTab({
               style={{ padding: '6px 12px', fontSize: '12px', backgroundColor: 'var(--danger)', borderColor: 'var(--danger)' }}
               onClick={() => setActiveSafetyForm('ohsf')}
             >
-              📝 Log Accident
+              Log Accident
             </button>
           </div>
         </div>
@@ -1349,10 +1423,25 @@ export default function SafetyTab({
         {/* First Aid Form */}
         <div className="inv-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '16px' }}>
           <div>
-            <span className="badge" style={{ backgroundColor: 'rgba(14, 165, 233, 0.1)', color: 'var(--info)', fontSize: '10px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '4px' }}>
-              STANDARD FORM 17
-            </span>
-            <h4 style={{ fontSize: '14px', fontWeight: '700', marginTop: '12px', marginBottom: '4px', color: 'var(--text-heading)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+              <Badge
+                variant="info"
+                size="md"
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  padding: 0,
+                  borderRadius: '8px',
+                  flexShrink: 0
+                }}
+              >
+                <Bandage size={18} />
+              </Badge>
+              <Badge variant="info" size="sm">
+                STANDARD FORM 17
+              </Badge>
+            </div>
+            <h4 style={{ fontSize: '14px', fontWeight: '700', marginTop: '8px', marginBottom: '4px', color: 'var(--text-heading)' }}>
               First Aid Register
             </h4>
             <p className="text-muted" style={{ fontSize: '11px', marginBottom: '12px' }}>
@@ -1367,7 +1456,7 @@ export default function SafetyTab({
               style={{ padding: '6px 12px', fontSize: '12px' }}
               onClick={() => setActiveSafetyForm('first-aid')}
             >
-              📝 Fill First Aid
+              Fill First Aid
             </button>
           </div>
         </div>
@@ -1375,10 +1464,25 @@ export default function SafetyTab({
         {/* Swab Test Form */}
         <div className="inv-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '16px' }}>
           <div>
-            <span className="badge" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', fontSize: '10px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '4px' }}>
-              STANDARD FORM 14
-            </span>
-            <h4 style={{ fontSize: '14px', fontWeight: '700', marginTop: '12px', marginBottom: '4px', color: 'var(--text-heading)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+              <Badge
+                variant="success"
+                size="md"
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  padding: 0,
+                  borderRadius: '8px',
+                  flexShrink: 0
+                }}
+              >
+                <FlaskConical size={18} />
+              </Badge>
+              <Badge variant="success" size="sm">
+                STANDARD FORM 14
+              </Badge>
+            </div>
+            <h4 style={{ fontSize: '14px', fontWeight: '700', marginTop: '8px', marginBottom: '4px', color: 'var(--text-heading)' }}>
               Environmental Swab Test
             </h4>
             <p className="text-muted" style={{ fontSize: '11px', marginBottom: '12px' }}>
@@ -1393,7 +1497,7 @@ export default function SafetyTab({
               style={{ padding: '6px 12px', fontSize: '12px', backgroundColor: 'var(--success)', borderColor: 'var(--success)' }}
               onClick={() => setActiveSafetyForm('swab')}
             >
-              📝 Log Swab Test
+              Log Swab Test
             </button>
           </div>
         </div>
@@ -1401,10 +1505,25 @@ export default function SafetyTab({
         {/* Induction Form (Form 37) */}
         <div className="inv-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '16px' }}>
           <div>
-            <span className="badge" style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)', color: 'var(--accent)', fontSize: '10px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '4px' }}>
-              OHS FORM 37
-            </span>
-            <h4 style={{ fontSize: '14px', fontWeight: '700', marginTop: '12px', marginBottom: '4px', color: 'var(--text-heading)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+              <Badge
+                variant="primary"
+                size="md"
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  padding: 0,
+                  borderRadius: '8px',
+                  flexShrink: 0
+                }}
+              >
+                <ShieldCheck size={18} />
+              </Badge>
+              <Badge variant="primary" size="sm">
+                OHS FORM 37
+              </Badge>
+            </div>
+            <h4 style={{ fontSize: '14px', fontWeight: '700', marginTop: '8px', marginBottom: '4px', color: 'var(--text-heading)' }}>
               Induction Checklist
             </h4>
             <p className="text-muted" style={{ fontSize: '11px', marginBottom: '12px' }}>
@@ -1419,7 +1538,7 @@ export default function SafetyTab({
               style={{ padding: '6px 12px', fontSize: '12px', backgroundColor: 'var(--accent)', borderColor: 'var(--accent)' }}
               onClick={() => setActiveSafetyForm('induction')}
             >
-              📝 Log Induction
+              Log Induction
             </button>
           </div>
         </div>
@@ -1467,6 +1586,7 @@ export default function SafetyTab({
                     <th>Form Type</th>
                     <th>Work Order</th>
                     <th>Target Person / Analyst</th>
+                    <th>Workflow Status</th>
                     <th>Event Summary / Area Status</th>
                     <th>Logged By / Witness</th>
                     <th>Timestamp</th>
@@ -1488,7 +1608,7 @@ export default function SafetyTab({
                       const passed = ['filtration', 'infeed', 'cleanRoom', 'labelling', 'blowing'].every(l => {
                         return Number(rec.swabData?.[l]?.yeast || 0) <= 15 && Number(rec.swabData?.[l]?.mould || 0) <= 15 && Number(rec.swabData?.[l]?.hpc || 0) <= 15;
                       });
-                      summary = passed ? '✅ Compliance Pass' : '❌ Contamination Warning';
+                      summary = passed ? 'Compliance Pass' : 'Contamination Warning';
                     } else if (rec.type === 'Induction Log') {
                       summary = `Reason: ${rec.reasonForVisit || '-'} • Areas: ${rec.visitingAreas || '-'}`;
                       logger = rec.inductorName || 'N/A';
@@ -1499,19 +1619,29 @@ export default function SafetyTab({
                       <tr key={rec.id}>
                         <td style={{ fontWeight: '600' }}>{rec.id}</td>
                         <td>
-                          <span className="badge" style={{
-                            backgroundColor: rec.type === 'Incident Report' ? 'rgba(239, 68, 68, 0.1)' : rec.type === 'First Aid Log' ? 'rgba(14, 165, 233, 0.1)' : rec.type === 'Swab Test' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(139, 92, 246, 0.1)',
-                            color: rec.type === 'Incident Report' ? 'var(--danger)' : rec.type === 'First Aid Log' ? 'var(--info)' : rec.type === 'Swab Test' ? 'var(--success)' : 'var(--accent)'
-                          }}>
-                            {rec.type}
-                          </span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            <span className="badge" style={{
+                              backgroundColor: rec.type === 'Incident Report' ? 'rgba(239, 68, 68, 0.1)' : rec.type === 'First Aid Log' ? 'rgba(14, 165, 233, 0.1)' : rec.type === 'Swab Test' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(139, 92, 246, 0.1)',
+                              color: rec.type === 'Incident Report' ? 'var(--danger)' : rec.type === 'First Aid Log' ? 'var(--info)' : rec.type === 'Swab Test' ? 'var(--success)' : 'var(--accent)'
+                            }}>
+                              {rec.type}
+                            </span>
+                            {rec.linked_incident && (
+                              <span style={{ fontSize: '10px', color: 'var(--danger)', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                <ShieldAlert size={10} /> {rec.linked_incident}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td style={{ fontWeight: '600', color: (rec.work_order || rec.workOrder) ? 'var(--primary)' : 'var(--text-muted)' }}>
                           {rec.work_order || rec.workOrder || '—'}
                         </td>
                         <td style={{ fontWeight: '600' }}>{target}</td>
+                        <td>
+                          <StageStatusBadge record={rec} />
+                        </td>
                         <td style={{ fontStyle: 'italic' }}>{summary}</td>
-                        <td>👤 {logger}</td>
+                        <td style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><User size={13} style={{ color: 'var(--text-muted)' }} /><span>{logger}</span></td>
                         <td style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{rec.timestamp}</td>
                         <td>
                           <button
@@ -1520,7 +1650,7 @@ export default function SafetyTab({
                             style={{ padding: '4px 8px', fontSize: '11px' }}
                             onClick={() => setViewingSafetyRecord(rec)}
                           >
-                            👁️ View Report
+                            View Report
                           </button>
                         </td>
                       </tr>
@@ -1537,7 +1667,7 @@ export default function SafetyTab({
                 disabled={safetyPage === 1}
                 onClick={() => setSafetyPage(prev => Math.max(1, prev - 1))}
               >
-                ◀ Previous
+                Previous
               </button>
               <span style={{ fontSize: '13px', fontWeight: '600' }}>
                 Page {safetyPage} of {Math.max(1, Math.ceil(filteredSafetyRecords.length / 20))}
@@ -1548,7 +1678,7 @@ export default function SafetyTab({
                 disabled={safetyPage === Math.max(1, Math.ceil(filteredSafetyRecords.length / 20))}
                 onClick={() => setSafetyPage(prev => Math.min(Math.max(1, Math.ceil(filteredSafetyRecords.length / 20)), prev + 1))}
               >
-                Next ▶
+                Next
               </button>
             </div>
           </>

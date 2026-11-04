@@ -1,4 +1,13 @@
 import React, { useState } from 'react';
+import {
+  FlaskConical,
+  Package,
+  Factory,
+  AlertTriangle,
+  Check,
+  Ban,
+  Search
+} from 'lucide-react';
 
 export default function BOMTab({
   BOMS,
@@ -114,7 +123,10 @@ export default function BOMTab({
       {/* Header & Title */}
       <div className="module-header" style={{ marginBottom: '16px' }}>
         <div className="module-title">
-          <h2>🧪 Bill of Materials (BOM) & Production Recipes</h2>
+          <h2 style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+            <FlaskConical size={22} style={{ color: 'var(--accent)' }} />
+            <span>Bill of Materials (BOM) & Production Recipes</span>
+          </h2>
           <p>Explore formulations, raw material stock balances in Stores, and finished good inventory.</p>
         </div>
       </div>
@@ -129,21 +141,24 @@ export default function BOMTab({
           border: '1px solid var(--border-color)',
           borderRadius: '10px',
           display: 'flex',
+          flexDirection: 'row',
           flexWrap: 'wrap',
           alignItems: 'center',
+          justifyContent: 'flex-start',
           gap: '24px'
         }}
       >
         {/* Raw Material Warehouse (Fixed to Stores - No Selection Dropdown) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--accent)' }}>
-            📦 Raw Material Source Warehouse
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '220px' }}>
+          <label style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <Package size={14} />
+            <span>Raw Material Source Warehouse</span>
           </label>
           <div style={{
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            height: '36px',
+            height: '38px',
             padding: '0 14px',
             backgroundColor: 'rgba(245, 158, 11, 0.08)',
             border: '1px solid rgba(245, 158, 11, 0.25)',
@@ -158,12 +173,13 @@ export default function BOMTab({
 
         {/* Finished Goods Warehouse Selector (Strictly Finished Goods & Extra Goods Warehouse) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '240px' }}>
-          <label style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#10b981' }}>
-            🏭 Finished Goods Warehouse
+          <label style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <Factory size={14} />
+            <span>Finished Goods Warehouse</span>
           </label>
           <select
             className="form-input"
-            style={{ height: '36px', fontSize: '13px', padding: '4px 12px', fontWeight: '500' }}
+            style={{ height: '38px', fontSize: '13px', padding: '4px 12px', fontWeight: '500' }}
             value={bomFgWarehouse || fgWarehouseOptions[0]?.name}
             onChange={(e) => setBomFgWarehouse(e.target.value)}
           >
@@ -289,8 +305,9 @@ export default function BOMTab({
                     padding: '12px 14px'
                   }}
                 >
-                  <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#059669', marginBottom: '4px' }}>
-                    🏭 Finished Good Product
+                  <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#059669', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Factory size={14} />
+                    <span>Finished Good Product</span>
                   </div>
                   <div style={{ fontWeight: '700', fontSize: '14px', color: 'var(--text-heading)' }}>
                     {fgItemName}
@@ -315,8 +332,9 @@ export default function BOMTab({
                     padding: '12px 14px'
                   }}
                 >
-                  <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#d97706', marginBottom: '4px' }}>
-                    📦 Raw Materials Warehouse
+                  <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#d97706', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Package size={14} />
+                    <span>Raw Materials Warehouse</span>
                   </div>
                   <div style={{ fontWeight: '700', fontSize: '14px', color: 'var(--text-heading)' }}>
                     Stores
@@ -380,16 +398,19 @@ export default function BOMTab({
                             </td>
                             <td style={{ textAlign: 'center', padding: '8px 10px' }}>
                               {isZero ? (
-                                <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: '700', backgroundColor: '#fee2e2', color: '#b91c1c' }}>
-                                  ⛔ Out of Stock
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: '700', backgroundColor: '#fee2e2', color: '#b91c1c' }}>
+                                  <Ban size={11} />
+                                  <span>Out of Stock</span>
                                 </span>
                               ) : isSufficient ? (
-                                <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: '700', backgroundColor: '#dcfce7', color: '#15803d' }}>
-                                  ✓ In Stock
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: '700', backgroundColor: '#dcfce7', color: '#15803d' }}>
+                                  <Check size={11} />
+                                  <span>In Stock</span>
                                 </span>
                               ) : (
-                                <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: '700', backgroundColor: '#fef3c7', color: '#b45309' }}>
-                                  ⚠ Low Stock
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: '700', backgroundColor: '#fef3c7', color: '#b45309' }}>
+                                  <AlertTriangle size={11} />
+                                  <span>Low Stock</span>
                                 </span>
                               )}
                             </td>

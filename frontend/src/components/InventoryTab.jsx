@@ -1,5 +1,23 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { frappe } from '../services/frappe';
+import {
+  RefreshCw,
+  Package,
+  Search,
+  X,
+  Warehouse,
+  Folder,
+  DollarSign,
+  Hash,
+  Tag,
+  ClipboardList,
+  MapPin,
+  Check,
+  Loader2,
+  Target,
+  BookOpen,
+  Building
+} from 'lucide-react';
 
 export default function InventoryTab({
   erpItems = [],
@@ -395,7 +413,8 @@ export default function InventoryTab({
               title="Reload latest inventory balances from ERPNext"
               style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '7px 12px', fontSize: '12px' }}
             >
-              🔄 Refresh
+              <RefreshCw size={14} />
+              <span>Refresh</span>
             </button>
           )}
         </div>
@@ -421,7 +440,10 @@ export default function InventoryTab({
             gap: '8px'
           }}
         >
-          <span>📦 Stock Items</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <Package size={16} />
+            <span>Stock Items</span>
+          </span>
           <span style={{
             fontSize: '10px',
             backgroundColor: invTab === 'stock' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(255, 255, 255, 0.05)',
@@ -444,10 +466,14 @@ export default function InventoryTab({
             color: invTab === 'transactions' ? 'var(--accent)' : 'var(--text-muted)',
             borderBottom: invTab === 'transactions' ? '2px solid var(--accent)' : '2px solid transparent',
             cursor: 'pointer',
-            outline: 'none'
+            outline: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px'
           }}
         >
-          🔄 Transactions
+          <RefreshCw size={14} />
+          <span>Transactions</span>
         </button>
       </div>
 
@@ -477,10 +503,11 @@ export default function InventoryTab({
                 top: '50%',
                 transform: 'translateY(-50%)',
                 opacity: 0.6,
-                fontSize: '13px',
-                pointerEvents: 'none'
+                pointerEvents: 'none',
+                display: 'flex',
+                alignItems: 'center'
               }}>
-                🔍
+                <Search size={14} />
               </span>
               <input
                 type="text"
@@ -518,11 +545,13 @@ export default function InventoryTab({
                     color: 'var(--text-muted)',
                     cursor: 'pointer',
                     fontSize: '12px',
-                    padding: '2px'
+                    padding: '2px',
+                    display: 'flex',
+                    alignItems: 'center'
                   }}
                   title="Clear search"
                 >
-                  ✕
+                  <X size={14} />
                 </button>
               )}
             </div>
@@ -531,8 +560,9 @@ export default function InventoryTab({
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
               {/* Warehouse Selector */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <label style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '600', whiteSpace: 'nowrap' }}>
-                  🏬 Warehouse:
+                <label style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '600', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Warehouse size={14} />
+                  <span>Warehouse:</span>
                 </label>
                 <select
                   value={selectedWarehouse}
@@ -553,10 +583,10 @@ export default function InventoryTab({
                     cursor: 'pointer'
                   }}
                 >
-                  <option value="all">🏬 All Warehouses (Consolidated)</option>
+                  <option value="all">All Warehouses (Consolidated)</option>
                   {cleanWarehouses.map(w => (
                     <option key={w.name} value={w.name}>
-                      🏬 {w.cleanName} {w.item_count ? `(${w.item_count} items)` : (w.total_qty > 0 ? `(${formatShortQty(w.total_qty)})` : '')}
+                      {w.cleanName} {w.item_count ? `(${w.item_count} items)` : (w.total_qty > 0 ? `(${formatShortQty(w.total_qty)})` : '')}
                     </option>
                   ))}
                 </select>
@@ -564,8 +594,9 @@ export default function InventoryTab({
 
               {/* Item Group / Category Filter */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <label style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '600', whiteSpace: 'nowrap' }}>
-                  📁 Group:
+                <label style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '600', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Folder size={14} />
+                  <span>Group:</span>
                 </label>
                 <select
                   value={selectedCategory}
@@ -586,7 +617,7 @@ export default function InventoryTab({
                     cursor: 'pointer'
                   }}
                 >
-                  <option value="all">📁 All Groups ({allInvItems.length})</option>
+                  <option value="all">All Groups ({allInvItems.length})</option>
                   {itemGroups.map(grp => {
                     const count = allInvItems.filter(i => (i.category || i.item_group) === grp).length;
                     return (
@@ -653,7 +684,8 @@ export default function InventoryTab({
                   }}
                   title="Reset all filters"
                 >
-                  ✕ Reset
+                  <X size={12} />
+                  <span>Reset</span>
                 </button>
               )}
             </div>
@@ -669,7 +701,10 @@ export default function InventoryTab({
             {/* 1. Total Stock Valuation */}
             <div className="details-card" style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase' }}>
-                <span>💰 Total In-Stock Value</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <DollarSign size={13} style={{ color: 'var(--accent)' }} />
+                  <span>Total In-Stock Value</span>
+                </span>
                 <span style={{ color: 'var(--success)', fontSize: '11px' }}>● Live</span>
               </div>
               <div style={{ fontSize: '20px', fontWeight: '800', color: 'var(--accent)', fontFamily: 'monospace', letterSpacing: '-0.5px' }}>
@@ -683,8 +718,13 @@ export default function InventoryTab({
             {/* 2. Total In-Stock Units */}
             <div className="details-card" style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase' }}>
-                <span>📦 Total Stock Units</span>
-                <span style={{ color: 'var(--info)' }}>🔢</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <Package size={13} style={{ color: 'var(--info)' }} />
+                  <span>Total Stock Units</span>
+                </span>
+                <span style={{ color: 'var(--info)', display: 'inline-flex', alignItems: 'center' }}>
+                  <Hash size={13} />
+                </span>
               </div>
               <div style={{ fontSize: '20px', fontWeight: '800', color: 'var(--text-main)', fontFamily: 'monospace' }}>
                 {formatQty(currentViewStats.totalUnits)}
@@ -697,8 +737,13 @@ export default function InventoryTab({
             {/* 3. Items In Stock */}
             <div className="details-card" style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase' }}>
-                <span>🏷️ Stocked SKUs</span>
-                <span style={{ color: 'var(--accent)' }}>📋</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <Tag size={13} style={{ color: 'var(--accent)' }} />
+                  <span>Stocked SKUs</span>
+                </span>
+                <span style={{ color: 'var(--accent)', display: 'inline-flex', alignItems: 'center' }}>
+                  <ClipboardList size={13} />
+                </span>
               </div>
               <div style={{ fontSize: '20px', fontWeight: '800', color: 'var(--success)', fontFamily: 'monospace' }}>
                 {currentViewStats.itemsWithStock} <span style={{ fontSize: '12px', fontWeight: '500', color: 'var(--text-muted)' }}>/ {allInvItems.length} SKUs</span>
@@ -711,8 +756,13 @@ export default function InventoryTab({
             {/* 4. Active Location */}
             <div className="details-card" style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', textTransform: 'uppercase' }}>
-                <span>🏬 Filtered Facility</span>
-                <span style={{ color: 'var(--info)' }}>📍</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <Warehouse size={13} style={{ color: 'var(--info)' }} />
+                  <span>Filtered Facility</span>
+                </span>
+                <span style={{ color: 'var(--info)', display: 'inline-flex', alignItems: 'center' }}>
+                  <MapPin size={13} />
+                </span>
               </div>
               <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {selectedWarehouse === 'all' ? 'All Warehouses' : selectedWarehouseCleanName}
@@ -741,9 +791,13 @@ export default function InventoryTab({
                   color: 'var(--accent)',
                   padding: '2px 8px',
                   borderRadius: '4px',
-                  fontWeight: '600'
+                  fontWeight: '600',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
                 }}>
-                  🏬 {selectedWarehouseCleanName}
+                  <Warehouse size={12} />
+                  <span>{selectedWarehouseCleanName}</span>
                 </span>
               )}
               {selectedCategory !== 'all' && (
@@ -753,9 +807,13 @@ export default function InventoryTab({
                   color: '#a78bfa',
                   padding: '2px 8px',
                   borderRadius: '4px',
-                  fontWeight: '600'
+                  fontWeight: '600',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
                 }}>
-                  📁 {selectedCategory}
+                  <Folder size={12} />
+                  <span>{selectedCategory}</span>
                 </span>
               )}
               {onlyInStock && (
@@ -765,9 +823,13 @@ export default function InventoryTab({
                   color: 'var(--success)',
                   padding: '2px 8px',
                   borderRadius: '4px',
-                  fontWeight: '600'
+                  fontWeight: '600',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
                 }}>
-                  ✓ In-Stock Only
+                  <Check size={12} />
+                  <span>In-Stock Only</span>
                 </span>
               )}
             </div>
@@ -778,12 +840,16 @@ export default function InventoryTab({
             <div className="details-card">
               {itemsLoading ? (
                 <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  <div style={{ fontSize: '24px', marginBottom: '8px' }}>⏳</div>
+                  <div style={{ fontSize: '24px', marginBottom: '8px', display: 'flex', justifyContent: 'center' }}>
+                    <Loader2 size={24} className="spin" />
+                  </div>
                   <div>Loading Enabled Items from ERPNext...</div>
                 </div>
               ) : filteredInvItems.length === 0 ? (
                 <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  <div style={{ fontSize: '24px', marginBottom: '8px' }}>🔍</div>
+                  <div style={{ fontSize: '24px', marginBottom: '8px', display: 'flex', justifyContent: 'center' }}>
+                    <Search size={24} />
+                  </div>
                   <strong style={{ display: 'block', fontSize: '14px', color: 'var(--text-main)', marginBottom: '4px' }}>
                     No matching items found
                   </strong>
@@ -966,8 +1032,9 @@ export default function InventoryTab({
                 )}
 
                 {visibleInvCount >= filteredInvItems.length && filteredInvItems.length > 20 && (
-                  <div style={{ color: 'var(--success)', fontSize: '11px', fontWeight: '500', marginTop: '2px' }}>
-                    ✓ All {filteredInvItems.length} enabled items loaded
+                  <div style={{ color: 'var(--success)', fontSize: '11px', fontWeight: '500', marginTop: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                    <Check size={12} />
+                    <span>All {filteredInvItems.length} enabled items loaded</span>
                   </div>
                 )}
               </div>
@@ -1027,7 +1094,10 @@ export default function InventoryTab({
                     justifyContent: 'space-between',
                     alignItems: 'center'
                   }}>
-                    <span>📦 Stock & Valuation Overview</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                      <Package size={14} style={{ color: 'var(--accent)' }} />
+                      <span>Stock & Valuation Overview</span>
+                    </span>
                     <span style={{
                       fontSize: '10px',
                       padding: '2px 7px',
@@ -1341,8 +1411,9 @@ export default function InventoryTab({
                               ⬇ Load More Work Orders (+20 More)
                             </button>
                           ) : (
-                            <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                              ✓ All {(workOrders || []).length} Work Orders loaded
+                            <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                              <Check size={12} style={{ color: 'var(--success)' }} />
+                              <span>All {(workOrders || []).length} Work Orders loaded</span>
                             </span>
                           )}
                         </div>
@@ -1358,7 +1429,9 @@ export default function InventoryTab({
                   <div className="modal-panel" style={{ maxWidth: '650px', width: '95%' }} onClick={(e) => e.stopPropagation()}>
                     <div className="modal-header">
                       <h3 className="modal-title">Stock Entry Details: {selectedEntryName}</h3>
-                      <button className="close-btn" onClick={() => setSelectedEntryName(null)}>✕</button>
+                      <button className="close-btn" onClick={() => setSelectedEntryName(null)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <X size={16} />
+                      </button>
                     </div>
 
                     <div className="modal-content" style={{ maxHeight: '70vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '13px' }}>
@@ -1408,37 +1481,44 @@ export default function InventoryTab({
                               : allItems;
 
                             const modalTabs = isManufacture ? [
-                              { id: 'finished_goods', label: '🎯 Finished Good' },
-                              { id: 'items', label: '📦 Raw Materials Transferred' },
-                              { id: 'accounting', label: '📒 Accounting Ledger' }
+                              { id: 'finished_goods', label: 'Finished Good', icon: Target },
+                              { id: 'items', label: 'Raw Materials Transferred', icon: Package },
+                              { id: 'accounting', label: 'Accounting Ledger', icon: BookOpen }
                             ] : [
-                              { id: 'items', label: '📦 Items Transferred' },
-                              { id: 'accounting', label: '📒 Accounting Ledger' }
+                              { id: 'items', label: 'Items Transferred', icon: Package },
+                              { id: 'accounting', label: 'Accounting Ledger', icon: BookOpen }
                             ];
 
                             return (
                               <>
                                 <div style={{ display: 'flex', gap: '0', borderBottom: '1px solid var(--border-color)', marginTop: '14px', marginBottom: '12px' }}>
-                                  {modalTabs.map(tab => (
-                                    <button
-                                      key={tab.id}
-                                      onClick={() => setEntryActiveTab(tab.id)}
-                                      style={{
-                                        padding: '7px 18px',
-                                        fontSize: '12px',
-                                        fontWeight: '600',
-                                        border: 'none',
-                                        background: 'none',
-                                        cursor: 'pointer',
-                                        outline: 'none',
-                                        color: entryActiveTab === tab.id ? 'var(--accent)' : 'var(--text-muted)',
-                                        borderBottom: entryActiveTab === tab.id ? '2px solid var(--accent)' : '2px solid transparent',
-                                        transition: 'all 0.15s'
-                                      }}
-                                    >
-                                      {tab.label}
-                                    </button>
-                                  ))}
+                                  {modalTabs.map(tab => {
+                                    const TabIcon = tab.icon;
+                                    return (
+                                      <button
+                                        key={tab.id}
+                                        onClick={() => setEntryActiveTab(tab.id)}
+                                        style={{
+                                          padding: '7px 18px',
+                                          fontSize: '12px',
+                                          fontWeight: '600',
+                                          border: 'none',
+                                          background: 'none',
+                                          cursor: 'pointer',
+                                          outline: 'none',
+                                          color: entryActiveTab === tab.id ? 'var(--accent)' : 'var(--text-muted)',
+                                          borderBottom: entryActiveTab === tab.id ? '2px solid var(--accent)' : '2px solid transparent',
+                                          transition: 'all 0.15s',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '6px'
+                                        }}
+                                      >
+                                        <TabIcon size={14} />
+                                        <span>{tab.label}</span>
+                                      </button>
+                                    );
+                                  })}
                                 </div>
 
                                 {entryActiveTab === 'finished_goods' && (
@@ -1471,8 +1551,9 @@ export default function InventoryTab({
                                                 )}
                                               </td>
                                               <td>
-                                                <span style={{ color: 'var(--accent)', fontWeight: '500' }}>
-                                                  🏢 {row.t_warehouse || entryDetails.to_warehouse || '-'}
+                                                <span style={{ color: 'var(--accent)', fontWeight: '500', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                  <Building size={13} />
+                                                  <span>{row.t_warehouse || entryDetails.to_warehouse || '-'}</span>
                                                 </span>
                                               </td>
                                               <td style={{ fontWeight: '700', textAlign: 'right', color: 'var(--success)', fontSize: '13px' }}>

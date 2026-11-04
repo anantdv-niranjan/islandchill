@@ -102,7 +102,7 @@ class FrappeService {
   }
 
   getConnectionSettings() {
-    const connStr = localStorage.getItem(STORAGE_KEYS.CONNECTION);
+    const connStr = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.CONNECTION) : null;
     if (connStr) {
       try {
         const conn = JSON.parse(connStr);
@@ -124,7 +124,9 @@ class FrappeService {
   }
 
   setConnectionSettings(settings) {
-    localStorage.setItem(STORAGE_KEYS.CONNECTION, JSON.stringify(settings));
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(STORAGE_KEYS.CONNECTION, JSON.stringify(settings));
+    }
     this.connection = settings;
   }
 
@@ -300,8 +302,14 @@ class FrappeService {
         'Content-Type': 'application/json'
       });
 
+      const fullMethod = methodName.startsWith('islandchill.')
+        ? methodName
+        : methodName.startsWith('workflow.')
+          ? `islandchill.api.${methodName}`
+          : `islandchill.api.manufacturing.${methodName}`;
+
       try {
-        let response = await fetch(`${baseUrl}/api/method/islandchill.api.manufacturing.${methodName}`, {
+        let response = await fetch(`${baseUrl}/api/method/${fullMethod}`, {
           method: 'POST',
           headers,
           credentials: 'include',
@@ -326,7 +334,7 @@ class FrappeService {
               Accept: 'application/json',
               'Content-Type': 'application/json'
             });
-            response = await fetch(`${baseUrl}/api/method/islandchill.api.manufacturing.${methodName}`, {
+            response = await fetch(`${baseUrl}/api/method/${fullMethod}`, {
               method: 'POST',
               headers: freshHeaders,
               credentials: 'include',
@@ -336,6 +344,23 @@ class FrappeService {
           }
 
           if (!response.ok) {
+            if (['get_incidents', 'create_incident', 'update_incident_investigation'].includes(methodName)) {
+              try {
+                const fallbackResponse = await fetch(`${baseUrl}/api/method/islandchill.api.incident_engine.${methodName}`, {
+                  method: 'POST',
+                  headers,
+                  credentials: 'include',
+                  body: JSON.stringify(payload)
+                });
+                if (fallbackResponse.ok) {
+                  const fbJson = await fallbackResponse.json().catch(() => null);
+                  return fbJson?.message || fbJson;
+                }
+              } catch (_) {
+                // Ignore fallback error and throw original error below
+              }
+            }
+
             const cleaned = this.cleanFrappeError(rawMessage);
             if (this.isSessionExpiredError(response.status, rawMessage)) {
               this.triggerSessionExpired(cleaned);
@@ -464,18 +489,79 @@ class FrappeService {
   async logout() {
     try {
       const baseUrl = this.resolveUrl(this.connection.url);
-      await fetch(`${baseUrl}/api/method/logout`, {
+      const csrf = this.getCsrfToken();
+      const headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      };
+      if (csrf) {
+        headers['X-Frappe-CSRF-Token'] = csrf;
+      }
+
+      // Fast single call to robust backend endpoint
+      await fetch(`${baseUrl}/api/method/islandchill.api.permissions.mes_logout`, {
         method: 'POST',
         credentials: 'include',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
+        headers,
+        body: JSON.stringify({ csrf_token: csrf || '' })
       }).catch(() => {});
     } catch (e) {
       console.warn('Logout API call failed:', e);
     }
-    this.setConnectionSettings({ isLive: false, url: CONFIG.ERPNEXT_SERVER_URL, apiKey: '', apiSecret: '', username: '', password: '', connected: false, defaultCompany: 'Carpenters Waters (Fiji) PTE Limited' });
+
+    // Purge all auth and session cookies client-side across all path scopes
+    if (typeof document !== 'undefined') {
+      const cookiesToClear = ['sid', 'system_user', 'user_id', 'full_name', 'user_image', 'user_lang'];
+      cookiesToClear.forEach(name => {
+        document.cookie = `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0;`;
+        document.cookie = `${name}=; Path=/app; Expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0;`;
+        document.cookie = `${name}=; Path=/islandchill; Expires=Thu, 01 Jan 1970 00:00:01 GMT; Max-Age=0;`;
+      });
+    }
+
+    // Clear storage and cached doctypes
+    this._cachedConfiguredDoctypes = null;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEYS.CONNECTION);
+    }
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.clear();
+    }
+
+    this.setConnectionSettings({
+      isLive: false,
+      url: CONFIG.ERPNEXT_SERVER_URL,
+      apiKey: '',
+      apiSecret: '',
+      username: '',
+      password: '',
+      connected: false,
+      defaultCompany: 'Carpenters Waters (Fiji) PTE Limited'
+    });
+  }
+
+  // Fetch active user's effective portal permissions (allowed_pages, allowed_forms)
+  async getUserPortalPermissions() {
+    if (!this.connection.isLive) return null;
+    try {
+      const baseUrl = this.resolveUrl(this.connection.url);
+      const headers = this.attachCsrfHeader({
+        Accept: 'application/json',
+        'Content-Type': 'application/json'
+      });
+      const response = await fetch(`${baseUrl}/api/method/islandchill.api.permissions.get_user_portal_permissions`, {
+        method: 'POST',
+        headers,
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const json = await response.json();
+        return json?.message || json;
+      }
+    } catch (e) {
+      console.warn('[FrappeService] Failed to fetch user portal permissions:', e);
+    }
+    return null;
   }
 
   // Generic Fetch wrapper
@@ -1661,7 +1747,7 @@ class FrappeService {
               equipment: rec.equipment,
               workOrder: rec.work_order,
               area: rec.area,
-              name: rec.equipment,
+              equipmentName: rec.equipment,
               weekNo: rec.week_no,
               fromDate: rec.from_date,
               toDate: rec.to_date,
@@ -1736,20 +1822,38 @@ class FrappeService {
       });
 
       try {
+        const resolveEmp = (val) => {
+          if (!val) return '';
+          const trimmed = String(val).trim();
+          if (/^HR-EMP-\d+$/i.test(trimmed) || /^EMP-\d+$/i.test(trimmed)) return trimmed;
+          const match = trimmed.match(/\((HR-EMP-\d+|EMP-\d+)\)/i);
+          if (match) return match[1].toUpperCase();
+          if (/^dipankar/i.test(trimmed)) return 'HR-EMP-00017';
+          if (/^admin(istrator)?$/i.test(trimmed)) return 'HR-EMP-00016';
+          return '';
+        };
+
+        const resolvedOp = resolveEmp(scheduleData.operator) || 'HR-EMP-00017';
+        // Supervisor is optional at creation (Stage 1 Draft / Pending Verification)
+        const resolvedSup = scheduleData.supervisor ? (resolveEmp(scheduleData.supervisor) || '') : '';
+
         const res = await this.callIslandChillMethod('create_daily_pm_schedule', {
           equipment: scheduleData.equipment,
           area: scheduleData.area,
           work_order: scheduleData.workOrder || scheduleData.work_order || '',
-          operator: scheduleData.operator || 'Administrator',
-          supervisor: scheduleData.supervisor || 'Administrator',
+          operator: resolvedOp,
+          supervisor: resolvedSup,
           overall_remarks: scheduleData.overallComments || '',
           maintenance_details: JSON.stringify(checklistItems),
           week_no: scheduleData.weekNo || '',
           from_date: scheduleData.fromDate || new Date().toISOString().slice(0, 10),
           to_date: scheduleData.toDate || new Date().toISOString().slice(0, 10),
+          is_incident: scheduleData.is_incident ? 1 : 0,
+          incident_severity: scheduleData.incident_severity || 'Medium',
+          incident_note: scheduleData.incident_note || ''
         });
         if (res && res.name) {
-          return { success: true, name: res.name };
+          return { success: true, name: res.name, linked_incident: res.linked_incident };
         }
         throw new Error(res?.message || 'Failed to create Daily PM Schedule');
       } catch (err) {
@@ -1931,17 +2035,22 @@ class FrappeService {
   async createSalesInvoice(invoiceData) {
     if (this.connection.isLive) {
       try {
+        const defaultWh = invoiceData.defaultWarehouse || invoiceData.set_warehouse || 'Finished Goods - CWFPL';
         const payload = {
           customer: invoiceData.customer,
           posting_date: invoiceData.postingDate,
           due_date: invoiceData.dueDate || invoiceData.postingDate,
           company: invoiceData.company || this.connection.defaultCompany || 'Carpenters Waters (Fiji) PTE Limited',
           docstatus: invoiceData.docstatus || 1, // 0 for Draft, 1 for Submitted
+          selling_price_list: invoiceData.sellingPriceList || invoiceData.priceList || 'Standard Selling',
+          taxes_and_charges: invoiceData.taxesAndCharges || invoiceData.taxTemplate || undefined,
+          update_stock: invoiceData.updateStock ? 1 : 0,
+          set_warehouse: defaultWh,
           items: invoiceData.items.map(item => ({
-            item_code: item.code,
+            item_code: item.code || item.item_code,
             qty: Number(item.qty),
             rate: Number(item.rate),
-            warehouse: item.warehouse || "Finished Goods - AD"
+            warehouse: item.warehouse || defaultWh
           }))
         };
         const response = await this.makeRequest('POST', 'Sales Invoice', '', payload);
@@ -1960,15 +2069,20 @@ class FrappeService {
       try {
         // In ERPNext, to amend a submitted document, you cancel the old one and create a new amended one.
         // For simplicity, we perform a standard PUT if updating a Draft, or simulate cancellation/amendment
+        const defaultWh = invoiceData.defaultWarehouse || invoiceData.set_warehouse || 'Finished Goods - CWFPL';
         const payload = {
           customer: invoiceData.customer,
           posting_date: invoiceData.postingDate,
           due_date: invoiceData.dueDate,
+          selling_price_list: invoiceData.sellingPriceList || invoiceData.priceList || 'Standard Selling',
+          taxes_and_charges: invoiceData.taxesAndCharges || invoiceData.taxTemplate || undefined,
+          update_stock: invoiceData.updateStock ? 1 : 0,
+          set_warehouse: defaultWh,
           items: invoiceData.items.map(item => ({
-            item_code: item.code,
+            item_code: item.code || item.item_code,
             qty: Number(item.qty),
             rate: Number(item.rate),
-            warehouse: item.warehouse || "Finished Goods - AD"
+            warehouse: item.warehouse || defaultWh
           }))
         };
         const response = await this.makeRequest('PUT', 'Sales Invoice', invoiceId, payload);
@@ -2207,104 +2321,32 @@ class FrappeService {
 
   // Create custom Cleaning and Sanitation log record
   async createCleaningSanitationRecord(doctype, data) {
-    if (this.connection.isLive) {
-      try {
-        const response = await this.makeRequest('POST', doctype, '', {
-          ...data,
-          docstatus: 1
-        });
-        return { success: true, name: response.data.name };
-      } catch (e) {
-        console.error(`Failed to create ${doctype} on ERPNext:`, e);
-        throw e;
-      }
-    }
-    return { success: true, name: `CS-${doctype.replace(/\s+/g, '-').slice(0, 8).toUpperCase()}-${Date.now().toString().slice(-6)}` };
+    return this.saveDocRecord(doctype, data);
   }
 
   // Create Standard Form 17 For First Aid record
   async createFirstAidRecord(data) {
-    if (this.connection.isLive) {
-      try {
-        const response = await this.makeRequest('POST', 'Standard Form 17 For First Aid', '', {
-          ...data,
-          docstatus: 1
-        });
-        return { success: true, name: response.data.name };
-      } catch (e) {
-        console.error('Failed to create Standard Form 17 For First Aid on ERPNext:', e);
-        throw e;
-      }
-    }
-    return { success: true, name: `SAF-FA-${Date.now().toString().slice(-6)}` };
+    return this.saveDocRecord('Standard Form 17 For First Aid', data);
   }
 
   // Create Enviromental Swab Test record
   async createSwabTestRecord(data) {
-    if (this.connection.isLive) {
-      try {
-        const response = await this.makeRequest('POST', 'Enviromental Swab Test', '', {
-          ...data,
-          docstatus: 1
-        });
-        return { success: true, name: response.data.name };
-      } catch (e) {
-        console.error('Failed to create Enviromental Swab Test on ERPNext:', e);
-        throw e;
-      }
-    }
-    return { success: true, name: `SAF-SWAB-${Date.now().toString().slice(-6)}` };
+    return this.saveDocRecord('Enviromental Swab Test', data);
   }
 
   // Create Induction record
   async createInductionRecord(data) {
-    if (this.connection.isLive) {
-      try {
-        const response = await this.makeRequest('POST', 'Induction', '', {
-          ...data,
-          docstatus: 1
-        });
-        return { success: true, name: response.data.name };
-      } catch (e) {
-        console.error('Failed to create Induction on ERPNext:', e);
-        throw e;
-      }
-    }
-    return { success: true, name: `SAF-IND-${Date.now().toString().slice(-6)}` };
+    return this.saveDocRecord('Induction', data);
   }
 
   // Create Injury Report record
   async createInjuryRecord(data) {
-    if (this.connection.isLive) {
-      try {
-        const response = await this.makeRequest('POST', 'Injury Report', '', {
-          ...data,
-          docstatus: 1
-        });
-        return { success: true, name: response.data.name };
-      } catch (e) {
-        console.error('Failed to create Injury Report on ERPNext:', e);
-        throw e;
-      }
-    }
-    return { success: true, name: `SAF-INJ-${Date.now().toString().slice(-6)}` };
+    return this.saveDocRecord('Injury Report', data);
   }
 
   // Create Accident and Disease Notification Report record
   async createAccidentDiseaseReport(data) {
-    if (this.connection.isLive) {
-      try {
-        const response = await this.makeRequest('POST', 'Accident and Disease Notification Report', '', {
-          ...data,
-          docstatus: 1
-        });
-        return { success: true, name: response.data.name };
-      } catch (e) {
-        console.error('Failed to create Accident and Disease Notification Report on ERPNext:', e);
-        throw e;
-      }
-    }
-    return { success: true, name: `SAF-ADR-${Date.now().toString().slice(-6)}` };
+    return this.saveDocRecord('Accident and Disease Notification Report', data);
   }
 
   // Generic save document record with RPC ignore_permissions & submittable safety
@@ -2372,7 +2414,11 @@ class FrappeService {
         payload
       });
       if (res && (res.name || res.doc)) {
-        return { success: true, name: res.name || (res.doc ? res.doc.name : `REC-${Date.now().toString().slice(-6)}`) };
+        return {
+          success: true,
+          name: res.name || (res.doc ? res.doc.name : `REC-${Date.now().toString().slice(-6)}`),
+          linked_incident: res.incident_name || res.linked_incident
+        };
       }
     } catch (rpcErr) {
       console.warn(`RPC create_cleaning_sanitation_log for "${doctype}" failed, trying with sample link fix or REST:`, rpcErr);
@@ -2382,7 +2428,11 @@ class FrappeService {
           const fixedPayload = fixSampleLinkPrefixes(payload);
           const res2 = await this.callIslandChillMethod('create_cleaning_sanitation_log', { doctype, payload: fixedPayload });
           if (res2 && (res2.name || res2.doc)) {
-            return { success: true, name: res2.name || (res2.doc ? res2.doc.name : `REC-${Date.now().toString().slice(-6)}`) };
+            return {
+              success: true,
+              name: res2.name || (res2.doc ? res2.doc.name : `REC-${Date.now().toString().slice(-6)}`),
+              linked_incident: res2.incident_name || res2.linked_incident
+            };
           }
         } catch (eFix) {
           console.warn('RPC sample link fix retry failed:', eFix);
@@ -2595,14 +2645,29 @@ class FrappeService {
   async createBreakdownRecord(data) {
     if (this.connection.isLive) {
       try {
-        const response = await this.makeRequest('POST', 'Machine Breakdown', '', {
-          ...data,
-          docstatus: 1
+        const res = await this.callIslandChillMethod('create_cleaning_sanitation_log', {
+          doctype: 'Machine Breakdown',
+          payload: { ...data, docstatus: 1 }
         });
-        return { success: true, name: response.data.name };
+        if (res && (res.name || res.doc)) {
+          return {
+            success: true,
+            name: res.name || (res.doc ? res.doc.name : `MB-${Date.now().toString().slice(-6)}`),
+            linked_incident: res.incident_name || res.linked_incident
+          };
+        }
       } catch (e) {
-        console.error('Failed to create Machine Breakdown record on ERPNext:', e);
-        throw e;
+        console.warn('RPC create_cleaning_sanitation_log failed for Machine Breakdown, falling back to makeRequest:', e);
+        try {
+          const response = await this.makeRequest('POST', 'Machine Breakdown', '', {
+            ...data,
+            docstatus: 1
+          });
+          return { success: true, name: response.data.name };
+        } catch (err2) {
+          console.error('Failed to create Machine Breakdown record on ERPNext:', err2);
+          throw err2;
+        }
       }
     }
     return { success: true, name: `MAINT-SOP002-${Date.now().toString().slice(-6)}` };
@@ -2627,18 +2692,7 @@ class FrappeService {
 
   // Create custom Cleaning and Sanitation log record via RPC ignore_permissions
   async createCleaningSanitationRecord(doctype, data) {
-    try {
-      const res = await this.callIslandChillMethod('create_cleaning_sanitation_log', {
-        doctype,
-        payload: { ...data, docstatus: 1 }
-      });
-      if (res && (res.name || res.doc)) {
-        return { success: true, name: res.name || (res.doc ? res.doc.name : `CS-${Date.now().toString().slice(-6)}`) };
-      }
-    } catch (e) {
-      console.error(`RPC create_cleaning_sanitation_log for ${doctype} error:`, e);
-    }
-    return { success: true, name: `CS-${Date.now().toString().slice(-6)}` };
+    return this.saveDocRecord(doctype, data);
   }
 
   // Create Toilet Cleaning purpose record
@@ -2734,7 +2788,7 @@ class FrappeService {
 
   // Create Incubator Temperature Record
   async createIncubatorTemperatureRecord(data) {
-    return this.createCleaningSanitationRecord('Incubator Temperature Record', data);
+    return this.saveDocRecord('Incubator Temperature Record', data);
   }
 
   // Fetch Equipment List records
@@ -2873,9 +2927,20 @@ async getEquipmentList(params = {}) {
     return [];
   }
 
-  // Fetch DocType meta field definitions
+  // Fetch DocType meta field definitions (including Custom Fields like is_incident)
   async getDocTypeMeta(doctype) {
     if (this.connection.isLive) {
+      // 1. Try IslandChill RPC which loads full schema with Custom Fields
+      try {
+        const res = await this.callIslandChillMethod('get_doctype_meta', { doctype });
+        if (res && res.fields && res.fields.length > 0) {
+          return res;
+        }
+      } catch (rpcErr) {
+        console.warn(`RPC get_doctype_meta for "${doctype}" failed, trying REST fallback:`, rpcErr);
+      }
+
+      // 2. Fallback: REST DocType resource
       try {
         const res = await this.makeRequest('GET', 'DocType', doctype);
         return res?.data || null;
@@ -2922,28 +2987,7 @@ async getEquipmentList(params = {}) {
 
   // Create custom Cleaning and Sanitation log record via RPC ignore_permissions
   async createCleaningSanitationRecord(doctype, data) {
-    if (this.connection.isLive) {
-      try {
-        const res = await this.callIslandChillMethod('create_cleaning_sanitation_log', {
-          doctype,
-          payload: { ...data, docstatus: 1 }
-        });
-        if (res && res.name) return { success: true, name: res.name };
-      } catch (e) {
-        console.warn(`RPC create_cleaning_sanitation_log for ${doctype} failed, falling back to POST:`, e);
-      }
-      try {
-        const response = await this.makeRequest('POST', doctype, '', {
-          ...data,
-          docstatus: 1
-        });
-        return { success: true, name: response.data.name };
-      } catch (e) {
-        console.error(`Failed to create ${doctype} on ERPNext:`, e);
-        throw e;
-      }
-    }
-    return { success: true, name: `CS-${Date.now().toString().slice(-6)}` };
+    return this.saveDocRecord(doctype, data);
   }
 
   // Update/amend custom Cleaning and Sanitation log record
@@ -2974,7 +3018,28 @@ async getEquipmentList(params = {}) {
     return { success: true };
   }
 
-  // Fetch all Cleaning & Sanitation records across all 7 DocTypes
+  // Dynamic Configured DocType Resolver (Zero Hardcoded DocTypes)
+  async getConfiguredDoctypes(category) {
+    if (!this._cachedConfiguredDoctypes) {
+      try {
+        const res = await this.callIslandChillMethod('get_configured_form_doctypes');
+        if (res && typeof res === 'object') {
+          this._cachedConfiguredDoctypes = res;
+        }
+      } catch (e) {
+        console.warn('Failed to load configured form doctypes from backend:', e);
+      }
+    }
+    if (this._cachedConfiguredDoctypes && category && this._cachedConfiguredDoctypes[category]) {
+      return this._cachedConfiguredDoctypes[category];
+    }
+    if (this._cachedConfiguredDoctypes && this._cachedConfiguredDoctypes.all) {
+      return this._cachedConfiguredDoctypes.all;
+    }
+    return [];
+  }
+
+  // Fetch all Cleaning & Sanitation records dynamically across all configured cleaning DocTypes
   async fetchAllCleaningRecords() {
     try {
       const res = await this.callIslandChillMethod('get_all_cleaning_records');
@@ -2985,16 +3050,17 @@ async getEquipmentList(params = {}) {
       console.warn('Backend RPC get_all_cleaning_records failed, falling back to fetchERP:', e);
     }
 
-    const doctypes = [
-      'Cleaning of Toilets',
-      'Cleaning of Dining Room',
-      'Factory Floor',
-      'Cleaning of Lab and Office',
-      'Incubator Temperature Record',
-      'Balance Check or Callibration',
-      'equipment sanitation and cip',
-      'Outside Perimeter Cleaning'
-    ];
+    let doctypes = await this.getConfiguredDoctypes('cleaning');
+    if (!doctypes || doctypes.length === 0) {
+      try {
+        const perms = await this.getUserPortalPermissions();
+        if (perms && perms.allowed_forms) {
+          const forms = Object.values(perms.allowed_forms);
+          doctypes = forms.filter(f => (f.form_code || '').startsWith('clean-') && f.doctype_name).map(f => f.doctype_name);
+        }
+      } catch (_) {}
+    }
+    if (!doctypes || doctypes.length === 0) return [];
 
     try {
       const results = await Promise.allSettled(
@@ -3055,6 +3121,119 @@ async getEquipmentList(params = {}) {
     }
   }
 
+  // Fetch all Laboratory QA records dynamically across all configured Lab DocTypes
+  async fetchAllLaboratoryRecords() {
+    let doctypes = await this.getConfiguredDoctypes('laboratory');
+    if (!doctypes || doctypes.length === 0) {
+      try {
+        const perms = await this.getUserPortalPermissions();
+        if (perms && perms.allowed_forms) {
+          const forms = Object.values(perms.allowed_forms);
+          doctypes = forms.filter(f => (f.form_code || '').startsWith('form') && f.doctype_name).map(f => f.doctype_name);
+        }
+      } catch (_) {}
+    }
+    if (!doctypes || doctypes.length === 0) return [];
+
+    try {
+      const results = await Promise.allSettled(
+        doctypes.map(dt => this.fetchERP(dt, { fields: ['*'], limit: 100, order_by: 'creation desc' }))
+      );
+
+      const allRecords = [];
+      results.forEach((res, index) => {
+        const dt = doctypes[index];
+        if (res.status === 'fulfilled' && Array.isArray(res.value)) {
+          res.value.forEach(item => {
+            const dateStr = item.date || item.date_of_analysis || item.posting_date || (item.creation ? item.creation.split(' ')[0] : '');
+            const timeStr = item.time || item.posting_time || (item.creation ? item.creation.split(' ')[1] : '');
+            allRecords.push({
+              id: item.name,
+              name: item.name,
+              type: dt,
+              doctype: dt,
+              timestamp: item.creation || item.modified || new Date().toISOString(),
+              date: dateStr,
+              time: timeStr,
+              docstatus: item.docstatus,
+              workflow_state: item.workflow_state || (item.docstatus === 1 ? 'Approved' : 'Pending Verification'),
+              status: item.workflow_state || (item.docstatus === 1 ? 'Approved' : 'Pending Verification'),
+              work_order: item.work_order || '',
+              analyst: item.analyst || item.chemist || item.testedBy || item.operator || item.user || item.owner || 'Lab Chemist',
+              verified_by: item.verified_by || item.verified_by_supervisor || '',
+              approved_by: item.approved_by || item.supervisor || item.approved_by_manager || '',
+              remarks: item.remarks || item.comments || item.notes || '',
+              details: item
+            });
+          });
+        }
+      });
+
+      allRecords.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      return allRecords;
+    } catch (e) {
+      console.error('Failed to fetch all laboratory records from ERPNext:', e);
+      return [];
+    }
+  }
+
+  // Fetch all Health, Safety & Environment records dynamically across all configured Safety DocTypes
+  async fetchAllSafetyRecords() {
+    let doctypes = await this.getConfiguredDoctypes('safety');
+    if (!doctypes || doctypes.length === 0) {
+      try {
+        const perms = await this.getUserPortalPermissions();
+        if (perms && perms.allowed_forms) {
+          const forms = Object.values(perms.allowed_forms);
+          doctypes = forms.filter(f => (f.form_code || '').startsWith('safety-') && f.doctype_name).map(f => f.doctype_name);
+        }
+      } catch (_) {}
+    }
+    if (!doctypes || doctypes.length === 0) return [];
+
+    try {
+      const results = await Promise.allSettled(
+        doctypes.map(dt => this.fetchERP(dt, { fields: ['*'], limit: 100, order_by: 'creation desc' }))
+      );
+
+      const allRecords = [];
+      results.forEach((res, index) => {
+        const dt = doctypes[index];
+        if (res.status === 'fulfilled' && Array.isArray(res.value)) {
+          res.value.forEach(item => {
+            const dateStr = item.date || item.date_notified || (item.creation ? item.creation.split(' ')[0] : '');
+            const timeStr = item.time || item.incident_time || (item.creation ? item.creation.split(' ')[1] : '');
+            allRecords.push({
+              id: item.name,
+              name: item.name,
+              type: dt,
+              doctype: dt,
+              timestamp: item.creation || item.modified || new Date().toISOString(),
+              date: dateStr,
+              time: timeStr,
+              docstatus: item.docstatus,
+              workflow_state: item.workflow_state || (item.docstatus === 1 ? 'Approved' : 'Pending Verification'),
+              status: item.workflow_state || (item.docstatus === 1 ? 'Approved' : 'Pending Verification'),
+              work_order: item.work_order || '',
+              injuredPerson: item.injured_person || item.employee_name || item.name || '',
+              injured_person: item.injured_person || item.employee_name || item.name || '',
+              operator: item.operator || item.reported_by || item.owner || 'Safety Officer',
+              supervisor: item.supervisor || item.verified_by || '',
+              incidentType: item.incident_type || '',
+              details: item
+            });
+          });
+        }
+      });
+
+      allRecords.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      return allRecords;
+    } catch (e) {
+      console.error('Failed to fetch all safety records from ERPNext:', e);
+      return [];
+    }
+  }
+
 
   async getWorkOrderDashboard(limit = 20, start = 0, company = '', status = '', search = '') {
     const baseUrl = this.resolveUrl(this.connection.url);
@@ -3081,7 +3260,199 @@ async getEquipmentList(params = {}) {
 
     return json.message;
   }
+
+  async verifyForm(doctype, name, notes = '') {
+    if (this.connection.isLive) {
+      try {
+        const response = await this.callIslandChillMethod('islandchill.api.workflow.verify_form', {
+          doctype,
+          name,
+          notes
+        });
+        return response?.message || response;
+      } catch (e) {
+        console.error(`Failed to verify ${doctype} ${name}:`, e);
+        throw e;
+      }
+    }
+    return { success: true, name, workflow_state: 'Pending Approval' };
+  }
+
+  async approveForm(doctype, name, notes = '') {
+    if (this.connection.isLive) {
+      try {
+        const response = await this.callIslandChillMethod('islandchill.api.workflow.approve_form', {
+          doctype,
+          name,
+          notes
+        });
+        return response?.message || response;
+      } catch (e) {
+        console.error(`Failed to approve ${doctype} ${name}:`, e);
+        throw e;
+      }
+    }
+    return { success: true, name, workflow_state: 'Approved', docstatus: 1 };
+  }
+
+  async rejectForm(doctype, name, reason = '') {
+    if (this.connection.isLive) {
+      try {
+        const response = await this.callIslandChillMethod('islandchill.api.workflow.reject_form', {
+          doctype,
+          name,
+          reason
+        });
+        return response?.message || response;
+      } catch (e) {
+        console.error(`Failed to reject ${doctype} ${name}:`, e);
+        throw e;
+      }
+    }
+    return { success: true, name, workflow_state: 'Rejected', rejection_reason: reason };
+  }
+
+  async markFormIncident(doctype, name, incidentTitle = '', description = '') {
+    if (this.connection.isLive) {
+      try {
+        const response = await this.callIslandChillMethod('islandchill.api.workflow.mark_form_incident', {
+          doctype,
+          name,
+          incident_title: incidentTitle,
+          description
+        });
+        return response?.message || response;
+      } catch (e) {
+        console.error(`Failed to mark incident for ${doctype} ${name}:`, e);
+        throw e;
+      }
+    }
+    return { success: true, incident_name: `INC-MOCK` };
+  }
+
+  // Fetch Plant Incident records
+  async getIncidents(options = {}) {
+    const conn = this.getConnectionSettings();
+    if (conn.isLive || this.connection.isLive) {
+      try {
+        const incidents = await this.callIslandChillMethod('get_incidents', {
+          status: options.status || '',
+          line: options.line || '',
+          limit: options.limit || 200
+        });
+        if (Array.isArray(incidents)) {
+          return incidents;
+        }
+      } catch (e) {
+        console.warn('[FrappeService] RPC get_incidents failed, falling back to fetchERP:', e);
+      }
+
+      try {
+        const res = await this.fetchERP('Plant Incident', {
+          fields: ['*'],
+          limit: options.limit || 200,
+          start: options.start || 0,
+          order_by: options.order_by || 'creation desc'
+        });
+        return res || [];
+      } catch (err) {
+        console.error('[FrappeService] Failed to fetch Plant Incident from ERPNext:', err);
+        throw err;
+      }
+    }
+    return null;
+  }
+
+  // Create Plant Incident record
+  async createIncident(data) {
+    const conn = this.getConnectionSettings();
+    if (conn.isLive || this.connection.isLive) {
+      const statusMap = {
+        'open': 'Open',
+        'acknowledged': 'Acknowledged',
+        'pending': 'Pending',
+        'resolved': 'Resolved',
+        'closed': 'Closed'
+      };
+      const cleanedData = { ...data };
+      if (cleanedData.status) {
+        const rawStatus = String(cleanedData.status).trim();
+        cleanedData.status = statusMap[rawStatus.toLowerCase()] || (rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1));
+      }
+
+      try {
+        const res = await this.callIslandChillMethod('create_incident', { data: cleanedData });
+        if (res) return res;
+      } catch (e) {
+        console.warn('[FrappeService] RPC create_incident failed, falling back to direct creation:', e);
+      }
+
+      try {
+        const res = await this.makeRequest('POST', 'Plant Incident', '', cleanedData);
+        return res?.data || res;
+      } catch (err) {
+        console.error('[FrappeService] Failed to create Plant Incident in ERPNext:', err);
+        throw err;
+      }
+    }
+    return null;
+  }
+
+  // Update Plant Incident investigation (RCA, CAPA, status)
+  async updateIncidentInvestigation(data) {
+    const conn = this.getConnectionSettings();
+    if (conn.isLive || this.connection.isLive) {
+      const statusMap = {
+        'open': 'Open',
+        'acknowledged': 'Acknowledged',
+        'pending': 'Pending',
+        'resolved': 'Resolved',
+        'closed': 'Closed'
+      };
+      const rawStatus = String(data.status || '').trim();
+      const normalizedStatus = statusMap[rawStatus.toLowerCase()] || (rawStatus ? rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1) : undefined);
+
+      try {
+        const res = await this.callIslandChillMethod('update_incident_investigation', {
+          incident_id: data.incidentId || data.incident_id || data.name || data.id,
+          status: normalizedStatus || data.status,
+          investigation_status: data.investigationStatus || data.investigation_status,
+          root_cause: data.rootCause || data.root_cause_analysis,
+          corrective_action: data.correctiveAction || data.corrective_action,
+          downtime_minutes: data.downtimeMinutes ?? data.downtime_minutes,
+          units_rejected: data.unitsRejected ?? data.units_rejected,
+          resolved_by: data.resolvedBy || data.resolved_by,
+          resolution_date: data.resolutionDate || data.resolution_date
+        });
+        if (res) return res;
+      } catch (e) {
+        console.warn('[FrappeService] RPC update_incident_investigation failed, falling back to direct update:', e);
+      }
+
+      const id = data.incidentId || data.incident_id || data.name || data.id;
+      if (id) {
+        try {
+          const res = await this.makeRequest('PUT', 'Plant Incident', id, {
+            status: normalizedStatus || data.status,
+            investigation_status: data.investigationStatus || data.investigation_status,
+            root_cause_analysis: data.rootCause || data.root_cause_analysis,
+            corrective_action: data.correctiveAction || data.corrective_action,
+            downtime_minutes: data.downtimeMinutes ?? data.downtime_minutes,
+            units_rejected: data.unitsRejected ?? data.units_rejected,
+            resolved_by: data.resolvedBy || data.resolved_by,
+            resolution_date: data.resolutionDate || data.resolution_date
+          });
+          return res?.data || res;
+        } catch (err) {
+          console.error('[FrappeService] Failed to update Plant Incident in ERPNext:', err);
+          throw err;
+        }
+      }
+    }
+    return null;
+  }
 }
+
 
 export const frappe = new FrappeService();
 

@@ -4,12 +4,25 @@
   const SWITCH_ID = 'islandchill-mes-switch';
   const DROPDOWN_SWITCH_ID = 'islandchill-mes-dropdown-switch';
 
+  const ISLANDCHILL_ROLES = [
+    'IslandChill MES User',
+    'IslandChill Admin User',
+    'Technical Production Coordinator',
+    'Production Manager',
+    'Lab Technicians',
+    'OHS Rep',
+    'Quality Checks',
+    'Supervisor',
+    'Warehouse Supervisor',
+    'Gardener'
+  ];
+
   const getRoles = () => {
     if (window.frappe) {
       if (Array.isArray(frappe.user_roles) && frappe.user_roles.length > 0) return frappe.user_roles;
       if (frappe.boot?.user?.roles && Array.isArray(frappe.boot.user.roles)) return frappe.boot.user.roles;
-      if (frappe.session?.user === 'Administrator') return ['Administrator', 'System Manager', 'IslandChill MES User', 'IslandChill Admin User'];
-      if (frappe.boot?.user?.name === 'Administrator') return ['Administrator', 'System Manager', 'IslandChill MES User', 'IslandChill Admin User'];
+      if (frappe.session?.user === 'Administrator') return ['Administrator', 'System Manager', ...ISLANDCHILL_ROLES];
+      if (frappe.boot?.user?.name === 'Administrator') return ['Administrator', 'System Manager', ...ISLANDCHILL_ROLES];
     }
     return [];
   };
@@ -17,13 +30,13 @@
   const canSwitchToMES = () => {
     const roles = getRoles();
     if (roles.includes('Administrator') || roles.includes('System Manager')) return true;
-    return roles.includes(MES_ROLE);
+    return roles.some((r) => ISLANDCHILL_ROLES.includes(r));
   };
 
   const installLogoutRedirect = () => {
     if (window.frappe && frappe.app) {
       frappe.app.redirect_to_login = () => {
-        window.location.href = '/islandchill';
+        window.location.href = '/islandchill?logout=1';
       };
     }
   };
@@ -36,14 +49,15 @@
       #${SWITCH_ID} {
         display: inline-flex !important;
         align-items: center !important;
-        margin-right: 12px !important;
         z-index: 1020 !important;
+        box-sizing: border-box !important;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
       }
       #${SWITCH_ID} .islandchill-switch-link {
         display: inline-flex !important;
         align-items: center !important;
         gap: 6px !important;
-        padding: 5px 13px !important;
+        padding: 5px 12px !important;
         border: 1px solid #d97706 !important;
         border-radius: 8px !important;
         color: #b45309 !important;
@@ -56,6 +70,7 @@
         box-shadow: 0 1px 3px rgba(217, 119, 6, 0.12) !important;
         cursor: pointer !important;
         line-height: 1.5 !important;
+        box-sizing: border-box !important;
       }
       #${SWITCH_ID} .islandchill-switch-link:hover {
         border-color: #b45309 !important;
@@ -64,6 +79,104 @@
         transform: translateY(-1px) !important;
         box-shadow: 0 4px 8px -1px rgba(217, 119, 6, 0.2) !important;
       }
+      #${SWITCH_ID} .islandchill-switch-icon {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 14px !important;
+        line-height: 1 !important;
+        flex-shrink: 0 !important;
+      }
+      #${SWITCH_ID} .islandchill-switch-text {
+        display: inline-block !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        transition: opacity 0.2s ease !important;
+      }
+
+      /* Desktop top navbar styling */
+      .desktop-navbar #${SWITCH_ID},
+      header.navbar #${SWITCH_ID},
+      .navbar #${SWITCH_ID} {
+        margin-right: 12px !important;
+      }
+
+      /* Desk Sidebar base styling */
+      .body-sidebar #${SWITCH_ID} {
+        display: flex !important;
+        width: 100% !important;
+        margin: 6px 0 8px 0 !important;
+        padding: 0 4px !important;
+        justify-content: center !important;
+        box-sizing: border-box !important;
+      }
+
+      /* Sidebar EXPANDED state: full width pill */
+      .body-sidebar-container.expanded #${SWITCH_ID}:not(.is-collapsed) {
+        padding: 0 4px !important;
+      }
+      .body-sidebar-container.expanded #${SWITCH_ID}:not(.is-collapsed) .islandchill-switch-link {
+        width: 100% !important;
+        justify-content: center !important;
+        padding: 6px 10px !important;
+        gap: 6px !important;
+      }
+      .body-sidebar-container.expanded #${SWITCH_ID}:not(.is-collapsed) .islandchill-switch-text {
+        display: inline-block !important;
+      }
+
+      /* Sidebar COLLAPSED states (by container class or .is-collapsed class) */
+      .body-sidebar-container:not(.expanded) #${SWITCH_ID},
+      .body-sidebar-container.collapsed #${SWITCH_ID},
+      .body-sidebar.collapsed #${SWITCH_ID},
+      .body-sidebar[data-collapsed="true"] #${SWITCH_ID},
+      #${SWITCH_ID}.is-collapsed {
+        width: 100% !important;
+        margin: 6px auto 8px auto !important;
+        padding: 0 !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+      }
+
+      .body-sidebar-container:not(.expanded) #${SWITCH_ID} .islandchill-switch-link,
+      .body-sidebar-container.collapsed #${SWITCH_ID} .islandchill-switch-link,
+      .body-sidebar.collapsed #${SWITCH_ID} .islandchill-switch-link,
+      .body-sidebar[data-collapsed="true"] #${SWITCH_ID} .islandchill-switch-link,
+      #${SWITCH_ID}.is-collapsed .islandchill-switch-link {
+        width: 34px !important;
+        min-width: 34px !important;
+        max-width: 34px !important;
+        height: 34px !important;
+        padding: 0 !important;
+        border-radius: 8px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 0 auto !important;
+        gap: 0 !important;
+        box-sizing: border-box !important;
+      }
+
+      .body-sidebar-container:not(.expanded) #${SWITCH_ID} .islandchill-switch-text,
+      .body-sidebar-container.collapsed #${SWITCH_ID} .islandchill-switch-text,
+      .body-sidebar.collapsed #${SWITCH_ID} .islandchill-switch-text,
+      .body-sidebar[data-collapsed="true"] #${SWITCH_ID} .islandchill-switch-text,
+      #${SWITCH_ID}.is-collapsed .islandchill-switch-text {
+        display: none !important;
+      }
+
+      .body-sidebar-container:not(.expanded) #${SWITCH_ID} .islandchill-switch-icon,
+      .body-sidebar-container.collapsed #${SWITCH_ID} .islandchill-switch-icon,
+      .body-sidebar.collapsed #${SWITCH_ID} .islandchill-switch-icon,
+      .body-sidebar[data-collapsed="true"] #${SWITCH_ID} .islandchill-switch-icon,
+      #${SWITCH_ID}.is-collapsed .islandchill-switch-icon {
+        font-size: 16px !important;
+        margin: 0 !important;
+      }
+
+      /* Dark theme support */
       [data-theme="dark"] #${SWITCH_ID} .islandchill-switch-link,
       [data-theme-mode="dark"] #${SWITCH_ID} .islandchill-switch-link {
         border-color: rgba(245, 158, 11, 0.5) !important;
@@ -78,18 +191,93 @@
     const item = document.createElement('div');
     item.id = SWITCH_ID;
     item.className = 'islandchill-switch-container';
-    item.innerHTML = '<a class="islandchill-switch-link" href="/islandchill?portal=mes" title="Open IslandChill MES">🏭 Switch to IslandChill MES</a>';
+    item.setAttribute('data-toggle', 'tooltip');
+    item.setAttribute('data-placement', 'right');
+    item.setAttribute('title', 'Switch to IslandChill MES');
+    item.innerHTML = [
+      '<a class="islandchill-switch-link" href="/islandchill?portal=mes" title="Switch to IslandChill MES" aria-label="Switch to IslandChill MES">',
+      '  <span class="islandchill-switch-icon">🏭</span>',
+      '  <span class="islandchill-switch-text">Switch to IslandChill MES</span>',
+      '</a>'
+    ].join('');
     return item;
+  };
+
+  const updateCollapsedState = () => {
+    const sw = document.getElementById(SWITCH_ID);
+    if (!sw) return;
+
+    const sidebar = sw.closest('.body-sidebar');
+    const container = sw.closest('.body-sidebar-container');
+
+    if (!sidebar && !container) {
+      sw.classList.remove('is-collapsed');
+      return;
+    }
+
+    let isCollapsed = false;
+    if (container && !container.classList.contains('expanded')) {
+      isCollapsed = true;
+    } else if (sidebar && sidebar.offsetWidth > 0 && sidebar.offsetWidth < 100) {
+      isCollapsed = true;
+    } else if (window.frappe?.app?.sidebar && window.frappe.app.sidebar.sidebar_expanded === false) {
+      isCollapsed = true;
+    }
+
+    if (isCollapsed) {
+      sw.classList.add('is-collapsed');
+      if (window.$ && $.fn && $.fn.tooltip) {
+        $(sw).attr('data-toggle', 'tooltip').attr('data-placement', 'right').attr('title', 'Switch to IslandChill MES');
+      }
+    } else {
+      sw.classList.remove('is-collapsed');
+      if (window.$ && $.fn && $.fn.tooltip) {
+        $(sw).tooltip('dispose');
+      }
+    }
+  };
+
+  const observeSidebar = () => {
+    const container = document.querySelector('.body-sidebar-container');
+    const sidebar = document.querySelector('.body-sidebar');
+
+    if (container && !container._islandchill_mo && window.MutationObserver) {
+      const mo = new MutationObserver(() => {
+        updateCollapsedState();
+      });
+      mo.observe(container, { attributes: true, attributeFilter: ['class', 'style'] });
+      container._islandchill_mo = mo;
+    }
+
+    if (sidebar && !sidebar._islandchill_ro && window.ResizeObserver) {
+      const ro = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const width = entry.contentRect.width;
+          if (width > 0) {
+            const sw = document.getElementById(SWITCH_ID);
+            if (sw) {
+              if (width < 100) {
+                sw.classList.add('is-collapsed');
+              } else if (container && container.classList.contains('expanded')) {
+                sw.classList.remove('is-collapsed');
+              }
+            }
+          }
+        }
+      });
+      ro.observe(sidebar);
+      sidebar._islandchill_ro = ro;
+    }
   };
 
   const installSwitchButton = () => {
     if (!canSwitchToMES()) return;
     installStyles();
 
-    // Target 1: Desktop page header right-side actions (.desktop-notifications / .desktop-avatar inside .desktop-navbar)
+    // Target 1: Desktop page header right-side actions
     const desktopTarget = document.querySelector('.desktop-navbar .desktop-notifications, header.desktop-navbar .desktop-notifications, .desktop-navbar .desktop-avatar, header.desktop-navbar .desktop-avatar');
     
-    // Target 2: Standard Desk navbar right items (#toolbar-user, .dropdown-navbar-user, .navbar .dropdown-notifications)
+    // Target 2: Standard Desk navbar right items or Desk Sidebar user button (#toolbar-user, .dropdown-navbar-user, .navbar .dropdown-notifications)
     const standardTarget = document.querySelector('#toolbar-user, .dropdown-navbar-user, .navbar .dropdown-notifications, .navbar-nav .dropdown-notifications');
 
     // Target 3: Generic navbar right flex (.navbar .ml-auto, .navbar-container > .flex, header .flex)
@@ -132,6 +320,9 @@
       dropItem.innerHTML = '<a class="dropdown-item" href="/islandchill?portal=mes" style="font-weight: 600; color: #b45309;">🏭 Switch to IslandChill MES</a>';
       userDropdown.insertBefore(dropItem, userDropdown.firstChild);
     }
+
+    observeSidebar();
+    updateCollapsedState();
   };
 
   const hookAboutDialog = () => {
@@ -172,9 +363,18 @@
     installLogoutRedirect();
     installSwitchButton();
     hookAboutDialog();
+    updateCollapsedState();
   };
 
-  $(document).on('toolbar_setup page-change route app_ready', setup);
+  $(document).on('toolbar_setup page-change route app_ready sidebar-expand', () => {
+    setup();
+    setTimeout(updateCollapsedState, 50);
+    setTimeout(updateCollapsedState, 350);
+  });
+  $(document).on('click', '.collapse-sidebar-link, .sidebar-toggle-btn', () => {
+    setTimeout(updateCollapsedState, 50);
+    setTimeout(updateCollapsedState, 350);
+  });
   if (window.frappe && frappe.router) {
     frappe.router.on('change', setup);
   }
@@ -182,14 +382,19 @@
 
   if (window.MutationObserver) {
     const observer = new MutationObserver(() => {
-      const hasHeader = document.querySelector('.desktop-navbar, header.navbar, .navbar, #toolbar-user');
+      const hasHeader = document.querySelector('.desktop-navbar, header.navbar, .navbar, #toolbar-user, .body-sidebar');
       const hasSwitch = document.getElementById(SWITCH_ID);
       if (hasHeader && (!hasSwitch || !document.body.contains(hasSwitch))) {
         setup();
+      } else {
+        updateCollapsedState();
       }
     });
     observer.observe(document.documentElement, { childList: true, subtree: true });
   }
 
-  setInterval(setup, 1000);
+  setInterval(() => {
+    setup();
+    updateCollapsedState();
+  }, 1000);
 })();

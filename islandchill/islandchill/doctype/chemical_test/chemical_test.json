@@ -29,7 +29,12 @@
   "amended_from",
   "signature",
   "section_break_yyls",
-  "work_order"
+  "work_order",
+  "incident_section",
+  "is_incident",
+  "incident_severity",
+  "incident_note",
+  "linked_incident"
  ],
  "fields": [
   {
@@ -87,12 +92,12 @@
   {
    "fieldname": "alocohol__check_after_change_from_rtd_to_csd",
    "fieldtype": "Percent",
-   "label": "Alcohol % After Changeover RTD \u2192 CSD"
+   "label": "Alcohol % After Changeover RTD → CSD"
   },
   {
    "fieldname": "brix_check_after_change_over_rtd_to_water",
    "fieldtype": "Float",
-   "label": "Brix After Changeover RTD \u2192 Water"
+   "label": "Brix After Changeover RTD → Water"
   },
   {
    "fieldname": "product_water_section",
@@ -160,6 +165,39 @@
    "fieldname": "signature",
    "fieldtype": "Signature",
    "label": "Signature"
+  },
+  {
+   "fieldname": "incident_section",
+   "fieldtype": "Section Break",
+   "label": "Incident / Deviation Flag",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "is_incident",
+   "fieldtype": "Check",
+   "label": "Flag as Operational Incident"
+  },
+  {
+   "fieldname": "incident_severity",
+   "fieldtype": "Select",
+   "label": "Incident Severity",
+   "options": "Critical\nHigh\nMedium\nLow",
+   "default": "Medium",
+   "depends_on": "eval:doc.is_incident == 1"
+  },
+  {
+   "fieldname": "incident_note",
+   "fieldtype": "Small Text",
+   "label": "Incident / Deviation Note",
+   "description": "Brief description of what you observed. Pre-filled in the incident record.",
+   "depends_on": "eval:doc.is_incident == 1"
+  },
+  {
+   "fieldname": "linked_incident",
+   "fieldtype": "Link",
+   "label": "Linked Incident",
+   "options": "Plant Incident",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,

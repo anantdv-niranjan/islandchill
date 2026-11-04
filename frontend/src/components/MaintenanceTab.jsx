@@ -1,6 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { frappe } from '../services/frappe';
 import { FormFootnote } from './LaboratoryTab';
+import { StageStatusBadge, StageAuditCard } from './StageAuditCard';
+import IncidentMarkerSection from './IncidentMarkerSection';
+import {
+  Scale,
+  X,
+  Loader2,
+  ClipboardList,
+  Trash2,
+  User,
+  Settings,
+  PenTool,
+  Search,
+  Globe,
+  Factory,
+  Wrench,
+  Clock,
+  LayoutGrid,
+  List,
+  Check,
+  FileEdit,
+  FolderOpen,
+  Eye,
+  AlertTriangle
+} from 'lucide-react';
+
+const INCIDENT_FIELD_NAMES = new Set(['is_incident', 'incident_severity', 'incident_note', 'linked_incident', 'incident_section']);
 
 // Helper to dynamically fetch Link options for target DocTypes
 const fetchLinkOptionsMap = async (fields, childMetasObj) => {
@@ -55,6 +81,9 @@ export function MaintForm88DynamicModal({ onClose, onSubmit, employeeList, handl
     verified_by: '',
     overall_comments: ''
   });
+  const [isIncident, setIsIncident] = useState(false);
+  const [incidentSeverity, setIncidentSeverity] = useState('Medium');
+  const [incidentNote, setIncidentNote] = useState('');
   const [meta, setMeta] = useState(null);
   const [loadingMeta, setLoadingMeta] = useState(false);
   const [childMetas, setChildMetas] = useState({});
@@ -88,7 +117,7 @@ export function MaintForm88DynamicModal({ onClose, onSubmit, employeeList, handl
         }
 
         if (isMounted) {
-          console.log('📋 WEIGHT CHECK DYNAMIC META:', doctypeMeta);
+          console.log('[Weight Check Meta]:', doctypeMeta);
           setMeta({ ...(doctypeMeta || {}), fields });
           const tableFieldsList = fields.filter(f => f.fieldtype === 'Table' && f.options);
           const childMetasObj = {};
@@ -168,9 +197,20 @@ export function MaintForm88DynamicModal({ onClose, onSubmit, employeeList, handl
 
   const handleSubmitForm = (e) => {
     e.preventDefault();
+    const targetWo = formData.work_order || formData.workOrder;
+    if (targetWo) {
+      const woObj = (workOrders || []).find(w => w.id === targetWo || w.name === targetWo);
+      if (woObj?.status === 'Cancelled') {
+        alert(`Work Order ${targetWo} is Cancelled. Forms cannot be submitted for cancelled work orders.`);
+        return;
+      }
+    }
     onSubmit({
       doctype: 'Weight Check',
       ...formData,
+      is_incident: isIncident ? 1 : 0,
+      incident_severity: incidentSeverity,
+      incident_note: incidentNote,
       ...tableData
     });
   };
@@ -183,6 +223,7 @@ export function MaintForm88DynamicModal({ onClose, onSubmit, employeeList, handl
     f.fieldtype !== 'Column Break' &&
     f.fieldtype !== 'Fold' &&
     f.fieldname !== 'amended_from' &&
+    !INCIDENT_FIELD_NAMES.has(f.fieldname) &&
     f.hidden !== 1
   );
   const tableFields = fieldsList.filter(f => f.fieldtype === 'Table');
@@ -192,18 +233,18 @@ export function MaintForm88DynamicModal({ onClose, onSubmit, employeeList, handl
       <div className="modal-panel" style={{ width: '680px', maxWidth: '95%' }} onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <div>
-            <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0 }}>⚖️ Form 88: Weight Check</h3>
+            <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}><Scale size={18} /><span>Form 88: Weight Check</span></h3>
             <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
               Weight check log sheet for finished products and line checks
             </div>
           </div>
-          <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }} onClick={onClose}>✕</button>
+          <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)' }} onClick={onClose}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmitForm}>
           <div className="modal-content" style={{ maxHeight: '75vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '14px', padding: '16px', fontSize: '12px' }}>
             {loadingMeta ? (
               <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: '600' }}>
-                ⏳ Syncing meta fields dynamically from ERPNext DocType "Weight Check"...
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Loader2 size={14} className="spin" /><span>Syncing meta fields dynamically from ERPNext DocType "Weight Check"...</span></span>
               </div>
             ) : (
               <>
@@ -338,7 +379,7 @@ export function MaintForm88DynamicModal({ onClose, onSubmit, employeeList, handl
                       const empOpts = isEmpTarget ? (employeeList || []).map(e => `${e.employee_name || e.name} (${e.name})`) : [];
                       const fetchedOpts = linkOptionsMap[targetDoctype] || [];
                       const woOpts = (field.fieldname === 'work_order' || targetDoctype === 'Work Order')
-                        ? (workOrders || []).map(wo => typeof wo === 'string' ? wo : (wo.name || wo.work_order || wo.id || ''))
+                        ? (workOrders || []).filter(wo => typeof wo === 'string' || (wo.status || '').toLowerCase() !== 'cancelled').map(wo => typeof wo === 'string' ? wo : (wo.name || wo.work_order || wo.id || ''))
                         : [];
                       const combinedOpts = Array.from(new Set([...empOpts, ...fetchedOpts, ...woOpts]));
                       const datalistId = `dl_m88_${sKey}`;
@@ -416,7 +457,7 @@ export function MaintForm88DynamicModal({ onClose, onSubmit, employeeList, handl
                   return (
                     <div key={tf.fieldname} className="form-group" style={{ marginTop: '12px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                        <label className="input-label" style={{ fontWeight: '700', fontSize: '13px' }}>📋 {tf.label}</label>
+                        <label className="input-label" style={{ fontWeight: '700', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}><ClipboardList size={14} /><span>{tf.label}</span></label>
                         <button type="button" className="secondary-btn" style={{ fontSize: '11px', padding: '4px 8px' }} onClick={() => addTableRow(tf.fieldname, childDoctype)}>
                           + Add Row
                         </button>
@@ -483,7 +524,7 @@ export function MaintForm88DynamicModal({ onClose, onSubmit, employeeList, handl
                                   ))}
                                   <td style={{ padding: '4px', border: '1px solid #cbd5e1', textAlign: 'center' }}>
                                     <button type="button" style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }} onClick={() => removeTableRow(tf.fieldname, rIdx)}>
-                                      🗑️
+                                      <Trash2 size={14} />
                                     </button>
                                   </td>
                                 </tr>
@@ -495,6 +536,19 @@ export function MaintForm88DynamicModal({ onClose, onSubmit, employeeList, handl
                     </div>
                   );
                 })}
+
+                <div style={{ marginTop: '12px' }}>
+                  <IncidentMarkerSection
+                    isIncident={isIncident}
+                    severity={incidentSeverity}
+                    note={incidentNote}
+                    onChange={(field, val) => {
+                      if (field === 'is_incident') setIsIncident(Boolean(val));
+                      else if (field === 'incident_severity') setIncidentSeverity(val);
+                      else if (field === 'incident_note') setIncidentNote(val);
+                    }}
+                  />
+                </div>
               </>
             )}
           </div>
@@ -522,6 +576,9 @@ export function MaintForm107Modal({ onClose, onSubmit, employeeList, handleSearc
     operator: '',
     supervisor: ''
   });
+  const [isIncident, setIsIncident] = useState(false);
+  const [incidentSeverity, setIncidentSeverity] = useState('Medium');
+  const [incidentNote, setIncidentNote] = useState('');
   const [meta, setMeta] = useState(null);
   const [loadingMeta, setLoadingMeta] = useState(false);
   const [childMetas, setChildMetas] = useState({});
@@ -557,7 +614,7 @@ export function MaintForm107Modal({ onClose, onSubmit, employeeList, handleSearc
         }
 
         if (isMounted) {
-          console.log('📋 HOURLY WEIGHT CHECK FORM DYNAMIC META:', doctypeMeta);
+          console.log('[Hourly Weight Check Meta]:', doctypeMeta);
           setMeta({ ...(doctypeMeta || {}), fields });
           const tableFieldsList = fields.filter(f => f.fieldtype === 'Table' && f.options);
           const childMetasObj = {};
@@ -637,9 +694,20 @@ export function MaintForm107Modal({ onClose, onSubmit, employeeList, handleSearc
 
   const handleSubmitForm = (e) => {
     e.preventDefault();
+    const targetWo = formData.work_order || formData.workOrder;
+    if (targetWo) {
+      const woObj = (workOrders || []).find(w => w.id === targetWo || w.name === targetWo);
+      if (woObj?.status === 'Cancelled') {
+        alert(`Work Order ${targetWo} is Cancelled. Forms cannot be submitted for cancelled work orders.`);
+        return;
+      }
+    }
     onSubmit({
       doctype: 'Hourly Weight Check Form',
       ...formData,
+      is_incident: isIncident ? 1 : 0,
+      incident_severity: incidentSeverity,
+      incident_note: incidentNote,
       ...tableData
     });
   };
@@ -652,6 +720,7 @@ export function MaintForm107Modal({ onClose, onSubmit, employeeList, handleSearc
     f.fieldtype !== 'Column Break' &&
     f.fieldtype !== 'Fold' &&
     f.fieldname !== 'amended_from' &&
+    !INCIDENT_FIELD_NAMES.has(f.fieldname) &&
     f.hidden !== 1
   );
   const tableFields = fieldsList.filter(f => f.fieldtype === 'Table');
@@ -661,18 +730,18 @@ export function MaintForm107Modal({ onClose, onSubmit, employeeList, handleSearc
       <div className="modal-panel" style={{ width: '680px', maxWidth: '95%' }} onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <div>
-            <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0 }}>⚖️ Form 107: Hourly Weight Check Form</h3>
+            <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}><Scale size={18} /><span>Form 107: Hourly Weight Check Form</span></h3>
             <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
               Hourly container weight verification log, scale readings, and net weight specs
             </div>
           </div>
-          <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }} onClick={onClose}>✕</button>
+          <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)' }} onClick={onClose}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmitForm}>
           <div className="modal-content" style={{ maxHeight: '75vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '14px', padding: '16px', fontSize: '12px' }}>
             {loadingMeta ? (
               <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: '600' }}>
-                ⏳ Syncing meta fields dynamically from ERPNext DocType "Hourly Weight Check Form"...
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Loader2 size={14} className="spin" /><span>Syncing meta fields dynamically from ERPNext DocType "Hourly Weight Check Form"...</span></span>
               </div>
             ) : (
               <>
@@ -789,7 +858,7 @@ export function MaintForm107Modal({ onClose, onSubmit, employeeList, handleSearc
                       const empOpts = isEmpTarget ? (employeeList || []).map(e => `${e.employee_name || e.name} (${e.name})`) : [];
                       const fetchedOpts = linkOptionsMap[targetDoctype] || [];
                       const woOpts = (field.fieldname === 'work_order' || targetDoctype === 'Work Order')
-                        ? (workOrders || []).map(wo => typeof wo === 'string' ? wo : (wo.name || wo.work_order || wo.id || ''))
+                        ? (workOrders || []).filter(wo => typeof wo === 'string' || (wo.status || '').toLowerCase() !== 'cancelled').map(wo => typeof wo === 'string' ? wo : (wo.name || wo.work_order || wo.id || ''))
                         : [];
                       const combinedOpts = Array.from(new Set([...empOpts, ...fetchedOpts, ...woOpts]));
                       const datalistId = `dl_m107_${sKey}`;
@@ -867,7 +936,7 @@ export function MaintForm107Modal({ onClose, onSubmit, employeeList, handleSearc
                   return (
                     <div key={tf.fieldname} className="form-group" style={{ marginTop: '12px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                        <label className="input-label" style={{ fontWeight: '700', fontSize: '13px' }}>📋 {tf.label}</label>
+                        <label className="input-label" style={{ fontWeight: '700', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}><ClipboardList size={14} /><span>{tf.label}</span></label>
                         <button type="button" className="secondary-btn" style={{ fontSize: '11px', padding: '4px 8px' }} onClick={() => addTableRow(tf.fieldname, childDoctype)}>
                           + Add Row
                         </button>
@@ -934,7 +1003,7 @@ export function MaintForm107Modal({ onClose, onSubmit, employeeList, handleSearc
                                   ))}
                                   <td style={{ padding: '4px', border: '1px solid #cbd5e1', textAlign: 'center' }}>
                                     <button type="button" style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }} onClick={() => removeTableRow(tf.fieldname, rIdx)}>
-                                      🗑️
+                                      <Trash2 size={14} />
                                     </button>
                                   </td>
                                 </tr>
@@ -946,6 +1015,19 @@ export function MaintForm107Modal({ onClose, onSubmit, employeeList, handleSearc
                     </div>
                   );
                 })}
+
+                <div style={{ marginTop: '12px' }}>
+                  <IncidentMarkerSection
+                    isIncident={isIncident}
+                    severity={incidentSeverity}
+                    note={incidentNote}
+                    onChange={(field, val) => {
+                      if (field === 'is_incident') setIsIncident(Boolean(val));
+                      else if (field === 'incident_severity') setIncidentSeverity(val);
+                      else if (field === 'incident_note') setIncidentNote(val);
+                    }}
+                  />
+                </div>
               </>
             )}
           </div>
@@ -972,6 +1054,9 @@ export function MaintWeightCheckModal({ onClose, onSubmit, employeeList, handleS
   })));
 
   const [overallComments, setOverallComments] = useState('');
+  const [isIncident, setIsIncident] = useState(false);
+  const [incidentSeverity, setIncidentSeverity] = useState('Medium');
+  const [incidentNote, setIncidentNote] = useState('');
 
   const handleRowChange = (idx, key, val) => {
     setRows(prev => prev.map((r, rIdx) => rIdx === idx ? { ...r, [key]: val } : r));
@@ -997,7 +1082,10 @@ export function MaintWeightCheckModal({ onClose, onSubmit, employeeList, handleS
       rows,
       checkedBy: rows[0].checkedBy || 'Chemist',
       verifiedBy: rows[0].verifiedBy || 'QC SV',
-      overallComments
+      overallComments,
+      is_incident: isIncident ? 1 : 0,
+      incident_severity: incidentSeverity,
+      incident_note: incidentNote
     });
   };
 
@@ -1009,7 +1097,7 @@ export function MaintWeightCheckModal({ onClose, onSubmit, employeeList, handleS
             <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0 }}>Island Chill / Crush / US Cola</h3>
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Standard Form 88: For Weight Check Checklist</span>
           </div>
-          <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }} onClick={onClose}>✕</button>
+          <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)' }} onClick={onClose}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-content" style={{ maxHeight: '70vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '12px' }}>
@@ -1050,7 +1138,7 @@ export function MaintWeightCheckModal({ onClose, onSubmit, employeeList, handleS
                         <div className="autocomplete-dropdown">
                           {employeeList.map(emp => (
                             <div key={emp.name} className="dropdown-item" onClick={() => { handleRowChange(idx, 'checkedBy', `${emp.employee_name || emp.name} (${emp.name})`); setShowEmployeeDropdown(false); }}>
-                              👤 {emp.employee_name || emp.name}
+                              {emp.employee_name || emp.name}
                             </div>
                           ))}
                         </div>
@@ -1070,7 +1158,7 @@ export function MaintWeightCheckModal({ onClose, onSubmit, employeeList, handleS
                         <div className="autocomplete-dropdown">
                           {employeeList.map(emp => (
                             <div key={emp.name} className="dropdown-item" onClick={() => { handleRowChange(idx, 'verifiedBy', `${emp.employee_name || emp.name} (${emp.name})`); setShowEmployeeDropdown(false); }}>
-                              👤 {emp.employee_name || emp.name}
+                              {emp.employee_name || emp.name}
                             </div>
                           ))}
                         </div>
@@ -1097,6 +1185,19 @@ export function MaintWeightCheckModal({ onClose, onSubmit, employeeList, handleS
                 value={overallComments}
                 onChange={e => setOverallComments(e.target.value)}
                 placeholder="Enter any additional observations, non-conformance notes, or adjustments made..."
+              />
+            </div>
+
+            <div style={{ marginTop: '8px' }}>
+              <IncidentMarkerSection
+                isIncident={isIncident}
+                severity={incidentSeverity}
+                note={incidentNote}
+                onChange={(field, val) => {
+                  if (field === 'is_incident') setIsIncident(Boolean(val));
+                  else if (field === 'incident_severity') setIncidentSeverity(val);
+                  else if (field === 'incident_note') setIncidentNote(val);
+                }}
               />
             </div>
           </div>
@@ -1133,16 +1234,29 @@ export function MaintBreakdownModal({ onClose, onSubmit, employeeList, handleSea
   const [checkedByProdSV, setCheckedByProdSV] = useState('');
   const [approvedByProdFM, setApprovedByProdFM] = useState('');
   const [overallComments, setOverallComments] = useState('');
+  const [isIncident, setIsIncident] = useState(false);
+  const [incidentSeverity, setIncidentSeverity] = useState('Medium');
+  const [incidentNote, setIncidentNote] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (workOrder) {
+      const woObj = (workOrders || []).find(w => (w.id === workOrder || w.name === workOrder));
+      if (woObj?.status === 'Cancelled') {
+        alert(`Work Order ${workOrder} is Cancelled. Machine breakdowns cannot be logged for cancelled work orders.`);
+        return;
+      }
+    }
     onSubmit({
       requestorName,
       work_order: workOrder,
       workOrder: workOrder,
       machineName, breakdownDate, breakdownTime, breakdownDesc, checkedBySV, approvedByFM,
       receivedBy, workAssessment, workCarriedOut, partsUsed, dateRepaired, timeRepaired, repairedDoneBy, approvedByMM,
-      checkedByProdSV, approvedByProdFM, overallComments
+      checkedByProdSV, approvedByProdFM, overallComments,
+      is_incident: isIncident ? 1 : 0,
+      incident_severity: incidentSeverity,
+      incident_note: incidentNote
     });
   };
 
@@ -1154,7 +1268,7 @@ export function MaintBreakdownModal({ onClose, onSubmit, employeeList, handleSea
             <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0 }}>Island Chill - Carpenters Waters (Fiji) PTE Limited</h3>
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Machine Breakdown Record Form (SOP-Island 002)</span>
           </div>
-          <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }} onClick={onClose}>✕</button>
+          <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)' }} onClick={onClose}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="modal-content" style={{ maxHeight: '72vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '12px' }}>
@@ -1176,7 +1290,7 @@ export function MaintBreakdownModal({ onClose, onSubmit, employeeList, handleSea
                     <div className="autocomplete-dropdown">
                       {employeeList.map(emp => (
                         <div key={emp.name} className="dropdown-item" onClick={() => { setRequestorName(`${emp.employee_name || emp.name} (${emp.name})`); setShowEmployeeDropdown(false); }}>
-                          👤 {emp.employee_name || emp.name}
+                          {emp.employee_name || emp.name}
                         </div>
                       ))}
                     </div>
@@ -1186,7 +1300,7 @@ export function MaintBreakdownModal({ onClose, onSubmit, employeeList, handleSea
                   <label>Work Order</label>
                   <select className="form-input" value={workOrder} onChange={e => setWorkOrder(e.target.value)}>
                     <option value="">-- Select Work Order --</option>
-                    {(workOrders || []).map(wo => {
+                    {(workOrders || []).filter(wo => typeof wo === 'string' || (wo.status || '').toLowerCase() !== 'cancelled').map(wo => {
                       const woName = typeof wo === 'string' ? wo : (wo.name || wo.work_order || wo.id || '');
                       const itemDesc = typeof wo === 'object' && wo.production_item ? ` (${wo.production_item})` : '';
                       return <option key={woName} value={woName}>{woName}{itemDesc}</option>;
@@ -1226,7 +1340,7 @@ export function MaintBreakdownModal({ onClose, onSubmit, employeeList, handleSea
                     <div className="autocomplete-dropdown">
                       {employeeList.map(emp => (
                         <div key={emp.name} className="dropdown-item" onClick={() => { setCheckedBySV(`${emp.employee_name || emp.name} (${emp.name})`); setShowEmployeeDropdown(false); }}>
-                          👤 {emp.employee_name || emp.name}
+                          {emp.employee_name || emp.name}
                         </div>
                       ))}
                     </div>
@@ -1245,7 +1359,7 @@ export function MaintBreakdownModal({ onClose, onSubmit, employeeList, handleSea
                     <div className="autocomplete-dropdown">
                       {employeeList.map(emp => (
                         <div key={emp.name} className="dropdown-item" onClick={() => { setApprovedByFM(`${emp.employee_name || emp.name} (${emp.name})`); setShowEmployeeDropdown(false); }}>
-                          👤 {emp.employee_name || emp.name}
+                          {emp.employee_name || emp.name}
                         </div>
                       ))}
                     </div>
@@ -1271,7 +1385,7 @@ export function MaintBreakdownModal({ onClose, onSubmit, employeeList, handleSea
                     <div className="autocomplete-dropdown">
                       {employeeList.map(emp => (
                         <div key={emp.name} className="dropdown-item" onClick={() => { setReceivedBy(`${emp.employee_name || emp.name} (${emp.name})`); setShowEmployeeDropdown(false); }}>
-                          👤 {emp.employee_name || emp.name}
+                          {emp.employee_name || emp.name}
                         </div>
                       ))}
                     </div>
@@ -1319,7 +1433,7 @@ export function MaintBreakdownModal({ onClose, onSubmit, employeeList, handleSea
                     <div className="autocomplete-dropdown">
                       {employeeList.map(emp => (
                         <div key={emp.name} className="dropdown-item" onClick={() => { setRepairedDoneBy(`${emp.employee_name || emp.name} (${emp.name})`); setShowEmployeeDropdown(false); }}>
-                          👤 {emp.employee_name || emp.name}
+                          {emp.employee_name || emp.name}
                         </div>
                       ))}
                     </div>
@@ -1338,7 +1452,7 @@ export function MaintBreakdownModal({ onClose, onSubmit, employeeList, handleSea
                     <div className="autocomplete-dropdown">
                       {employeeList.map(emp => (
                         <div key={emp.name} className="dropdown-item" onClick={() => { setApprovedByMM(`${emp.employee_name || emp.name} (${emp.name})`); setShowEmployeeDropdown(false); }}>
-                          👤 {emp.employee_name || emp.name}
+                          {emp.employee_name || emp.name}
                         </div>
                       ))}
                     </div>
@@ -1375,7 +1489,7 @@ export function MaintBreakdownModal({ onClose, onSubmit, employeeList, handleSea
                     <div className="autocomplete-dropdown">
                       {employeeList.map(emp => (
                         <div key={emp.name} className="dropdown-item" onClick={() => { setCheckedByProdSV(`${emp.employee_name || emp.name} (${emp.name})`); setShowEmployeeDropdown(false); }}>
-                          👤 {emp.employee_name || emp.name}
+                          {emp.employee_name || emp.name}
                         </div>
                       ))}
                     </div>
@@ -1394,13 +1508,27 @@ export function MaintBreakdownModal({ onClose, onSubmit, employeeList, handleSea
                     <div className="autocomplete-dropdown">
                       {employeeList.map(emp => (
                         <div key={emp.name} className="dropdown-item" onClick={() => { setApprovedByProdFM(`${emp.employee_name || emp.name} (${emp.name})`); setShowEmployeeDropdown(false); }}>
-                          👤 {emp.employee_name || emp.name}
+                          {emp.employee_name || emp.name}
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* Incident Marker Section */}
+            <div style={{ marginTop: '8px' }}>
+              <IncidentMarkerSection
+                isIncident={isIncident}
+                severity={incidentSeverity}
+                note={incidentNote}
+                onChange={(field, val) => {
+                  if (field === 'is_incident') setIsIncident(Boolean(val));
+                  else if (field === 'incident_severity') setIncidentSeverity(val);
+                  else if (field === 'incident_note') setIncidentNote(val);
+                }}
+              />
             </div>
 
           </div>
@@ -1421,6 +1549,9 @@ export function MaintPMRequestModal({ onClose, onSubmit, employeeList, handleSea
     priority: 'Medium',
     status: 'Pending Approval'
   });
+  const [isIncident, setIsIncident] = useState(false);
+  const [incidentSeverity, setIncidentSeverity] = useState('Medium');
+  const [incidentNote, setIncidentNote] = useState('');
   const [meta, setMeta] = useState(null);
   const [loadingMeta, setLoadingMeta] = useState(false);
   const [childMetas, setChildMetas] = useState({});
@@ -1533,9 +1664,20 @@ export function MaintPMRequestModal({ onClose, onSubmit, employeeList, handleSea
 
   const handleSubmitForm = (e) => {
     e.preventDefault();
+    const targetWo = formData.work_order || formData.workOrder;
+    if (targetWo) {
+      const woObj = (workOrders || []).find(w => w.id === targetWo || w.name === targetWo);
+      if (woObj?.status === 'Cancelled') {
+        alert(`Work Order ${targetWo} is Cancelled. Forms cannot be submitted for cancelled work orders.`);
+        return;
+      }
+    }
     onSubmit({
       doctype: 'Preventive Maintenance Request',
       ...formData,
+      is_incident: isIncident ? 1 : 0,
+      incident_severity: incidentSeverity,
+      incident_note: incidentNote,
       ...tableData
     });
   };
@@ -1548,6 +1690,7 @@ export function MaintPMRequestModal({ onClose, onSubmit, employeeList, handleSea
     f.fieldtype !== 'Column Break' &&
     f.fieldtype !== 'Fold' &&
     f.fieldname !== 'amended_from' &&
+    !INCIDENT_FIELD_NAMES.has(f.fieldname) &&
     f.hidden !== 1
   );
   const tableFields = fieldsList.filter(f => f.fieldtype === 'Table' && f.hidden !== 1);
@@ -1558,18 +1701,18 @@ export function MaintPMRequestModal({ onClose, onSubmit, employeeList, handleSea
       <div className="modal-panel" style={{ width: '920px', maxWidth: '95%' }} onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <div>
-            <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0 }}>⚙️ Form: Preventive Maintenance Request</h3>
+            <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}><Settings size={18} /><span>Form: Preventive Maintenance Request</span></h3>
             <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
               Log & submit preventive maintenance requests for equipment & facility schedules
             </div>
           </div>
-          <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }} onClick={onClose}>✕</button>
+          <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)' }} onClick={onClose}><X size={18} /></button>
         </div>
         <form onSubmit={handleSubmitForm}>
           <div className="modal-content" style={{ maxHeight: '75vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '14px', padding: '16px', fontSize: '12px' }}>
             {loadingMeta ? (
               <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: '600' }}>
-                ⏳ Syncing meta fields dynamically from ERPNext DocType "Preventive Maintenance Request"...
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Loader2 size={14} className="spin" /><span>Syncing meta fields dynamically from ERPNext DocType "Preventive Maintenance Request"...</span></span>
               </div>
             ) : (
               <>
@@ -1694,7 +1837,7 @@ export function MaintPMRequestModal({ onClose, onSubmit, employeeList, handleSea
                       const empOpts = isEmpTarget ? (employeeList || []).map(e => `${e.employee_name || e.name} (${e.name})`) : [];
                       const fetchedOpts = linkOptionsMap[targetDoctype] || [];
                       const woOpts = (field.fieldname === 'work_order' || targetDoctype === 'Work Order')
-                        ? (workOrders || []).map(wo => typeof wo === 'string' ? wo : (wo.name || wo.work_order || wo.id || ''))
+                        ? (workOrders || []).filter(wo => typeof wo === 'string' || (wo.status || '').toLowerCase() !== 'cancelled').map(wo => typeof wo === 'string' ? wo : (wo.name || wo.work_order || wo.id || ''))
                         : [];
                       const combinedOpts = Array.from(new Set([...empOpts, ...fetchedOpts, ...woOpts]));
                       const datalistId = `dl_pmr_${sKey}`;
@@ -1844,7 +1987,7 @@ export function MaintPMRequestModal({ onClose, onSubmit, employeeList, handleSea
                   return (
                     <div key={tf.fieldname} className="form-group" style={{ marginTop: '12px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                        <label className="input-label" style={{ fontWeight: '700', fontSize: '13px' }}>📋 {tf.label}</label>
+                        <label className="input-label" style={{ fontWeight: '700', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}><ClipboardList size={14} /><span>{tf.label}</span></label>
                         <button type="button" className="secondary-btn" style={{ fontSize: '11px', padding: '4px 8px' }} onClick={() => addTableRow(tf.fieldname, childDoctype)}>
                           + Add Row
                         </button>
@@ -1911,7 +2054,7 @@ export function MaintPMRequestModal({ onClose, onSubmit, employeeList, handleSea
                                   ))}
                                   <td style={{ padding: '4px', border: '1px solid #cbd5e1', textAlign: 'center' }}>
                                     <button type="button" style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }} onClick={() => removeTableRow(tf.fieldname, rIdx)}>
-                                      🗑️
+                                      <Trash2 size={14} />
                                     </button>
                                   </td>
                                 </tr>
@@ -1924,27 +2067,28 @@ export function MaintPMRequestModal({ onClose, onSubmit, employeeList, handleSea
                   );
                 })}
 
-                {/* Signatures Section */}
-                {signatureFields.length > 0 && (
-                  <div style={{ border: '1px solid var(--border-color)', padding: '14px', borderRadius: '8px', marginTop: '12px' }}>
-                    <h4 style={{ color: 'var(--accent)', margin: '0 0 10px 0', fontSize: '13px' }}>✍️ Digital Signatures</h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
-                      {signatureFields.map(sf => (
-                        <div key={sf.fieldname}>
-                          <label style={{ fontSize: '11px', fontWeight: '600', display: 'block', marginBottom: '4px' }}>{sf.label}</label>
-                          <input
-                            type="text"
-                            className="form-input"
-                            value={formData[sf.fieldname] || ''}
-                            onChange={e => handleFieldChange(sf.fieldname, e.target.value)}
-                            placeholder={`Digital signature (${sf.label})...`}
-                            style={{ fontFamily: 'cursive, sans-serif', fontSize: '13px', fontStyle: 'italic' }}
-                          />
-                        </div>
-                      ))}
-                    </div>
+                {/* Incident Marker Section */}
+                <div style={{ marginTop: '12px' }}>
+                  <IncidentMarkerSection
+                    isIncident={isIncident}
+                    severity={incidentSeverity}
+                    note={incidentNote}
+                    onChange={(field, val) => {
+                      if (field === 'is_incident') setIsIncident(Boolean(val));
+                      else if (field === 'incident_severity') setIncidentSeverity(val);
+                      else if (field === 'incident_note') setIncidentNote(val);
+                    }}
+                  />
+                </div>
+
+                {/* 2-Stage Verification Note */}
+                <div style={{ backgroundColor: 'rgba(245, 158, 11, 0.08)', border: '1px dashed #f59e0b', borderRadius: '8px', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '12px' }}>
+                  <span style={{ fontSize: '18px' }}>⚖️</span>
+                  <div style={{ fontSize: '11px', color: 'var(--text-main)' }}>
+                    <strong style={{ color: '#d97706', display: 'block', marginBottom: '2px' }}>Auto-Routed for Verification</strong>
+                    This maintenance request will be saved into <strong>Pending Verification</strong>. Supervisor verification & final approval will be completed in the <strong>Form Approvals Desk</strong>.
                   </div>
-                )}
+                </div>
               </>
             )}
             <FormFootnote doctype="Preventive Maintenance Request" defaultFormNo="Form PM-Request" formTitle="Preventive Maintenance Request Log" />
@@ -1993,7 +2137,10 @@ function WOSelectorPopup({ workOrders, onSelect, onClose }) {
   }, []);
 
   const sourceWOs = liveWOs.length > 0 ? liveWOs : (workOrders || []);
-  const activeWOs = sourceWOs.filter(wo => (wo.status || '').toLowerCase() !== 'completed');
+  const activeWOs = sourceWOs.filter(wo => {
+    const s = (wo.status || '').toLowerCase();
+    return s !== 'completed' && s !== 'cancelled';
+  });
 
   const filtered = activeWOs.filter(wo =>
     !searchQ ||
@@ -2009,12 +2156,12 @@ function WOSelectorPopup({ workOrders, onSelect, onClose }) {
             <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0 }}>Select Work Order for Maintenance</h3>
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Choose an active Work Order to associate all PM Schedule logs</span>
           </div>
-          {onClose && <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px' }} onClick={onClose}>✕</button>}
+          {onClose && <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)' }} onClick={onClose}><X size={18} /></button>}
         </div>
         <div className="modal-content" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
           {/* Search */}
           <div style={{ marginBottom: '16px', position: 'relative' }}>
-            <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '14px' }}>🔍</span>
+            <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}><Search size={14} /></span>
             <input
               className="form-input"
               style={{ paddingLeft: '36px', height: '40px', width: '100%' }}
@@ -2044,7 +2191,7 @@ function WOSelectorPopup({ workOrders, onSelect, onClose }) {
             onMouseLeave={e => e.currentTarget.style.backgroundColor = 'rgba(251, 191, 36, 0.06)'}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '18px' }}>🌐</span>
+              <Globe size={18} />
               <div>
                 <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-heading)' }}>Show All Checklists (No Work Order Filter)</div>
                 <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Display all equipment forms across all production lines</div>
@@ -2055,7 +2202,7 @@ function WOSelectorPopup({ workOrders, onSelect, onClose }) {
 
           {filtered.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
-              <div style={{ fontSize: '36px', marginBottom: '8px' }}>📋</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}><ClipboardList size={36} /></div>
               <p>No active work orders found matching your search</p>
             </div>
           ) : (
@@ -2101,7 +2248,7 @@ function WOSelectorPopup({ workOrders, onSelect, onClose }) {
                       color: 'var(--primary, #2563eb)',
                       whiteSpace: 'nowrap'
                     }}>
-                      🏭 {lineName}
+                      Line: {lineName}
                     </span>
                     {/* Status badge */}
                     <span style={{
@@ -2125,6 +2272,158 @@ function WOSelectorPopup({ workOrders, onSelect, onClose }) {
               })}
             </div>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+// ─── PM SCHEDULE REPORT VIEWER MODAL ───────────────────────────────────────────
+export function MaintenanceReportViewerModal({ record, onClose }) {
+  const [fullDoc, setFullDoc] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadFullDoc() {
+      if (!record?.name && !record?.id) {
+        setLoading(false);
+        return;
+      }
+      try {
+        setLoading(true);
+        const docName = record.name || record.id;
+        const doctype = record.doctype || 'Daily Preventative Maintenance Schedule';
+        const res = await frappe.makeRequest('GET', doctype, docName);
+        if (isMounted && res?.data) {
+          setFullDoc(res.data);
+        }
+      } catch (err) {
+        console.warn('Could not fetch full maintenance doc:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    loadFullDoc();
+  }, [record?.name, record?.id]);
+
+  const activeDoc = fullDoc || record || {};
+  const tasks = activeDoc.maintenance_details || activeDoc.tasks || activeDoc.checklistItems || [];
+
+  return (
+    <div className="modal-backdrop" style={{ zIndex: 1100 }}>
+      <div className="modal-panel print-report-container" style={{ width: '860px', maxWidth: '95%' }}>
+        <div className="modal-header">
+          <div>
+            <h3 style={{ fontSize: '15px', fontWeight: '700', margin: 0, display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+              <Wrench size={16} />
+              <span>Preventative Maintenance Record: {activeDoc.name || activeDoc.id}</span>
+            </h3>
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginTop: '2px' }}>
+              Equipment: {activeDoc.equipment} • Area: {activeDoc.area || 'Plant'}
+            </span>
+          </div>
+          <button className="no-print" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }} onClick={onClose}>
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="modal-content" style={{ maxHeight: '72vh', overflowY: 'auto', fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {/* Header Summary */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', padding: '12px', borderRadius: '6px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+            <div>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>EQUIPMENT</span>
+              <strong style={{ fontSize: '13px', color: 'var(--accent)' }}>{activeDoc.equipment}</strong>
+            </div>
+            <div>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block' }}>WORK ORDER</span>
+              <strong style={{ fontSize: '13px', color: activeDoc.work_order ? 'var(--primary)' : 'var(--text-muted)' }}>
+                {activeDoc.work_order || activeDoc.workOrder || '—'}
+              </strong>
+            </div>
+            <div>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', textAlign: 'right' }}>LOGGED TIMESTAMP</span>
+              <strong style={{ display: 'block', textAlign: 'right' }}>{String(activeDoc.creation || activeDoc.timestamp || '').split(' ')[0]}</strong>
+            </div>
+          </div>
+
+          {/* 3-Stage Workflow Status & Audit Trail */}
+          <StageAuditCard record={activeDoc} />
+
+          {/* Checklist Tasks Table */}
+          <div style={{ border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px', backgroundColor: '#fff' }}>
+            <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', fontWeight: '700', color: 'var(--text-heading)' }}>
+              Checklist Tasks & Completion Status
+            </h4>
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '16px', color: 'var(--text-muted)' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Loader2 size={16} className="spin" /><span>Loading checklist details...</span></span>
+              </div>
+            ) : tasks.length === 0 ? (
+              <div style={{ padding: '12px', textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                No checklist details recorded.
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table className="custom-table" style={{ width: '100%', fontSize: '11px' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f1f5f9' }}>
+                      <th style={{ padding: '6px', textAlign: 'center', width: '30px' }}>#</th>
+                      <th style={{ padding: '6px', textAlign: 'left' }}>Task Description</th>
+                      <th style={{ padding: '6px', textAlign: 'center', width: '80px' }}>Std (Mins)</th>
+                      <th style={{ padding: '6px', textAlign: 'center', width: '80px' }}>Status</th>
+                      <th style={{ padding: '6px', textAlign: 'left' }}>Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tasks.map((t, idx) => {
+                      const isPass = t.pass__fail === 'Pass' || t.completed === true;
+                      return (
+                        <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                          <td style={{ padding: '6px', textAlign: 'center', fontWeight: '700', color: '#64748b' }}>{idx + 1}</td>
+                          <td style={{ padding: '6px', fontWeight: '600' }}>{t.description || t.desc || '—'}</td>
+                          <td style={{ padding: '6px', textAlign: 'center' }}>{t.standard_time_mins || t.std || 0}</td>
+                          <td style={{ padding: '6px', textAlign: 'center' }}>
+                            <span className={`badge ${isPass ? 'badge-completed' : 'badge-failed'}`} style={{ fontSize: '9px', padding: '2px 6px' }}>
+                              {isPass ? 'Pass' : 'Fail'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '6px', color: 'var(--text-muted)' }}>{t.remarks || '—'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Operational Incident Section (Read-Only) */}
+          {(activeDoc.is_incident || activeDoc.linked_incident) && (
+            <div style={{ marginTop: '4px' }}>
+              <IncidentMarkerSection
+                readOnly={true}
+                isIncident={Boolean(activeDoc.is_incident || activeDoc.linked_incident)}
+                severity={activeDoc.incident_severity || 'Medium'}
+                note={activeDoc.incident_note || activeDoc.overall_remarks || ''}
+                linkedIncident={activeDoc.linked_incident}
+              />
+            </div>
+          )}
+
+          {/* Overall Remarks */}
+          {activeDoc.overall_remarks && (
+            <div style={{ padding: '10px 14px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: '#f9fafb' }}>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '2px', fontWeight: '600' }}>OVERALL REMARKS</span>
+              <div style={{ fontSize: '12px' }}>{activeDoc.overall_remarks}</div>
+            </div>
+          )}
+        </div>
+
+        <div className="modal-footer no-print" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '12px', borderTop: '1px solid var(--border-color)' }}>
+          <button type="button" className="secondary-btn" onClick={() => window.print()}>Print Report</button>
+          <button type="button" className="primary-btn" onClick={onClose}>Close</button>
         </div>
       </div>
     </div>
@@ -2163,9 +2462,13 @@ export default function MaintenanceTab({
   workOrders,
   maintWorkOrder,
   setMaintWorkOrder,
+  formPermissions = null
 }) {
   // Global selected WO for this tab
   const [globalMaintWO, setGlobalMaintWO] = useState(null);
+  const liveGlobalMaintWO = globalMaintWO ? (workOrders || []).find(w => w.id === globalMaintWO.id) || globalMaintWO : null;
+  const currentMaintWO = liveGlobalMaintWO;
+  const isWoCancelled = currentMaintWO?.status === 'Cancelled';
   const [showWOSelector, setShowWOSelector] = useState(true); // show on first entry
   const [dashStats, setDashStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(false);
@@ -2173,6 +2476,7 @@ export default function MaintenanceTab({
   const [erpHistory, setErpHistory] = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [checklistSearch, setChecklistSearch] = useState('');
+  const [viewingMaintRecord, setViewingMaintRecord] = useState(null);
 
   // Load dynamic stats when globalMaintWO changes
   useEffect(() => {
@@ -2313,20 +2617,22 @@ export default function MaintenanceTab({
         padding: '10px 16px',
         marginBottom: '20px',
         borderRadius: '8px',
-        border: '1px solid var(--border-color)',
-        backgroundColor: globalMaintWO ? 'rgba(251, 191, 36, 0.05)' : 'var(--bg-secondary)',
-        borderLeft: globalMaintWO ? '4px solid var(--accent)' : '4px solid var(--border-color)',
+        border: `1px solid ${isWoCancelled ? 'rgba(239, 68, 68, 0.3)' : 'var(--border-color)'}`,
+        backgroundColor: isWoCancelled ? 'rgba(239, 68, 68, 0.08)' : currentMaintWO ? 'rgba(251, 191, 36, 0.05)' : 'var(--bg-secondary)',
+        borderLeft: isWoCancelled ? '4px solid var(--danger)' : currentMaintWO ? '4px solid var(--accent)' : '4px solid var(--border-color)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '18px' }}>📋</span>
+          <ClipboardList size={18} color={isWoCancelled ? 'var(--danger)' : undefined} />
           <div>
-            {globalMaintWO ? (
+            {currentMaintWO ? (
               <>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '1px' }}>Current Selected Work Order</div>
+                <div style={{ fontSize: '11px', color: isWoCancelled ? 'var(--danger)' : 'var(--text-muted)', marginBottom: '1px', fontWeight: isWoCancelled ? '700' : '400' }}>
+                  {isWoCancelled ? '⚠️ Work Order Cancelled' : 'Current Selected Work Order'}
+                </div>
                 <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-heading)' }}>
-                  {globalMaintWO.id}
+                  {currentMaintWO.id}
                   <span style={{ fontWeight: '400', color: 'var(--text-muted)', marginLeft: '8px' }}>
-                    — {globalMaintWO.productName || globalMaintWO.product || globalMaintWO.item}
+                    — {currentMaintWO.productName || currentMaintWO.product || currentMaintWO.item}
                   </span>
                   <span style={{
                     display: 'inline-block',
@@ -2335,10 +2641,10 @@ export default function MaintenanceTab({
                     fontWeight: '700',
                     padding: '2px 7px',
                     borderRadius: '4px',
-                    backgroundColor: `${STATUS_COLOR[globalMaintWO.status] || '#6b7280'}20`,
-                    color: STATUS_COLOR[globalMaintWO.status] || '#6b7280',
+                    backgroundColor: isWoCancelled ? 'rgba(239, 68, 68, 0.15)' : `${STATUS_COLOR[currentMaintWO.status] || '#6b7280'}20`,
+                    color: isWoCancelled ? 'var(--danger)' : (STATUS_COLOR[currentMaintWO.status] || '#6b7280'),
                   }}>
-                    {globalMaintWO.status}
+                    {currentMaintWO.status}
                   </span>
                   <span style={{
                     display: 'inline-block',
@@ -2351,9 +2657,14 @@ export default function MaintenanceTab({
                     color: 'var(--primary, #2563eb)',
                     border: '1px solid rgba(59, 130, 246, 0.2)'
                   }}>
-                    🏭 {globalMaintWO.lineNo || globalMaintWO.custom_production_line || 'Filling Line'} ({activeTemplates.length} Checklists)
+                    Line: {currentMaintWO.lineNo || currentMaintWO.custom_production_line || 'Filling Line'} ({activeTemplates.length} Checklists)
                   </span>
                 </div>
+                {isWoCancelled && (
+                  <div style={{ fontSize: '12px', color: 'var(--danger)', marginTop: '4px', fontWeight: '500' }}>
+                    This Work Order is Cancelled. Maintenance checklists, machine breakdown logs, and weight checks cannot be filled for this Work Order.
+                  </div>
+                )}
               </>
             ) : (
               <div>
@@ -2364,7 +2675,7 @@ export default function MaintenanceTab({
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          {globalMaintWO && (
+          {currentMaintWO && (
             <button
               type="button"
               className="secondary-btn"
@@ -2375,7 +2686,7 @@ export default function MaintenanceTab({
               }}
               title="Clear selected Work Order and show all 10 forms"
             >
-              ✕ Show All Forms
+              Show All Forms
             </button>
           )}
           <button
@@ -2384,7 +2695,7 @@ export default function MaintenanceTab({
             style={{ padding: '6px 14px', fontSize: '12px', fontWeight: '600' }}
             onClick={() => setShowWOSelector(true)}
           >
-            {globalMaintWO ? '⟳ Change Work Order' : '+ Select Work Order'}
+            {currentMaintWO ? '⟳ Change Work Order' : '+ Select Work Order'}
           </button>
         </div>
       </div>
@@ -2394,7 +2705,7 @@ export default function MaintenanceTab({
         <div className="metric-card">
           <div className="metric-header">
             <span className="metric-title" style={{ fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Logged Checklists</span>
-            <span className="metric-icon">🔧</span>
+            <span className="metric-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Wrench size={18} /></span>
           </div>
           <div className="metric-value" style={{ fontSize: '24px', fontWeight: '800', margin: '8px 0' }}>
             {totalChecklists}
@@ -2406,7 +2717,7 @@ export default function MaintenanceTab({
         <div className="metric-card">
           <div className="metric-header">
             <span className="metric-title" style={{ fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Equipment Monitored</span>
-            <span className="metric-icon">⚙️</span>
+            <span className="metric-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Settings size={18} /></span>
           </div>
           <div className="metric-value" style={{ fontSize: '24px', fontWeight: '800', margin: '8px 0' }}>
             {`${eqCount} / ${activeTemplates.length}`}
@@ -2420,7 +2731,7 @@ export default function MaintenanceTab({
         <div className="metric-card">
           <div className="metric-header">
             <span className="metric-title" style={{ fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Last Activity</span>
-            <span className="metric-icon">⏱️</span>
+            <span className="metric-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Clock size={18} /></span>
           </div>
           <div className="metric-value" style={{ fontSize: '15px', fontWeight: '800', margin: '14px 0 13px 0', height: '24px', display: 'flex', alignItems: 'center' }}>
             {lastActivity}
@@ -2432,8 +2743,8 @@ export default function MaintenanceTab({
       {/* Sub-Tabs */}
       <div style={{ display: 'flex', gap: '12px', borderBottom: '1px solid var(--border-color)', marginBottom: '20px', paddingBottom: '2px' }}>
         {[
-          { key: 'preventive', label: '⚙️ Daily Preventive Checklists' },
-          { key: 'regular-breakdown', label: '🛠️ Regular Checks & Breakdowns' },
+          { key: 'preventive', label: 'Daily Preventive Checklists' },
+          { key: 'regular-breakdown', label: 'Regular Checks & Breakdowns' },
         ].map(tab => (
           <button
             key={tab.key}
@@ -2470,7 +2781,9 @@ export default function MaintenanceTab({
             </h3>
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
               <div style={{ position: 'relative' }}>
-                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '13px' }}>🔍</span>
+                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
+                  <Search size={14} />
+                </span>
                 <input
                   className="form-input"
                   style={{ paddingLeft: '32px', height: '34px', width: '200px', fontSize: '12px' }}
@@ -2485,7 +2798,7 @@ export default function MaintenanceTab({
                 className="secondary-btn"
                 style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '12px', fontWeight: '600', height: '34px' }}
               >
-                {maintViewMode === 'grid' ? '📋 List View' : '🎚️ Grid View'}
+                {maintViewMode === 'grid' ? 'List View' : 'Grid View'}
               </button>
             </div>
           </div>
@@ -2542,7 +2855,7 @@ export default function MaintenanceTab({
                         <span className="badge" style={{ backgroundColor: 'rgba(251, 191, 36, 0.1)', color: 'var(--accent)', fontSize: '10px', fontWeight: 'bold', padding: '3px 7px', borderRadius: '4px' }}>
                           {tpl.area}
                         </span>
-                        {doneForWO && <span style={{ fontSize: '10px', color: 'var(--success)', fontWeight: '700' }}>✓ Completed</span>}
+                        {doneForWO && <span style={{ fontSize: '10px', color: 'var(--success)', fontWeight: '700' }}>Completed</span>}
                       </div>
                       <h4 style={{ fontSize: '14px', fontWeight: '700', marginBottom: '4px', color: 'var(--text-heading)' }}>{tpl.equipment}</h4>
                       <p className="text-muted" style={{ fontSize: '11px', marginBottom: '12px' }}>
@@ -2550,23 +2863,24 @@ export default function MaintenanceTab({
                       </p>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
-                      <span style={{ fontSize: '11px', fontWeight: '600', color: doneForWO ? 'var(--success)' : 'var(--warning)' }}>
-                        {doneForWO ? '✓ Submitted' : '⏳ Pending'}
+                      <span style={{ fontSize: '11px', fontWeight: '600', color: doneForWO ? 'var(--success)' : isWoCancelled ? 'var(--text-muted)' : 'var(--warning)' }}>
+                        {doneForWO ? 'Submitted' : isWoCancelled ? 'Not Required (Cancelled)' : 'Pending'}
                       </span>
                       <button
                         type="button"
                         className="primary-btn"
-                        disabled={doneForWO}
+                        disabled={doneForWO || isWoCancelled}
+                        title={isWoCancelled ? 'Work Order is Cancelled. Checklists cannot be filled.' : undefined}
                         style={{
                           padding: '6px 12px',
                           fontSize: '12px',
-                          opacity: doneForWO ? 0.6 : 1,
-                          cursor: doneForWO ? 'not-allowed' : 'pointer',
-                          backgroundColor: doneForWO ? 'var(--text-muted, #9ca3af)' : 'var(--primary)',
-                          borderColor: doneForWO ? 'var(--text-muted, #9ca3af)' : 'var(--primary)'
+                          opacity: (doneForWO || isWoCancelled) ? 0.6 : 1,
+                          cursor: (doneForWO || isWoCancelled) ? 'not-allowed' : 'pointer',
+                          backgroundColor: (doneForWO || isWoCancelled) ? 'var(--text-muted, #9ca3af)' : 'var(--primary)',
+                          borderColor: (doneForWO || isWoCancelled) ? 'var(--text-muted, #9ca3af)' : 'var(--primary)'
                         }}
                         onClick={() => {
-                          if (doneForWO) return;
+                          if (doneForWO || isWoCancelled) return;
                           const todayStr = new Date().toISOString().substring(0, 10);
                           const weekNo = getWeekNumber(new Date()).toString();
                           setActiveMaintTemplate(originalIdx);
@@ -2579,10 +2893,10 @@ export default function MaintenanceTab({
                           if (setMaintOperatorDisplay) setMaintOperatorDisplay('');
                           setMaintSupervisor('');
                           if (setMaintSupervisorDisplay) setMaintSupervisorDisplay('');
-                          if (setMaintWorkOrder) setMaintWorkOrder(globalMaintWO ? globalMaintWO.id : '');
+                          if (setMaintWorkOrder) setMaintWorkOrder(currentMaintWO ? currentMaintWO.id : '');
                         }}
                       >
-                        {doneForWO ? '✓ Submitted' : '📝 Fill Checklist'}
+                        {doneForWO ? 'Submitted' : isWoCancelled ? 'Cancelled' : 'Fill Checklist'}
                       </button>
                     </div>
                   </div>
@@ -2625,11 +2939,11 @@ export default function MaintenanceTab({
                         (r.work_order && r.work_order === globalMaintWO.id)
                       )
                     );
-                    const dotColor = doneForWO ? 'var(--success)' : 'var(--warning)';
+                    const dotColor = doneForWO ? 'var(--success)' : isWoCancelled ? 'var(--text-muted)' : 'var(--warning)';
                     return (
                       <tr
                         key={tpl.id}
-                        style={{ borderBottom: '1px solid var(--border-color)', opacity: doneForWO ? 0.75 : 1, transition: 'background 0.15s ease' }}
+                        style={{ borderBottom: '1px solid var(--border-color)', opacity: (doneForWO || isWoCancelled) ? 0.75 : 1, transition: 'background 0.15s ease' }}
                         onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'}
                         onMouseLeave={e => e.currentTarget.style.backgroundColor = ''}
                       >
@@ -2638,7 +2952,17 @@ export default function MaintenanceTab({
                         </td>
                         <td style={{ padding: '10px 14px', fontWeight: '700', color: 'var(--text-heading)' }}>
                           {tpl.equipment}
-                          {doneForWO && <span style={{ marginLeft: '8px', fontSize: '10px', color: 'var(--success)', fontWeight: '700' }}>✓ Submitted</span>}
+                          {doneForWO && (
+                            <span style={{ marginLeft: '8px', fontSize: '10px', color: 'var(--success)', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                              <Check size={11} />
+                              <span>Submitted</span>
+                            </span>
+                          )}
+                          {isWoCancelled && (
+                            <span style={{ marginLeft: '8px', fontSize: '10px', color: 'var(--text-muted)', fontWeight: '600' }}>
+                              (Cancelled)
+                            </span>
+                          )}
                         </td>
                         <td style={{ padding: '10px 14px' }}>
                           <span style={{ backgroundColor: 'rgba(251, 191, 36, 0.1)', color: 'var(--accent)', fontSize: '10px', fontWeight: '700', padding: '3px 7px', borderRadius: '4px' }}>
@@ -2652,17 +2976,18 @@ export default function MaintenanceTab({
                           <button
                             type="button"
                             className="primary-btn"
-                            disabled={doneForWO}
+                            disabled={doneForWO || isWoCancelled}
+                            title={isWoCancelled ? 'Work Order is Cancelled. Checklists cannot be filled.' : undefined}
                             style={{
                               padding: '5px 12px',
                               fontSize: '11px',
-                              opacity: doneForWO ? 0.6 : 1,
-                              cursor: doneForWO ? 'not-allowed' : 'pointer',
-                              backgroundColor: doneForWO ? 'var(--text-muted, #9ca3af)' : 'var(--primary)',
-                              borderColor: doneForWO ? 'var(--text-muted, #9ca3af)' : 'var(--primary)'
+                              opacity: (doneForWO || isWoCancelled) ? 0.6 : 1,
+                              cursor: (doneForWO || isWoCancelled) ? 'not-allowed' : 'pointer',
+                              backgroundColor: (doneForWO || isWoCancelled) ? 'var(--text-muted, #9ca3af)' : 'var(--primary)',
+                              borderColor: (doneForWO || isWoCancelled) ? 'var(--text-muted, #9ca3af)' : 'var(--primary)'
                             }}
                             onClick={() => {
-                              if (doneForWO) return;
+                              if (doneForWO || isWoCancelled) return;
                               const todayStr = new Date().toISOString().substring(0, 10);
                               const weekNo = getWeekNumber(new Date()).toString();
                               setActiveMaintTemplate(originalIdx);
@@ -2675,10 +3000,10 @@ export default function MaintenanceTab({
                               if (setMaintOperatorDisplay) setMaintOperatorDisplay('');
                               setMaintSupervisor('');
                               if (setMaintSupervisorDisplay) setMaintSupervisorDisplay('');
-                              if (setMaintWorkOrder) setMaintWorkOrder(globalMaintWO ? globalMaintWO.id : '');
+                              if (setMaintWorkOrder) setMaintWorkOrder(currentMaintWO ? currentMaintWO.id : '');
                             }}
                           >
-                            {doneForWO ? '✓ Submitted' : '📝 Fill Checklist'}
+                            {doneForWO ? 'Submitted' : isWoCancelled ? 'Cancelled' : 'Fill Checklist'}
                           </button>
                         </td>
                       </tr>
@@ -2693,11 +3018,29 @@ export default function MaintenanceTab({
 
       {activeMaintSubTab === 'regular-breakdown' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '32px' }}>
+          {isWoCancelled && (
+            <div style={{
+              gridColumn: '1 / -1',
+              padding: '12px 16px',
+              backgroundColor: 'rgba(239, 68, 68, 0.08)',
+              borderRadius: '8px',
+              border: '1px solid rgba(239, 68, 68, 0.25)',
+              color: 'var(--danger)',
+              fontSize: '13px',
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <AlertTriangle size={16} />
+              <span>Work Order {currentMaintWO.id} is Cancelled. Regular checks, breakdowns, and PM requests cannot be filled for this Work Order.</span>
+            </div>
+          )}
 
           {/* Machine Breakdown */}
           <div
             className="inv-card"
-            style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '16px', transition: 'all 0.2s ease' }}
+            style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '16px', transition: 'all 0.2s ease', opacity: isWoCancelled ? 0.75 : 1 }}
             onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)'; }}
             onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
           >
@@ -2707,58 +3050,134 @@ export default function MaintenanceTab({
               <p className="text-muted" style={{ fontSize: '11px', marginBottom: '12px' }}>Log requests, maintenance actions, and production handovers for machine breakdowns.</p>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
-              <button type="button" className="primary-btn" style={{ padding: '6px 12px', fontSize: '12px', backgroundColor: 'var(--danger)', borderColor: 'var(--danger)' }} onClick={() => setActiveMaintForm('breakdown')}>📝 Log Breakdown</button>
+              <button
+                type="button"
+                className="primary-btn"
+                disabled={isWoCancelled}
+                title={isWoCancelled ? 'Work Order is Cancelled. Breakdowns cannot be logged for cancelled work orders.' : undefined}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '12px',
+                  backgroundColor: isWoCancelled ? 'var(--text-muted, #9ca3af)' : 'var(--danger)',
+                  borderColor: isWoCancelled ? 'var(--text-muted, #9ca3af)' : 'var(--danger)',
+                  opacity: isWoCancelled ? 0.6 : 1,
+                  cursor: isWoCancelled ? 'not-allowed' : 'pointer'
+                }}
+                onClick={() => {
+                  if (isWoCancelled) return;
+                  setActiveMaintForm('breakdown');
+                }}
+              >
+                {isWoCancelled ? 'Cancelled' : 'Log Breakdown'}
+              </button>
             </div>
           </div>
 
           {/* Form 107: Hourly Weight Check */}
           <div
             className="inv-card"
-            style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '16px', transition: 'all 0.2s ease' }}
+            style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '16px', transition: 'all 0.2s ease', opacity: isWoCancelled ? 0.75 : 1 }}
             onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)'; }}
             onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
           >
             <div>
               <span className="badge" style={{ backgroundColor: 'rgba(14, 165, 233, 0.1)', color: 'var(--accent)', fontSize: '10px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '4px' }}>QUALITY / WEIGHT</span>
-              <h4 style={{ fontSize: '14px', fontWeight: '700', marginTop: '12px', marginBottom: '4px', color: 'var(--text-heading)' }}>⚖️ Form 107: Hourly Weight Check</h4>
+              <h4 style={{ fontSize: '14px', fontWeight: '700', marginTop: '12px', marginBottom: '4px', color: 'var(--text-heading)' }}>Form 107: Hourly Weight Check</h4>
               <p className="text-muted" style={{ fontSize: '11px', marginBottom: '12px' }}>Log hourly container weight checks, scale readings, and net weight specifications.</p>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
-              <button type="button" className="primary-btn" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => setActiveMaintForm('form107')}>📝 Fill Form 107</button>
+              <button
+                type="button"
+                className="primary-btn"
+                disabled={isWoCancelled}
+                title={isWoCancelled ? 'Work Order is Cancelled. Form 107 cannot be filled for cancelled work orders.' : undefined}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '12px',
+                  opacity: isWoCancelled ? 0.6 : 1,
+                  cursor: isWoCancelled ? 'not-allowed' : 'pointer',
+                  backgroundColor: isWoCancelled ? 'var(--text-muted, #9ca3af)' : 'var(--primary)',
+                  borderColor: isWoCancelled ? 'var(--text-muted, #9ca3af)' : 'var(--primary)'
+                }}
+                onClick={() => {
+                  if (isWoCancelled) return;
+                  setActiveMaintForm('form107');
+                }}
+              >
+                {isWoCancelled ? 'Cancelled' : 'Fill Form 107'}
+              </button>
             </div>
           </div>
 
           {/* Form 88: Weight Check */}
           <div
             className="inv-card"
-            style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '16px', transition: 'all 0.2s ease' }}
+            style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '16px', transition: 'all 0.2s ease', opacity: isWoCancelled ? 0.75 : 1 }}
             onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)'; }}
             onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
           >
             <div>
               <span className="badge" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: 'var(--success)', fontSize: '10px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '4px' }}>QUALITY / WEIGHT</span>
-              <h4 style={{ fontSize: '14px', fontWeight: '700', marginTop: '12px', marginBottom: '4px', color: 'var(--text-heading)' }}>⚖️ Form 88: Weight Check</h4>
+              <h4 style={{ fontSize: '14px', fontWeight: '700', marginTop: '12px', marginBottom: '4px', color: 'var(--text-heading)' }}>Form 88: Weight Check</h4>
               <p className="text-muted" style={{ fontSize: '11px', marginBottom: '12px' }}>Log finished product weight checks, slot samples, and verification logs.</p>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
-              <button type="button" className="primary-btn" style={{ padding: '6px 12px', fontSize: '12px', backgroundColor: 'var(--success)', borderColor: 'var(--success)' }} onClick={() => setActiveMaintForm('form88-dynamic')}>📝 Fill Form 88</button>
+              <button
+                type="button"
+                className="primary-btn"
+                disabled={isWoCancelled}
+                title={isWoCancelled ? 'Work Order is Cancelled. Form 88 cannot be filled for cancelled work orders.' : undefined}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '12px',
+                  backgroundColor: isWoCancelled ? 'var(--text-muted, #9ca3af)' : 'var(--success)',
+                  borderColor: isWoCancelled ? 'var(--text-muted, #9ca3af)' : 'var(--success)',
+                  opacity: isWoCancelled ? 0.6 : 1,
+                  cursor: isWoCancelled ? 'not-allowed' : 'pointer'
+                }}
+                onClick={() => {
+                  if (isWoCancelled) return;
+                  setActiveMaintForm('form88-dynamic');
+                }}
+              >
+                {isWoCancelled ? 'Cancelled' : 'Fill Form 88'}
+              </button>
             </div>
           </div>
 
           {/* Form: Preventive Maintenance Request */}
           <div
             className="inv-card"
-            style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '16px', transition: 'all 0.2s ease' }}
+            style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '16px', transition: 'all 0.2s ease', opacity: isWoCancelled ? 0.75 : 1 }}
             onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)'; }}
             onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
           >
             <div>
               <span className="badge" style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', color: 'var(--accent)', fontSize: '10px', fontWeight: 'bold', padding: '4px 8px', borderRadius: '4px' }}>PREVENTIVE MAINTENANCE</span>
-              <h4 style={{ fontSize: '14px', fontWeight: '700', marginTop: '12px', marginBottom: '4px', color: 'var(--text-heading)' }}>⚙️ Preventive Maintenance Request</h4>
+              <h4 style={{ fontSize: '14px', fontWeight: '700', marginTop: '12px', marginBottom: '4px', color: 'var(--text-heading)' }}>Preventive Maintenance Request</h4>
               <p className="text-muted" style={{ fontSize: '11px', marginBottom: '12px' }}>Submit and log preventive maintenance requests, equipment schedules, and technician tasks.</p>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
-              <button type="button" className="primary-btn" style={{ padding: '6px 12px', fontSize: '12px', backgroundColor: 'var(--accent)', borderColor: 'var(--accent)' }} onClick={() => setActiveMaintForm('pm-request')}>📝 Request PM</button>
+              <button
+                type="button"
+                className="primary-btn"
+                disabled={isWoCancelled}
+                title={isWoCancelled ? 'Work Order is Cancelled. PM Requests cannot be filled for cancelled work orders.' : undefined}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '12px',
+                  backgroundColor: isWoCancelled ? 'var(--text-muted, #9ca3af)' : 'var(--accent)',
+                  borderColor: isWoCancelled ? 'var(--text-muted, #9ca3af)' : 'var(--accent)',
+                  opacity: isWoCancelled ? 0.6 : 1,
+                  cursor: isWoCancelled ? 'not-allowed' : 'pointer'
+                }}
+                onClick={() => {
+                  if (isWoCancelled) return;
+                  setActiveMaintForm('pm-request');
+                }}
+              >
+                {isWoCancelled ? 'Cancelled' : 'Request PM'}
+              </button>
             </div>
           </div>
         </div>
@@ -2811,7 +3230,7 @@ export default function MaintenanceTab({
             <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>Loading history…</div>
           ) : erpHistory.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
-              <div style={{ fontSize: '36px', marginBottom: '8px' }}>📂</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}><FolderOpen size={36} /></div>
               <p>No checklist records found{historyWOFilter !== 'all' ? ` for ${historyWOFilter}` : ''}.</p>
             </div>
           ) : (
@@ -2825,7 +3244,9 @@ export default function MaintenanceTab({
                     <th>Work Order</th>
                     <th>Operator</th>
                     <th>Supervisor</th>
+                    <th>Workflow Status</th>
                     <th>Date</th>
+                    <th style={{ textAlign: 'center' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2847,7 +3268,30 @@ export default function MaintenanceTab({
                         onMouseLeave={e => e.currentTarget.style.backgroundColor = ''}
                       >
                         <td style={{ fontWeight: '700', color: 'var(--accent)' }}>{rec.name}</td>
-                        <td style={{ fontWeight: '600' }}>{rec.equipment}</td>
+                        <td style={{ fontWeight: '600' }}>
+                          <span>{rec.equipment}</span>
+                          {(rec.linked_incident || rec.is_incident) && (
+                            <span
+                              style={{
+                                marginLeft: '6px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                backgroundColor: '#fef3c7',
+                                color: '#b45309',
+                                border: '1px solid #fde68a',
+                                padding: '1px 6px',
+                                borderRadius: '10px'
+                              }}
+                              title={`Linked Plant Incident: ${rec.linked_incident || 'Flagged'}`}
+                            >
+                              <AlertTriangle size={10} />
+                              {rec.linked_incident || 'Incident'}
+                            </span>
+                          )}
+                        </td>
                         <td>{rec.area}</td>
                         <td>
                           {rec.work_order ? (
@@ -2856,9 +3300,22 @@ export default function MaintenanceTab({
                             </span>
                           ) : <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>—</span>}
                         </td>
-                        <td>👤 {rec.sign_of_the_operator || '—'}</td>
-                        <td>👤 {rec.sign_of_supervisor || '—'}</td>
+                        <td style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><User size={13} style={{ color: 'var(--text-muted)' }} /><span>{rec.sign_of_the_operator || '—'}</span></td>
+                        <td style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><User size={13} style={{ color: 'var(--text-muted)' }} /><span>{rec.sign_of_supervisor || '—'}</span></td>
+                        <td>
+                          <StageStatusBadge record={rec} />
+                        </td>
                         <td style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{String(rec.creation).split(' ')[0]}</td>
+                        <td style={{ textAlign: 'center' }}>
+                          <button
+                            type="button"
+                            className="secondary-btn"
+                            style={{ padding: '4px 8px', fontSize: '11px' }}
+                            onClick={() => setViewingMaintRecord(rec)}
+                          >
+                            View Report
+                          </button>
+                        </td>
                       </tr>
                     ))
                   }
@@ -2868,7 +3325,7 @@ export default function MaintenanceTab({
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', marginTop: '16px' }}>
                 <button type="button" className="secondary-btn" disabled={maintPage === 1} onClick={() => setMaintPage(p => Math.max(1, p - 1))}>◀ Prev</button>
                 <span style={{ fontSize: '13px', fontWeight: '600' }}>Page {maintPage}</span>
-                <button type="button" className="secondary-btn" disabled={erpHistory.length < 20} onClick={() => setMaintPage(p => p + 1)}>Next ▶</button>
+                <button type="button" className="secondary-btn" disabled={erpHistory.length < 20} onClick={() => setMaintPage(p => p + 1)}>Next</button>
               </div>
             </div>
           )
@@ -2883,7 +3340,7 @@ export default function MaintenanceTab({
                   <thead>
                     <tr>
                       <th>Log ID</th><th>Equipment</th><th>Area</th><th>Week No</th>
-                      <th>Operator</th><th>Supervisor</th><th>Completion</th><th>Timestamp</th><th>Action</th>
+                      <th>Operator</th><th>Supervisor</th><th>Workflow Status</th><th>Completion</th><th>Timestamp</th><th>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2895,11 +3352,37 @@ export default function MaintenanceTab({
                         onMouseLeave={e => e.currentTarget.style.backgroundColor = ''}
                       >
                         <td style={{ fontWeight: '600' }}>{rec.id}</td>
-                        <td style={{ fontWeight: '600' }}>{rec.equipment}</td>
+                        <td style={{ fontWeight: '600' }}>
+                          <span>{rec.equipment}</span>
+                          {(rec.linked_incident || rec.is_incident) && (
+                            <span
+                              style={{
+                                marginLeft: '6px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                backgroundColor: '#fef3c7',
+                                color: '#b45309',
+                                border: '1px solid #fde68a',
+                                padding: '1px 6px',
+                                borderRadius: '10px'
+                              }}
+                              title={`Linked Plant Incident: ${rec.linked_incident || 'Flagged'}`}
+                            >
+                              <AlertTriangle size={10} />
+                              {rec.linked_incident || 'Incident'}
+                            </span>
+                          )}
+                        </td>
                         <td>{rec.area}</td>
                         <td style={{ fontWeight: '600' }}>{rec.weekNo ? `Wk ${rec.weekNo}` : 'N/A'}</td>
-                        <td>👤 {rec.operator || 'Not Signed'}</td>
-                        <td>👤 {rec.supervisor || 'Not Signed'}</td>
+                        <td style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><User size={13} style={{ color: 'var(--text-muted)' }} /><span>{rec.operator || 'Not Signed'}</span></td>
+                        <td style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><User size={13} style={{ color: 'var(--text-muted)' }} /><span>{rec.supervisor || 'Not Signed'}</span></td>
+                        <td>
+                          <StageStatusBadge record={rec} />
+                        </td>
                         <td>
                           <span className="badge badge-completed" style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '4px' }}>
                             {rec.totalChecked} / {rec.maxPossible} ({Math.round((rec.totalChecked / (rec.maxPossible || 1)) * 100)}%)
@@ -2907,7 +3390,7 @@ export default function MaintenanceTab({
                         </td>
                         <td style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{rec.timestamp}</td>
                         <td>
-                          <button type="button" className="secondary-btn" style={{ padding: '4px 8px', fontSize: '11px' }} onClick={() => setViewingRecord(rec)}>👁️ View</button>
+                          <button type="button" className="secondary-btn" style={{ padding: '4px 8px', fontSize: '11px' }} onClick={() => setViewingMaintRecord(rec)}>View Report</button>
                         </td>
                       </tr>
                     ))}
@@ -2915,14 +3398,22 @@ export default function MaintenanceTab({
                 </table>
               </div>
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', marginTop: '16px' }}>
-                <button type="button" className="secondary-btn" disabled={maintPage === 1} onClick={() => setMaintPage(p => Math.max(1, p - 1))}>◀ Previous</button>
+                <button type="button" className="secondary-btn" disabled={maintPage === 1} onClick={() => setMaintPage(p => Math.max(1, p - 1))}>Previous</button>
                 <span style={{ fontSize: '13px', fontWeight: '600' }}>Page {maintPage} of {Math.max(1, Math.ceil(filteredMaintRecords.length / 20))}</span>
-                <button type="button" className="secondary-btn" disabled={maintPage >= Math.ceil(filteredMaintRecords.length / 20)} onClick={() => setMaintPage(p => p + 1)}>Next ▶</button>
+                <button type="button" className="secondary-btn" disabled={maintPage >= Math.ceil(filteredMaintRecords.length / 20)} onClick={() => setMaintPage(p => p + 1)}>Next</button>
               </div>
             </>
           )
         )}
       </div>
+
+      {/* Maintenance Report Viewer Modal with 3-Stage Workflow Audit Trail */}
+      {viewingMaintRecord && (
+        <MaintenanceReportViewerModal
+          record={viewingMaintRecord}
+          onClose={() => setViewingMaintRecord(null)}
+        />
+      )}
     </div>
   );
 }

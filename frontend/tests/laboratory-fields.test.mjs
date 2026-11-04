@@ -4,7 +4,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createServer } from 'vite';
 
-const server = await createServer({ optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true }, appType: 'custom' });
+const server = await createServer({ optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true, watch: { ignored: ['**'] } }, appType: 'custom' });
 after(() => server.close());
 const { LabMetadataFields, LabFieldControl, LabTableSections } = await server.ssrLoadModule('/src/components/LabMetadataFields.jsx');
 const render = (Component, props) => renderToStaticMarkup(React.createElement(Component, props));

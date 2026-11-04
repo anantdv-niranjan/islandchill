@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { frappe } from '../services/frappe';
+import { BarChart3, RefreshCw } from 'lucide-react';
 
 export default function ReportsTab({ isLoggedIn }) {
   const [reportType, setReportType] = useState('Microbiologiocal Analysis Raw and Product Water');
@@ -217,8 +218,9 @@ export default function ReportsTab({ isLoggedIn }) {
       <div className="no-print" style={{ marginBottom: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <h2 style={{ fontSize: '20px', fontWeight: '800', margin: 0, color: 'var(--text-heading)' }}>
-              📊 Periodic Compliance & Quality Reports
+            <h2 style={{ fontSize: '20px', fontWeight: '800', margin: 0, color: 'var(--text-heading)', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+              <BarChart3 size={20} />
+              <span>Periodic Compliance & Quality Reports</span>
             </h2>
 
           </div>
@@ -226,11 +228,12 @@ export default function ReportsTab({ isLoggedIn }) {
             <button
               type="button"
               className="secondary-btn"
-              style={{ fontSize: '12px', padding: '6px 14px' }}
+              style={{ fontSize: '12px', padding: '6px 14px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               onClick={fetchReportData}
               disabled={loading}
             >
-              {loading ? '⟳ Syncing Data...' : '⟳ Refresh Data'}
+              <RefreshCw size={13} className={loading ? 'spin' : ''} />
+              <span>{loading ? 'Syncing Data...' : 'Refresh Data'}</span>
             </button>
 
           </div>

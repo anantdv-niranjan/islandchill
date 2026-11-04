@@ -1,3 +1,22 @@
+import {
+  Play,
+  Pause,
+  RotateCcw,
+  Wine,
+  GlassWater,
+  Package,
+  Layers,
+  Settings,
+  ClipboardList,
+  MapPin,
+  Check,
+  Clock,
+  CircleDollarSign,
+  ArrowRight,
+  Factory,
+  ChevronRight,
+  Loader2
+} from 'lucide-react';
 import React, { useState, useEffect, useMemo } from 'react';
 import { frappe } from '../services/frappe';
 
@@ -453,7 +472,7 @@ export default function WorkflowTab({
         flexShrink: 0,
         boxShadow: '0 2px 6px rgba(0,0,0,0.04)'
       }}>
-        {isCan ? '🥫' : '🍾'}
+        {isCan ? <Package size={24} /> : <Wine size={24} />}
       </div>
     );
   };
@@ -667,7 +686,7 @@ export default function WorkflowTab({
                   transition: 'all 0.2s'
                 }}
               >
-                {simPlaying ? '⏸ Pause' : '▶ Play'}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>{simPlaying ? <Pause size={14} /> : <Play size={14} />}<span>{simPlaying ? 'Pause' : 'Play'}</span></span>
               </button>
               <button
                 onClick={() => { setSimPlaying(false); setSimStep(0); }}
@@ -685,7 +704,7 @@ export default function WorkflowTab({
                   cursor: 'pointer'
                 }}
               >
-                🔄 Reset
+                <RotateCcw size={14} /><span>Reset</span>
               </button>
               <div style={{ height: '24px', width: '1px', backgroundColor: '#e2e8f0', margin: '0 4px' }} />
               {[
@@ -730,7 +749,7 @@ export default function WorkflowTab({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px', borderBottom: '1px solid #f1f5f9', paddingBottom: '16px' }}>
             <div>
               <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>🍾</span> Select Product Family ({activeBomItems.length} Active BOMs)
+                <Wine size={20} /><span>Select Product Family</span> ({activeBomItems.length} Active BOMs)
               </h2>
               <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>
                 Click any product family card below to transition to its manufacturing operations view.
@@ -870,7 +889,7 @@ export default function WorkflowTab({
                       alignItems: 'center',
                       justifyContent: 'center'
                     }}>
-                      <span style={{ fontSize: '44px' }}>🥤</span>
+                      <GlassWater size={44} color="#0284c7" />
                     </div>
                   </div>
 
@@ -915,7 +934,7 @@ export default function WorkflowTab({
                       transition: 'all 0.2s ease'
                     }}
                   >
-                    View Operations ➔
+                    View Operations
                   </button>
                 </div>
               );
@@ -954,7 +973,7 @@ export default function WorkflowTab({
             </button>
 
             <span style={{ fontSize: '13px', fontWeight: '700', color: '#64748b', backgroundColor: '#ffffff', padding: '6px 14px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-              Product Family ➔ <strong>{selectedBomFullDoc?.item_name || activeFGItem?.name || selectedBomId}</strong>
+              Product Family › <strong>{selectedBomFullDoc?.item_name || activeFGItem?.name || selectedBomId}</strong>
             </span>
           </div>
 
@@ -975,11 +994,11 @@ export default function WorkflowTab({
                     BOM: {selectedBomId}
                   </span>
                   <span style={{ backgroundColor: '#dcfce7', color: '#15803d', fontSize: '11px', fontWeight: '800', padding: '2px 8px', borderRadius: '6px' }}>
-                    🟢 Active & Default
+                    Active & Default
                   </span>
                 </div>
                 <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span>⚙️</span> Production Operations Pipeline for {selectedBomFullDoc?.item_name || activeFGItem?.name || selectedBomId}
+                  <Settings size={20} /><span>Production Operations Pipeline</span> for {selectedBomFullDoc?.item_name || activeFGItem?.name || selectedBomId}
                 </h2>
               </div>
             </div>
@@ -999,7 +1018,7 @@ export default function WorkflowTab({
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '18px' }}>📋</span>
+                  <ClipboardList size={18} />
                   <label htmlFor="wo-selector-operations" style={{ fontSize: '13px', fontWeight: '800', color: '#0f172a' }}>
                     Select Work Order:
                   </label>
@@ -1035,7 +1054,7 @@ export default function WorkflowTab({
 
                 {loadingWOJobCards && (
                   <span style={{ fontSize: '12px', color: '#0284c7', fontWeight: '600' }}>
-                    ⌛ Syncing Job Cards...
+                    Syncing Job Cards...
                   </span>
                 )}
               </div>
@@ -1061,7 +1080,7 @@ export default function WorkflowTab({
 
                   {activeWOOpIndex >= 0 && bomOperations[activeWOOpIndex] && (
                     <span style={{ backgroundColor: '#0284c7', color: '#ffffff', fontSize: '12px', fontWeight: '800', padding: '5px 14px', borderRadius: '10px', boxShadow: '0 2px 8px rgba(2,132,199,0.25)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>📍</span> Current Active Stage: Step #{activeWOOpIndex + 1} ({bomOperations[activeWOOpIndex].operation})
+                      <MapPin size={14} /><span>Current Active Stage:</span> Step #{activeWOOpIndex + 1} ({bomOperations[activeWOOpIndex].operation})
                     </span>
                   )}
                 </div>
@@ -1125,11 +1144,11 @@ export default function WorkflowTab({
                         </div>
                         {isWOCurrentOp ? (
                           <span style={{ backgroundColor: '#0284c7', color: '#ffffff', fontSize: '11px', fontWeight: '800', padding: '2px 8px', borderRadius: '10px', boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)' }}>
-                            📍 Active (WO)
+                            Active (WO)
                           </span>
                         ) : isPassed ? (
                           <span style={{ backgroundColor: '#ecfdf5', color: '#047857', fontSize: '11px', fontWeight: '800', padding: '2px 8px', borderRadius: '10px', border: '1px solid #a7f3d0' }}>
-                            ✓ Done
+                            Done
                           </span>
                         ) : isActive ? (
                           <span style={{ backgroundColor: '#e0f2fe', color: '#0369a1', fontSize: '11px', fontWeight: '800', padding: '2px 8px', borderRadius: '10px', border: '1px solid #bae6fd' }}>
@@ -1137,7 +1156,7 @@ export default function WorkflowTab({
                           </span>
                         ) : (
                           <span style={{ backgroundColor: '#f1f5f9', color: '#64748b', fontSize: '11px', fontWeight: '700', padding: '2px 8px', borderRadius: '10px' }}>
-                            ⏳ Open
+                            Open
                           </span>
                         )}
                       </div>
@@ -1147,13 +1166,13 @@ export default function WorkflowTab({
                           {op.operation}
                         </div>
                         <div style={{ fontSize: '12px', color: '#64748b', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <span>🏭</span> {op.workstation}
+                          <Factory size={13} style={{ color: 'var(--text-muted)' }} /><span>{op.workstation}</span>
                         </div>
                       </div>
 
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px', borderTop: '1px solid #f1f5f9', fontSize: '12px', color: '#475569' }}>
-                        <span>⏱ {op.time_in_mins} mins</span>
-                        <span style={{ fontWeight: '700', color: '#059669' }}>💰 FJD ${(op.operating_cost || 0).toFixed(2)}</span>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}><Clock size={12} /><span>{op.time_in_mins} mins</span></span>
+                        <span style={{ fontWeight: '700', color: '#059669' }}>FJD ${(op.operating_cost || 0).toFixed(2)}</span>
                       </div>
                     </div>
 
@@ -1164,11 +1183,9 @@ export default function WorkflowTab({
                         alignItems: 'center',
                         justifyContent: 'center',
                         color: isPassed ? '#059669' : '#94a3b8',
-                        fontSize: '18px',
-                        fontWeight: '700',
                         padding: '0 2px'
                       }}>
-                        ➔
+                        <ChevronRight size={18} />
                       </div>
                     )}
                   </React.Fragment>
@@ -1208,7 +1225,7 @@ export default function WorkflowTab({
                         {currentOp.operation || 'Selected Operation'}
                       </h3>
                       <div style={{ fontSize: '12px', color: '#64748b', fontWeight: '600', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span>🏭 Workstation:</span> <strong>{currentOp.workstation || 'Production Line'}</strong>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Factory size={13} /><span>Workstation:</span></span> <strong>{currentOp.workstation || 'Production Line'}</strong>
                       </div>
                     </div>
                   </div>
@@ -1243,12 +1260,12 @@ export default function WorkflowTab({
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
                   <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '12px 16px' }}>
                     <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>Operation Time</div>
-                    <div style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', marginTop: '2px' }}>⏱ {currentOp.time_in_mins || 0} Mins</div>
+                    <div style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', marginTop: '2px' }}>{currentOp.time_in_mins || 0} Mins</div>
                   </div>
 
                   <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '12px 16px' }}>
                     <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>Operating Cost</div>
-                    <div style={{ fontSize: '15px', fontWeight: '800', color: '#059669', marginTop: '2px' }}>💰 FJD ${(currentOp.operating_cost || 0).toFixed(2)}</div>
+                    <div style={{ fontSize: '15px', fontWeight: '800', color: '#059669', marginTop: '2px' }}>FJD ${(currentOp.operating_cost || 0).toFixed(2)}</div>
                   </div>
 
                   <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '14px', padding: '12px 16px' }}>

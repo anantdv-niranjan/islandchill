@@ -1,0 +1,214 @@
+# Architecture Plan: Plant Incident DocType & Cross-Module Incident Identification
+
+## 1. Executive Summary
+
+This plan outlines the architecture for introducing a unified **`Plant Incident`** DocType in Frappe/ERPNext for Island Chill MES. It defines:
+1. **Dynamic Storage & Linkage**: Storing incidents centrally while maintaining polymorphic bi-directional links to originating forms across Laboratory, Maintenance, Cleaning & Sanitation, and Health & Safety.
+2. **Identification Mechanism (Hybrid Approach)**: Combining **automated rule-based threshold evaluation** (out-of-spec values, failed checks, downtime limits) with a **manual operator flag** (`is_incident` checkbox) on any form.
+3. **Investigation & CAPA Lifecycle**: Standardizing root cause analysis (RCA), corrective/preventative actions (CAPA), and synchronization back to production runs.
+
+```mermaid
+flowchart TD
+    subgraph Operational_Forms ["Operational Forms (Cleaning, Lab, Safety, Maintenance)"]
+        F1["Form 9: Chemical Test (pH, TDS)"]
+        F2["Form 1: Micro Analysis (Raw Materials)"]
+        F3["Form 88 / PM: Breakdown & Seamer Check"]
+        F4["CIP Checklist / ATP Swabs"]
+        F5["OHSF 1/2 & First Aid Register"]
+    end
+
+    subgraph Detection_Engine ["Detection Engine"]
+        Auto["Automated OOS / Rule Evaluator<br/>(Thresholds, Plate Counts, Downtime)"]
+        Manual["Manual Checkbox on Form<br/>(Operator observation: is_incident = 1)"]
+    end
+
+    subgraph Central_Incident ["Plant Incident DocType (INC-.YYYY.-.#####)"]
+        Inc["Incident Record<br/>- Category & Severity<br/>- Line & Work Order<br/>- Dynamic Link (source_doctype, source_name)<br/>- RCA & CAPA Action Tracking"]
+    end
+
+    subgraph Frontends ["Frontends & Dashboard"]
+        Dash["✨ Dashboard New (Live Alerts / Active Cards)"]
+        Tab["🚨 Incidents Tab (Filter, Search, Investigate, Resolve)"]
+    end
+
+    F1 --> Auto
+    F2 --> Auto
+    F3 --> Auto
+    F4 --> Auto
+    F1 --> Manual
+    F2 --> Manual
+    F3 --> Manual
+    F4 --> Manual
+    F5 --> Auto
+
+    Auto --> Inc
+    Manual --> Inc
+
+    Inc --> Dash
+    Inc --> Tab
+```
+
+---
+
+## 2. DocType Schema Specification (`Plant Incident`)
+
+In Frappe, instead of creating separate tables for each department's problems, we create one central **`Plant Incident`** DocType. To link to any form seamlessly, we use Frappe's native **Dynamic Link** pattern.
+
+### Key Fields & Types
+
+| Fieldname | Fieldtype | Options / Values | Description |
+| :--- | :--- | :--- | :--- |
+| `naming_series` | Select | `INC-.YYYY.-.#####` | Auto-naming format (e.g. `INC-2026-00012`) |
+| `incident_title` | Data | - | Brief summary (e.g., *pH reading 8.1 on Line 1*) |
+| `category` | Select | `Equipment Fault`, `Quality Alert`, `Material Shortage`, `Cleaning Required`, `Safety`, `Process Deviation` | High-level functional category |
+| `severity` | Select | `Critical`, `High`, `Medium`, `Low` | Severity rating driving escalation |
+| `status` | Select | `Open`, `Acknowledged`, `Pending`, `Resolved`, `Closed` | Current operational state |
+| `investigation_status` | Select | `Pending`, `In Progress`, `Completed`, `Resolved` | Root cause investigation phase |
+| **Context & Tracing** | | | |
+| `production_line` | Select | `FL1`, `FL2`, `FL3`, `FL4`, `FL5`, `FL6`, `FL7`, `Water Treatment`, `Utilities` | Affected production area |
+| `work_order` | Link | `Work Order` | Linked manufacturing work order |
+| `production_item` | Link | `Item` | Affected SKU / beverage recipe |
+| `batch_no` | Link | `Batch` | Specific production batch |
+| `reported_time` | Datetime | - | Exact timestamp of occurrence |
+| `reported_by` | Link | `User` | User or operator who logged the form |
+| **Polymorphic Source Link** | | | |
+| `detection_type` | Select | `Automated Rule`, `Manual Flag`, `Direct Entry` | How the incident was identified |
+| `source_doctype` | Link | `DocType` | Originating DocType (e.g., `Chemical Test`, `CIP Checklist`) |
+| `source_name` | Dynamic Link | `source_doctype` | Specific ID of the originating document |
+| **Impact Metrics** | | | |
+| `downtime_minutes` | Int | - | Total line stoppage in minutes |
+| `units_rejected` | Int | - | Defective bottles/cans produced |
+| **RCA & CAPA** | | | |
+| `description` | Small Text | - | Detailed description of deviation |
+| `root_cause_analysis` | Long Text | - | 5-Whys / Root cause analysis findings |
+| `corrective_action` | Long Text | - | Corrective & Preventative Action (CAPA) |
+| `resolved_by` | Link | `User` | QA Lead or Maintenance Supervisor |
+| `resolution_date` | Date | - | Date resolved |
+
+---
+
+## 3. Incident Identification: The Hybrid Model
+
+> [!IMPORTANT]
+> A purely manual system suffers from under-reporting, while a purely automated system misses subjective human observations (e.g. strange motor noise, dented cans, odor). **A hybrid approach is the gold standard.**
+
+### Strategy A: Automated Threshold Rules (No operator effort needed)
+
+The backend evaluates documents on submission (`on_submit` or `validate` in `hooks.py`). When a rule triggers, a `Plant Incident` is automatically inserted with `detection_type = "Automated Rule"`.
+
+#### Module Rule Matrix
+
+| Module & Form | Threshold / Trigger Condition | Generated Incident Category | Severity |
+| :--- | :--- | :--- | :--- |
+| **Laboratory: Form 9**<br/>(`Chemical Test`) | - `pH < 6.5` or `pH > 7.5`<br/>- `TDS > 200 ppm`<br/>- `Ozone < 0.1 ppm` at filler | Quality Alert | **Critical** (if pH/Ozone), **High** (if TDS) |
+| **Laboratory: Form 1**<br/>(`Microbiological Analysis`) | - Total Coliforms $> 0$<br/>- E. Coli positive<br/>- Yeast/Mould $> 0$ in raw preforms/caps | Safety / Material | **Critical** |
+| **Laboratory: Form 35/88**<br/>(`Seam Checklist Form`) | - Seam overlap $< 1.1\text{ mm}$<br/>- Visual defect (cut seam, droop) | Equipment Fault / Quality | **High** |
+| **Cleaning & Sanitation**<br/>(`CIP Checklist`) | - Final rinse conductivity $> 150\text{ \mu S/cm}$<br/>- ATP swab $> 15\text{ RLU}$<br/>- Sanitization step marked *Failed* | Cleaning Required | **High** |
+| **Maintenance**<br/>(`Preventive Maintenance Request`) | - Breakdown stoppage with downtime $> 5\text{ mins}$<br/>- Critical component breakdown | Equipment Fault | **High** / **Medium** |
+| **Health & Safety**<br/>(`Safety Induction` / First Aid) | - First aid administered<br/>- Lost Time Injury (LTI)<br/>- Hazard checklist marked "Fail" | Safety | **High** / **Critical** |
+
+---
+
+### Strategy B: Manual Incident Checkbox on Source Forms
+
+To capture non-numerical or operator-observed issues, standard custom fields are added to all operational forms:
+
+1. **`is_incident`** (Check / Boolean): "Flag as Operational Incident"
+2. **`incident_severity`** (Select): Critical, High, Medium, Low (optional, defaults to Medium)
+3. **`incident_note`** (Small Text): "Specific deviation note"
+4. **`linked_incident`** (Link to `Plant Incident`, read-only): Populated once created
+
+#### Visual UX Flow on Forms
+When an operator fills out any form (e.g. Form 9 or a Cleaning Checklist), if they notice something abnormal:
+1. They check the **Flag as Incident** box.
+2. A small input expands asking for brief notes.
+3. Upon form submission, the system automatically creates the `Plant Incident` and stores its reference in `linked_incident`.
+
+---
+
+## 4. Backend Implementation Flow (`hooks.py` & Evaluator)
+
+To maintain clean modular code, evaluation logic is encapsulated in a dedicated service: `apps/islandchill/islandchill/api/incident_engine.py`.
+
+### 1. Hook Registration in `hooks.py`
+```python
+doc_events = {
+    "Chemical Test": {
+        "on_submit": "islandchill.api.incident_engine.process_chemical_test"
+    },
+    "Microbiological Analysis": {
+        "on_submit": "islandchill.api.incident_engine.process_micro_analysis"
+    },
+    "CIP Checklist": {
+        "on_submit": "islandchill.api.incident_engine.process_cip_checklist"
+    },
+    "Seam Checklist Form": {
+        "on_submit": "islandchill.api.incident_engine.process_seam_check"
+    },
+    "Preventive Maintenance Request": {
+        "on_submit": "islandchill.api.incident_engine.process_maintenance"
+    }
+}
+```
+
+### 2. Core Python Handler Pattern
+```python
+def create_incident_from_doc(doc, category, severity, description, detection_type="Automated Rule", downtime=0, rejected=0):
+    """Factory helper to insert and link Plant Incident."""
+    incident = frappe.get_doc({
+        "doctype": "Plant Incident",
+        "incident_title": f"{category} on {doc.get('line') or 'Production Floor'}",
+        "category": category,
+        "severity": severity,
+        "status": "Open",
+        "investigation_status": "Pending",
+        "detection_type": detection_type,
+        "source_doctype": doc.doctype,
+        "source_name": doc.name,
+        "production_line": doc.get("line") or doc.get("production_line") or "FL1",
+        "work_order": doc.get("work_order"),
+        "description": description,
+        "downtime_minutes": downtime,
+        "units_rejected": rejected,
+        "reported_time": frappe.utils.now_datetime()
+    })
+    incident.insert(ignore_permissions=True)
+    
+    # Store back-reference on originating doc if field exists
+    if hasattr(doc, "linked_incident"):
+        frappe.db.set_value(doc.doctype, doc.name, "linked_incident", incident.name)
+    
+    return incident.name
+```
+
+---
+
+## 5. Bi-Directional Frontend UX Integration
+
+### In the Source Forms (Lab / Maint / Cleaning / Safety)
+- If `linked_incident` exists, display an alert banner:
+  > **⚠️ Active Incident Linked: INC-2026-0004** — Investigation Pending. [View in Incidents Tab]
+
+### In the Incidents Page (`IncidentsTab.jsx`)
+- Each card displays the **Source Reference**:
+  - E.g. `Source: Standard Form 9: Chemical Test (LAB-CHM-2026-003)`
+  - Clicking the source opens the exact form modal with historical values.
+- As supervisors fill out **Root Cause Analysis (RCA)** and **CAPA**, it closes the loop on audit compliance.
+
+### In Dashboard New (`DashboardNewTab.jsx`)
+- The **Incidents** KPI card automatically reads from `Plant Incident` where `status in ('Open', 'Acknowledged')`.
+- The **Active Alerts** list shows live critical incidents generated from any form today.
+
+---
+
+## 6. Implementation Phasing
+
+1. **Phase 1: DocType Creation**
+   - Create `Plant Incident` DocType with the fields specified above.
+   - Add standard permissions (`Quality Manager`, `Production Supervisor`, `Operator`).
+2. **Phase 2: Common Custom Fields on Forms**
+   - Add `is_incident` and `linked_incident` to `Chemical Test`, `Microbiological Analysis`, `CIP Checklist`, and `Seam Checklist Form`.
+3. **Phase 3: Python Incident Engine (`incident_engine.py`)**
+   - Implement evaluation rules for pH, TDS, plate counts, and unscheduled downtime.
+4. **Phase 4: Frontend API Connection**
+   - Connect `IncidentsTab.jsx` to fetch and update real `Plant Incident` records via `frappe.call`.

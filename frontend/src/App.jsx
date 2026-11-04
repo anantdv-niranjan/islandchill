@@ -1,3 +1,26 @@
+import {
+  X,
+  Menu,
+  Check,
+  AlertTriangle,
+  Clock,
+  User,
+  Mail,
+  Printer,
+  Trash2,
+  Paperclip,
+  Wrench,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Pause,
+  MessageSquare,
+  Sparkles,
+  Shield,
+  Copy,
+  Lock,
+  Building
+} from 'lucide-react';
 import WorkOrderMaintenanceChecklists from './components/WorkOrderMaintenanceChecklists';
 import React, { useState, useEffect, useRef } from 'react';
 import { WORKFLOW_STEPS, PRODUCTS, BOMS, INITIAL_WORK_ORDERS, INITIAL_INVENTORY } from './data/mockData';
@@ -16,14 +39,17 @@ import LoginPage from './components/LoginPage';
 import Sidebar from './components/Sidebar';
 import AppHeader from './components/AppHeader';
 import DashboardTab from './components/DashboardTab';
+import DashboardNewTab from './components/DashboardNewTab';
+import IncidentsTab from './components/IncidentsTab';
 import WorkflowTab from './components/WorkflowTab';
 import WorkOrdersTab from './components/WorkOrdersTab';
 import InventoryTab from './components/InventoryTab';
 import BOMTab from './components/BOMTab';
 import SalesTab, { SalesInvoiceFormModal, DeliveryNoteFormModal } from './components/SalesTab';
 import MaintenanceTab, { MaintWeightCheckModal, MaintBreakdownModal, MaintForm107Modal, MaintForm88DynamicModal, MaintPMRequestModal } from './components/MaintenanceTab';
+import DailyMaintenanceChecklistModal from './components/DailyMaintenanceChecklistModal';
 import SafetyTab, { SafetyIncidentFormModal, SafetyFirstAidFormModal, SafetySwabFormModal, SafetyReportViewerModal, SafetyForm37Modal } from './components/SafetyTab';
-import LaboratoryTab, { LabForm1Modal, LabForm9Modal, LabForm11Modal, LabForm21Modal, LabReportViewerModal, LabForm35Modal, LabForm36Modal, LabForm83Modal, LabForm84Modal, LabForm12Modal, LabForm13Modal, LabForm64Modal, LabForm72Modal, LabForm47Modal, LabForm39Modal, LabForm85Modal, LabForm86Modal, LabForm88Modal, LabForm103Modal, LabForm104Modal, LabForm34Modal, LabForm100Modal, LabForm69Modal, LabForm70Modal, LabForm16Modal, LabForm105Modal } from './components/LaboratoryTab';
+import LaboratoryTab, { LaboratoryFormModal, LabReportViewerModal } from './components/LaboratoryTab';
 import CleaningTab, { CleaningFormModal, CleaningRecordDetailModal, CLEANING_TEMPLATES } from './components/CleaningTab';
 import ReportsTab from './components/ReportsTab';
 import ApprovalsTab from './components/ApprovalsTab';
@@ -35,14 +61,14 @@ const WORKFLOW_STAGES = [
   {
     id: 'extraction',
     name: 'Water Extraction',
-    icon: '💧',
+    icon: 'water',
     dept: 'Utilities',
     desc: 'Extraction and initial treatment of pure Fiji water from natural source. Includes filtration, UV treatment and storage in main tanks.',
     metrics: 'Flow: 12,500.00 L/hr',
     telemetry: [
-      { icon: '🔄', label: 'Flow Rate', value: '12,500 L/hr' },
-      { icon: '💧', label: 'Water Quality', value: 'pH 7.2' },
-      { icon: '🌡️', label: 'Temperature', value: '18°C' }
+      { icon: 'rotate-cw', label: 'Flow Rate', value: '12,500 L/hr' },
+      { icon: 'water', label: 'Water Quality', value: 'pH 7.2' },
+      { icon: 'thermometer', label: 'Temperature', value: '18°C' }
     ],
     activities: [
       'Water intake & filtration',
@@ -58,14 +84,14 @@ const WORKFLOW_STAGES = [
   {
     id: 'mixing',
     name: 'Syrup Mixing',
-    icon: '🧪',
+    icon: 'flask-conical',
     dept: 'Production',
     desc: 'Precision blending of artesian water with liquid sugar, fruit concentrates, and natural flavors in stainless steel mixing vats.',
     metrics: 'Temp: 18.00°C • Brix: 11.2%',
     telemetry: [
-      { icon: '🔄', label: 'Mix Speed', value: '850 RPM' },
-      { icon: '🧪', label: 'Brix Level', value: '11.2%' },
-      { icon: '🌡️', label: 'Temperature', value: '18°C' }
+      { icon: 'rotate-cw', label: 'Mix Speed', value: '850 RPM' },
+      { icon: 'flask-conical', label: 'Brix Level', value: '11.2%' },
+      { icon: 'thermometer', label: 'Temperature', value: '18°C' }
     ],
     activities: [
       'Syrup dosing & metering',
@@ -81,14 +107,14 @@ const WORKFLOW_STAGES = [
   {
     id: 'testing',
     name: 'Lab QA Testing',
-    icon: '🔬',
+    icon: 'microscope',
     dept: 'Quality Control',
     desc: 'Comprehensive microbiological SPC agar culture, TCC/E-Coli testing, chemical analysis, and retention sample verification.',
     metrics: 'pH: 6.80 • Brix: 11.20%',
     telemetry: [
-      { icon: '🧫', label: 'Micro Status', value: '0 CFU/ml' },
-      { icon: '🧪', label: 'pH Value', value: '6.80' },
-      { icon: '⚡', label: 'Conductivity', value: '142 µS/cm' }
+      { icon: 'microscope', label: 'Micro Status', value: '0 CFU/ml' },
+      { icon: 'flask-conical', label: 'pH Value', value: '6.80' },
+      { icon: 'zap', label: 'Conductivity', value: '142 µS/cm' }
     ],
     activities: [
       'Microbiological plating',
@@ -104,14 +130,14 @@ const WORKFLOW_STAGES = [
   {
     id: 'blowing',
     name: 'Blowing / Prep',
-    icon: '🍾',
+    icon: 'wine',
     dept: 'Packaging Prep',
     desc: 'High-speed rotary stretch blow molding of preforms into sterile 1.5L / 500ml PET bottles and automated bottle air washing.',
     metrics: 'Output: 240.00 bpm',
     telemetry: [
-      { icon: '⚡', label: 'Blowing Pressure', value: '38 bar' },
-      { icon: '🔄', label: 'Output Rate', value: '14,000 bph' },
-      { icon: '🌡️', label: 'Preform Temp', value: '115°C' }
+      { icon: 'zap', label: 'Blowing Pressure', value: '38 bar' },
+      { icon: 'rotate-cw', label: 'Output Rate', value: '14,000 bph' },
+      { icon: 'thermometer', label: 'Preform Temp', value: '115°C' }
     ],
     activities: [
       'Preform neck inspection',
@@ -127,14 +153,14 @@ const WORKFLOW_STAGES = [
   {
     id: 'filling',
     name: 'Filling & Sealing',
-    icon: '⚡',
+    icon: 'zap',
     dept: 'Bottling Line',
     desc: 'Isobaric counter-pressure monobloc filling under sterile CO2 atmosphere with immediate automatic 28mm capping and sealing.',
     metrics: 'Fill rate: 12,000.00 cph',
     telemetry: [
-      { icon: '⚡', label: 'Fill Speed', value: '12,000 cph' },
-      { icon: '💨', label: 'CO2 Pressure', value: '3.4 bar' },
-      { icon: '🎯', label: 'Fill Accuracy', value: '99.9%' }
+      { icon: 'zap', label: 'Fill Speed', value: '12,000 cph' },
+      { icon: 'wind', label: 'CO2 Pressure', value: '3.4 bar' },
+      { icon: 'target', label: 'Fill Accuracy', value: '99.9%' }
     ],
     activities: [
       'Isobaric bottle pressurization',
@@ -150,14 +176,14 @@ const WORKFLOW_STAGES = [
   {
     id: 'warmer',
     name: 'Warmer Tunnel',
-    icon: '♨️',
+    icon: 'flame',
     dept: 'Utilities',
     desc: 'Multi-zone spray warming tunnel to elevate bottle temperature to ambient, preventing surface moisture condensation.',
     metrics: 'Temp: 32.00°C',
     telemetry: [
-      { icon: '🌡️', label: 'Tunnel Temp', value: '32°C' },
-      { icon: '🕒', label: 'Retention Time', value: '12 min' },
-      { icon: '🚿', label: 'Pump Flow', value: '45 m³/h' }
+      { icon: 'thermometer', label: 'Tunnel Temp', value: '32°C' },
+      { icon: 'clock', label: 'Retention Time', value: '12 min' },
+      { icon: 'droplets', label: 'Pump Flow', value: '45 m³/h' }
     ],
     activities: [
       'Multi-stage water cascade',
@@ -173,14 +199,14 @@ const WORKFLOW_STAGES = [
   {
     id: 'labeling',
     name: 'Laser Labeling',
-    icon: '🏷️',
+    icon: 'tag',
     dept: 'Packaging',
     desc: 'High-speed roll-fed OPP sleeve label application, steam shrink tunnel shaping, and high-precision CO2 laser date & lot coding.',
     metrics: 'Laser power: 98.00%',
     telemetry: [
-      { icon: '⚡', label: 'Laser Power', value: '98%' },
-      { icon: '🎯', label: 'Label Alignment', value: '100%' },
-      { icon: '🏷️', label: 'Feed Speed', value: '12,000 cph' }
+      { icon: 'zap', label: 'Laser Power', value: '98%' },
+      { icon: 'target', label: 'Label Alignment', value: '100%' },
+      { icon: 'tag', label: 'Feed Speed', value: '12,000 cph' }
     ],
     activities: [
       'Rotary sleeve positioning',
@@ -196,14 +222,14 @@ const WORKFLOW_STAGES = [
   {
     id: 'final_qc',
     name: 'Final Inspection',
-    icon: '🔍',
+    icon: 'search',
     dept: 'Quality Control',
     desc: 'High-resolution optical camera vision system inspecting fill levels, cap position, label alignment, and code clarity.',
     metrics: 'Rejects: 0.02%',
     telemetry: [
-      { icon: '👁️', label: 'Vision Pass Rate', value: '99.98%' },
-      { icon: '🚫', label: 'Rejects Count', value: '2 bottles' },
-      { icon: '⚡', label: 'Camera Speed', value: '250 fps' }
+      { icon: 'eye', label: 'Vision Pass Rate', value: '99.98%' },
+      { icon: 'ban', label: 'Rejects Count', value: '2 bottles' },
+      { icon: 'zap', label: 'Camera Speed', value: '250 fps' }
     ],
     activities: [
       'Infrared liquid level scan',
@@ -219,14 +245,14 @@ const WORKFLOW_STAGES = [
   {
     id: 'packing',
     name: 'Hand Packing',
-    icon: '📦',
+    icon: 'package',
     dept: 'Packing Area',
     desc: 'Automated case packing and shrink-wrapping into 12-pack / 24-pack corrugated cartons with checkweigher verification.',
     metrics: 'Output: 500.00 cases/hr',
     telemetry: [
-      { icon: '📦', label: 'Pack Output', value: '500 cases/hr' },
-      { icon: '⚖️', label: 'Weight Check', value: '18.4 kg' },
-      { icon: '🌡️', label: 'Shrink Heat', value: '190°C' }
+      { icon: 'package', label: 'Pack Output', value: '500 cases/hr' },
+      { icon: 'scale', label: 'Weight Check', value: '18.4 kg' },
+      { icon: 'thermometer', label: 'Shrink Heat', value: '190°C' }
     ],
     activities: [
       'Bottle lane divider grid',
@@ -242,14 +268,14 @@ const WORKFLOW_STAGES = [
   {
     id: 'palletising',
     name: 'Palletising',
-    icon: '🏗️',
+    icon: 'boxes',
     dept: 'Logistics',
     desc: 'Robotic arm palletizer stacking cases onto wooden pallets in standard interlocking patterns followed by rotary stretch wrapping.',
     metrics: 'Load: 60.00 cases/pal',
     telemetry: [
-      { icon: '🏗️', label: 'Pallet Load', value: '60 cases/pal' },
-      { icon: '🔄', label: 'Wrap Turns', value: '12 layers' },
-      { icon: '⏱️', label: 'Cycle Time', value: '90 sec' }
+      { icon: 'boxes', label: 'Pallet Load', value: '60 cases/pal' },
+      { icon: 'rotate-cw', label: 'Wrap Turns', value: '12 layers' },
+      { icon: 'timer', label: 'Cycle Time', value: '90 sec' }
     ],
     activities: [
       'Robotic pick & place',
@@ -265,14 +291,14 @@ const WORKFLOW_STAGES = [
   {
     id: 'dispatch',
     name: 'Dispatch Store',
-    icon: '🚛',
+    icon: 'truck',
     dept: 'Warehouse',
     desc: 'Staging in Finished Goods warehouse and real-time Stock Entry creation in Frappe ERPNext for dispatch and logistics.',
     metrics: 'Status: Sync Complete',
     telemetry: [
-      { icon: '📦', label: 'FG Staged Qty', value: '12,000 units' },
-      { icon: '⚡', label: 'ERP Sync', value: 'Live Complete' },
-      { icon: '🚛', label: 'Dispatch Loading', value: 'Active' }
+      { icon: 'package', label: 'FG Staged Qty', value: '12,000 units' },
+      { icon: 'zap', label: 'ERP Sync', value: 'Live Complete' },
+      { icon: 'truck', label: 'Dispatch Loading', value: 'Active' }
     ],
     activities: [
       'Finished Goods stock receipt',
@@ -538,6 +564,7 @@ function App() {
   const [currentUser, setCurrentUser] = useState('');
   const [currentUserRole, setCurrentUserRole] = useState('');
   const [currentUserRoles, setCurrentUserRoles] = useState([]);
+  const [portalPermissions, setPortalPermissions] = useState(null);
 
   // Login form states
   const [loginUsername, setLoginUsername] = useState('administrator');
@@ -575,6 +602,17 @@ function App() {
 
     const restorePortalSession = async () => {
       try {
+        const isExplicitLogout = new URLSearchParams(window.location.search).get('logout') === '1';
+        if (isExplicitLogout) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+          setIsLoggedIn(false);
+          setCurrentUser('');
+          setCurrentUserRole('');
+          setCurrentUserRoles([]);
+          setPortalPermissions(null);
+          return;
+        }
+
         const session = await frappe.getPortalSession(CONFIG.ERPNEXT_SERVER_URL);
         if (!active) return;
 
@@ -622,6 +660,11 @@ function App() {
         setCurrentUserRole(roleLabel);
         setCurrentUserRoles(session.roles);
         setIsLoggedIn(true);
+        frappe.getUserPortalPermissions().then(perms => {
+          if (active) setPortalPermissions(perms);
+        }).catch(e => {
+          console.warn('Error loading portal permissions:', e);
+        });
       } catch (error) {
         if (!active) return;
         setIsLoggedIn(false);
@@ -646,6 +689,16 @@ function App() {
   const workOrderRequestId = useRef(0);
   const [showNewWODrawer, setShowNewWODrawer] = useState(false);
   const [selectedWOId, setSelectedWOId] = useState(null);
+
+  // Route Guard: enforce page visibility based on role permissions
+  useEffect(() => {
+    if (isLoggedIn && portalPermissions && Array.isArray(portalPermissions.allowed_pages) && !portalPermissions.allowed_pages.includes('*')) {
+      if (!portalPermissions.allowed_pages.includes(currentTab)) {
+        const fallbackTab = portalPermissions.allowed_pages[0] || 'dashboard';
+        setCurrentTab(fallbackTab);
+      }
+    }
+  }, [currentTab, portalPermissions, isLoggedIn]);
 
   // Custom Alert Modal State and helper
   const [alertModal, setAlertModal] = useState(null); // { title: string, message: string, type: 'info' | 'error' | 'success' | 'warning' }
@@ -934,8 +987,10 @@ function App() {
   };
 
   useEffect(() => {
-    loadBOMs();
-  }, [bomFgWarehouse, isLoggedIn]);
+    if (isLoggedIn && (currentTab === 'bom' || currentTab === 'work-orders')) {
+      loadBOMs();
+    }
+  }, [bomFgWarehouse, isLoggedIn, currentTab]);
 
   useEffect(() => {
     const fetchBOMDetails = async () => {
@@ -1189,7 +1244,7 @@ function App() {
   }, [isLoggedIn, defaultCompany]);
 
   useEffect(() => {
-    if (!isLoggedIn) return;
+    if (!isLoggedIn || (!showNewWODrawer && currentTab !== 'work-orders' && currentTab !== 'inventory' && currentTab !== 'bom')) return;
     const fetchWoWarehouses = async () => {
       setWarehousesLoading(true);
       try {
@@ -1202,7 +1257,7 @@ function App() {
       }
     };
     fetchWoWarehouses();
-  }, [isLoggedIn, woCreateCompany]);
+  }, [isLoggedIn, woCreateCompany, currentTab, showNewWODrawer]);
 
   // Auto-set warehouse defaults whenever the warehouse list or company changes
   useEffect(() => {
@@ -1438,12 +1493,41 @@ function App() {
     }
   };
 
+  const loadLaboratoryRecordsFromERP = async () => {
+    if (!isLoggedIn) return;
+    try {
+      const liveRecords = await frappe.fetchAllLaboratoryRecords();
+      if (liveRecords && Array.isArray(liveRecords)) {
+        setLaboratoryRecords(prev => {
+          const liveIds = new Set(liveRecords.map(r => r.id));
+          const localOnly = (prev || []).filter(r => r.id && !liveIds.has(r.id) && !r.name);
+          return [...liveRecords, ...localOnly];
+        });
+      }
+    } catch (e) {
+      console.error('Failed to load live laboratory records:', e);
+    }
+  };
+
+  const loadSafetyRecordsFromERP = async () => {
+    if (!isLoggedIn) return;
+    try {
+      const liveRecords = await frappe.fetchAllSafetyRecords();
+      if (liveRecords && Array.isArray(liveRecords)) {
+        setSafetyRecords(prev => {
+          const liveIds = new Set(liveRecords.map(r => r.id));
+          const localOnly = (prev || []).filter(r => r.id && !liveIds.has(r.id) && !r.name);
+          return [...liveRecords, ...localOnly];
+        });
+      }
+    } catch (e) {
+      console.error('Failed to load live safety records:', e);
+    }
+  };
+
   useEffect(() => {
     // Clear old mock localStorage items to prevent stale data mixing
     localStorage.removeItem('fiji_cleaning_records');
-    if (isLoggedIn) {
-      loadCleaningRecordsFromERP();
-    }
   }, [isLoggedIn]);
 
   useEffect(() => {
@@ -1456,6 +1540,11 @@ function App() {
     const newRecordData = {
       type: doctype,
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      workflow_state: 'Pending Verification',
+      docstatus: 0,
+      status: 'Pending Verification',
+      created_by: currentUser,
+      cleaner: data.cleaner || currentUser,
       ...data
     };
 
@@ -1508,8 +1597,15 @@ function App() {
               activePurposes = purposes.length > 0 ? [purposes[0].name] : [];
             }
 
+            const incidentFields = {
+              is_incident: data.is_incident ? 1 : 0,
+              incident_severity: data.is_incident ? (data.incident_severity || 'Medium') : undefined,
+              incident_note: data.is_incident ? (data.incident_note || '') : undefined,
+            };
+
             const erpPayload = {
               work_order: data.work_order || data.workOrder || undefined,
+              ...incidentFields,
               table_hcqa: activePurposes.map(purposeName => ({
                 doctype: 'Cleaning of Toilet Table',
                 date_time: dateTimeStr,
@@ -1549,8 +1645,15 @@ function App() {
               activePurposes = purposes.length > 0 ? [purposes[0].name] : [];
             }
 
+            const incidentFields = {
+              is_incident: data.is_incident ? 1 : 0,
+              incident_severity: data.is_incident ? (data.incident_severity || 'Medium') : undefined,
+              incident_note: data.is_incident ? (data.incident_note || '') : undefined,
+            };
+
             const erpPayload = {
               work_order: data.work_order || data.workOrder || undefined,
+              ...incidentFields,
               table_knse: activePurposes.map(purposeName => ({
                 doctype: 'Cleaning of Dining Room Table',
                 date_time: dateTimeStr,
@@ -1588,8 +1691,15 @@ function App() {
               activePurposes = purposes.length > 0 ? [purposes[0].name] : [];
             }
 
+            const incidentFields = {
+              is_incident: data.is_incident ? 1 : 0,
+              incident_severity: data.is_incident ? (data.incident_severity || 'Medium') : undefined,
+              incident_note: data.is_incident ? (data.incident_note || '') : undefined,
+            };
+
             const erpPayload = {
               work_order: data.work_order || data.workOrder || undefined,
+              ...incidentFields,
               table_oftv: activePurposes.map(purposeName => ({
                 doctype: 'Factory Floor Cleaning Table',
                 date_time: dateTimeStr,
@@ -1627,8 +1737,15 @@ function App() {
               activePurposes = purposes.length > 0 ? [purposes[0].name] : [];
             }
 
+            const incidentFields = {
+              is_incident: data.is_incident ? 1 : 0,
+              incident_severity: data.is_incident ? (data.incident_severity || 'Medium') : undefined,
+              incident_note: data.is_incident ? (data.incident_note || '') : undefined,
+            };
+
             const erpPayload = {
               work_order: data.work_order || data.workOrder || undefined,
+              ...incidentFields,
               table_ntim: activePurposes.map(purposeName => ({
                 doctype: 'Cleaning of Lab and Office Table',
                 date_time: dateTimeStr,
@@ -1661,9 +1778,16 @@ function App() {
             const verified_by = resolveEmpId(data.supervisorId, data.supervisor);
             const balance_cleaner = resolveEmpId(data.balanceCleanerId, data.cleaning_of_the_balance_done_by);
 
+            const incidentFields = {
+              is_incident: data.is_incident ? 1 : 0,
+              incident_severity: data.is_incident ? (data.incident_severity || 'Medium') : undefined,
+              incident_note: data.is_incident ? (data.incident_note || '') : undefined,
+            };
+
             const erpPayload = {
               date: data.posting_date,
               work_order: data.work_order || data.workOrder || undefined,
+              ...incidentFields,
               checked_by: checked_by,
               verified_by: verified_by || undefined,
               weight_10g: parseFloat(data.weight_10g) || 0,
@@ -1696,9 +1820,16 @@ function App() {
             const checked_by_emp = resolveEmpId(data.cleanerId, data.recorded_by);
             const verified_by_emp = resolveEmpId(data.supervisorId, data.supervisor);
 
+            const incidentFields = {
+              is_incident: data.is_incident ? 1 : 0,
+              incident_severity: data.is_incident ? (data.incident_severity || 'Medium') : undefined,
+              incident_note: data.is_incident ? (data.incident_note || '') : undefined,
+            };
+
             const erpPayload = {
               date: data.posting_date,
               work_order: data.work_order || data.workOrder || undefined,
+              ...incidentFields,
               checked_by: checked_by_emp,
               verified_by: verified_by_emp,
               table_wahj: [
@@ -1734,10 +1865,17 @@ function App() {
             const performed_by_emp = resolveEmpId(data.cleanerId, data.performed_by);
             const verified_by_emp = resolveEmpId(data.supervisorId, data.supervisor);
 
+            const incidentFields = {
+              is_incident: data.is_incident ? 1 : 0,
+              incident_severity: data.is_incident ? (data.incident_severity || 'Medium') : undefined,
+              incident_note: data.is_incident ? (data.incident_note || '') : undefined,
+            };
+
             const erpPayload = {
               date: data.posting_date,
               time: data.posting_time || '12:00:00',
               work_order: data.work_order || data.workOrder || undefined,
+              ...incidentFields,
               performed_by_operator: performed_by_emp,
               verified_by_supervisor: verified_by_emp,
               operator_name: data.performed_by || performed_by_emp,
@@ -1810,15 +1948,22 @@ function App() {
   const handleSaveLaboratory = async (type, data) => {
     setLabSaving(true);
     let newId = `LAB-${Date.now().toString().slice(-6)}`;
+    const incidentFields = {
+      is_incident: data.is_incident ? 1 : 0,
+      incident_severity: data.is_incident ? (data.incident_severity || 'Medium') : undefined,
+      incident_note: data.is_incident ? (data.incident_note || '') : undefined
+    };
 
     if (type === 'Form 1 (Micro raw)') {
       try {
         const conn = frappe.getConnectionSettings();
         if (conn.isLive && conn.connected) {
           const extractEmployeeId = (val) => {
-            if (!val) return '';
-            const match = val.match(/\(([^)]+)\)/);
-            return match ? match[1] : val;
+            if (!val || typeof val !== 'string') return '';
+            const trimmed = val.trim();
+            if (['Supervisor', 'Manager', 'Analyst', 'Operator', 'Admin'].includes(trimmed)) return '';
+            const match = trimmed.match(/\(([^)]+)\)/);
+            return match ? match[1] : trimmed;
           };
 
           const resolveEmployeeId = (val, defaultVal) => {
@@ -1855,8 +2000,8 @@ function App() {
             ...data,
             doctype: 'Microbiological Analysis of Primary Raw Materials',
             date_of_analysis: data.date_of_analysis || data.date || new Date().toISOString().slice(0, 10),
-            analyst: extractEmployeeId(data.analyst),
-            approved_by: extractEmployeeId(data.approved_by || data.manager || data.approvedBy),
+            analyst: extractEmployeeId(data.analyst) || undefined,
+            approved_by: extractEmployeeId(data.approved_by || data.manager || data.approvedBy) || undefined,
             preform_lot_no: data.preform_lot_no ?? data.preformLotNo ?? '',
             closures_lot_no: data.closures_lot_no ?? data.closuresLotNo ?? '',
             bib_inner_bag: data.bib_inner_bag ?? data.bibInnerBag ?? '',
@@ -1882,9 +2027,11 @@ function App() {
         const conn = frappe.getConnectionSettings();
         if (conn.isLive && conn.connected) {
           const extractEmployeeId = (val) => {
-            if (!val) return '';
-            const match = val.match(/\(([^)]+)\)/);
-            return match ? match[1] : val;
+            if (!val || typeof val !== 'string') return '';
+            const trimmed = val.trim();
+            if (['Supervisor', 'Manager', 'Analyst', 'Operator', 'Admin'].includes(trimmed)) return '';
+            const match = trimmed.match(/\(([^)]+)\)/);
+            return match ? match[1] : trimmed;
           };
 
           // 1. Map to table_tncp (Product Water Table)
@@ -1921,8 +2068,8 @@ function App() {
             ...data,
             doctype: 'Chemical Test',
             date: data.date || data.posting_date || new Date().toISOString().slice(0, 10),
-            analyst: extractEmployeeId(data.analyst),
-            verified_by: extractEmployeeId(data.verified_by || data.verifiedBy),
+            analyst: extractEmployeeId(data.analyst) || undefined,
+            verified_by: extractEmployeeId(data.verified_by || data.verifiedBy) || undefined,
             ph_level: parseFloat(data.ph_level ?? data.raw_ph ?? data.rawPh) || 0.0,
             time: (data.time || data.raw_ph_time || data.rawPhTime) ? String(data.time || data.raw_ph_time || data.rawPhTime).replace('T', ' ').slice(0, 5) + ':00' : '00:00:00',
             tds_level: parseFloat(data.tds_level ?? data.raw_tds ?? data.rawTds) || 0.0,
@@ -2000,6 +2147,8 @@ function App() {
           });
 
           const erpPayload = {
+            ...data,
+            ...incidentFields,
             work_order: data.work_order || data.workOrder || '',
             date_of_analysis: data.date_of_analysis || data.date || new Date().toISOString().slice(0, 10),
             date_of_product: data.date_of_product || data.dateOfProduct || new Date().toISOString().slice(0, 10),
@@ -2083,6 +2232,8 @@ function App() {
           }));
 
           const erpPayload = {
+            ...data,
+            ...incidentFields,
             work_order: data.work_order || data.workOrder || '',
             taste_test: taste_test,
             visual_inspection: visual_inspection
@@ -2127,6 +2278,8 @@ function App() {
           const set3 = data.sets?.[2] || {};
 
           const erpPayload = {
+            ...data,
+            ...incidentFields,
             work_order: data.work_order || data.workOrder || '',
             date1: set1.date || null,
             tech1: resolveEmployeeId(set1.technician, extractEmployeeId(set1.technician)),
@@ -2207,6 +2360,8 @@ function App() {
           }));
 
           const erpPayload = {
+            ...data,
+            ...incidentFields,
             work_order: data.work_order || data.workOrder || '',
             date: data.date,
             tank_no: data.tankNo,
@@ -2268,20 +2423,24 @@ function App() {
           const verified_by_emp = resolveEmployeeId(data.verifiedBy, extractEmployeeId(data.verifiedBy));
 
           const erpPayload = {
+            ...data,
+            ...incidentFields,
             work_order: data.work_order || data.workOrder || '',
             date: data.posting_date || data.date,
             checked_by: checked_by_emp,
             verified_by: verified_by_emp,
-            table_wahj: [
-              {
-                doctype: 'Incubator Temperature Check',
-                time: data.time || '12:00',
-                incubator_1: String(data.incubator_1 || ''),
-                time_2: data.time_2 || '12:00',
-                incubator_2: String(data.incubator_2 || ''),
-                remarks: data.remarks || ''
-              }
-            ]
+            table_wahj: (Array.isArray(data.table_wahj) && data.table_wahj.length > 0)
+              ? data.table_wahj
+              : [
+                  {
+                    doctype: 'Incubator Temperature Check',
+                    time: data.time || '12:00',
+                    incubator_1: String(data.incubator_1 || ''),
+                    time_2: data.time_2 || '12:00',
+                    incubator_2: String(data.incubator_2 || ''),
+                    remarks: data.remarks || ''
+                  }
+                ]
           };
 
           const response = await frappe.createIncubatorTemperatureRecord(erpPayload);
@@ -2329,6 +2488,8 @@ function App() {
           }));
 
           const erpPayload = {
+            ...data,
+            ...incidentFields,
             work_order: data.work_order || data.workOrder || '',
             checked_by: resolveEmployeeId(data.checkedBy, extractEmployeeId(data.checkedBy)),
             verified_by: resolveEmployeeId(data.verifiedBy, extractEmployeeId(data.verifiedBy)),
@@ -2384,6 +2545,8 @@ function App() {
           }));
 
           const erpPayload = {
+            ...data,
+            ...incidentFields,
             work_order: data.work_order || data.workOrder || '',
             date: data.date,
             tank_no: data.tankNo,
@@ -2401,7 +2564,9 @@ function App() {
             brix_mixer_by: data.brixMixerBy || '',
             brix_product: parseFloat(data.brixProduct) || 0.0,
             brix_product_by: data.brixProductBy || '',
-            gas_level: parseFloat(data.gasLevel) || 0.0,
+            gas_level: Array.isArray(data.gas_level) && data.gas_level.length > 0
+              ? data.gas_level
+              : [{ gas_level: parseFloat(data.gasLevel || data.gas_level) || 0.0 }],
             comments: data.comments || '',
             recipe_checklist: recipeItems
           };
@@ -2784,12 +2949,21 @@ function App() {
       id: newId,
       type,
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      workflow_state: 'Pending Verification',
+      docstatus: 0,
+      status: 'Pending Verification',
+      created_by: currentUser,
+      analyst: data.analyst || currentUser,
       ...data
     };
     setLaboratoryRecords(prev => [newRecord, ...prev]);
     setLabSaving(false);
     setActiveLabForm(null);
-    showAlert(`${type} logged successfully!`, 'success', 'QC Log Saved');
+    let alertMsg = `${type} logged successfully!`;
+    if (data.is_incident) {
+      alertMsg += ' Operational deviation flagged and Plant Incident created.';
+    }
+    showAlert(alertMsg, 'success', 'QC Log Saved');
   };
 
 
@@ -2805,8 +2979,15 @@ function App() {
   const handleSaveSafety = async (type, data) => {
     setSafetySaving(true);
     let newId = `SAF-${Date.now().toString().slice(-6)}`;
+    let linkedIncidentId = null;
 
-    // Map data for ERPNext if Incident Report
+    const extractEmployeeId = (val) => {
+      if (!val) return '';
+      const match = val.match(/\(([^)]+)\)/);
+      return match ? match[1] : val;
+    };
+
+    // Map data for ERPNext if Incident Report (OHSF 1 & 2)
     if (type === 'Incident Report') {
       try {
         const conn = frappe.getConnectionSettings();
@@ -2844,7 +3025,32 @@ function App() {
           const response = await frappe.createAccidentDiseaseReport(reportPayload);
           if (response && response.name) {
             newId = response.name;
+            try {
+              const sev = (data.incidentType === 'Fatality' || Number(data.daysLost || 0) >= 3 || data.incidentType === 'Dangerous Occurrence') ? 'Critical' : (data.incidentType === 'Accident' ? 'High' : 'Medium');
+              const incResp = await frappe.createIncident({
+                incident_title: `Safety: ${data.incidentType || 'Accident'} - ${data.injuredPerson || 'Worker'}`,
+                category: 'Safety',
+                severity: sev,
+                status: 'Open',
+                investigation_status: 'In Progress',
+                line: data.incidentLocation || 'FL1',
+                work_order: data.work_order || data.workOrder,
+                source_doctype: 'Accident and Disease Notification Report',
+                source_name: response.name,
+                detection_type: 'Manual Flag',
+                description: `${data.details || 'Workplace safety incident'}. Location: ${data.incidentLocation || 'N/A'}. Injured: ${data.injuredPerson || 'N/A'}.`,
+                corrective_action: data.correctiveAction,
+                reported_by: data.operator || data.supervisor
+              });
+              if (incResp && (incResp.name || incResp.id)) {
+                linkedIncidentId = incResp.name || incResp.id;
+              }
+            } catch (incErr) {
+              console.warn('[App] Could not auto-create linked Plant Incident for safety report:', incErr);
+            }
           }
+        } else {
+          linkedIncidentId = `INC-SAFE-${Date.now().toString().slice(-6)}`;
         }
       } catch (err) {
         console.error('Failed to sync Accident & Disease Notification Report to ERPNext:', err);
@@ -2852,17 +3058,11 @@ function App() {
       }
     }
 
-    // Map data for ERPNext if First Aid Log
+    // Map data for ERPNext if First Aid Log (Standard Form 17)
     if (type === 'First Aid Log') {
       try {
         const conn = frappe.getConnectionSettings();
         if (conn.isLive && conn.connected) {
-          const extractEmployeeId = (val) => {
-            if (!val) return '';
-            const match = val.match(/\(([^)]+)\)/);
-            return match ? match[1] : val;
-          };
-
           let typeOfInjury = 'Minor (small cuts, bruises etc.)';
           if (data.injuryType === 'Serious') {
             typeOfInjury = 'Serious (major injury such as fracture)';
@@ -2886,7 +3086,32 @@ function App() {
           const response = await frappe.createFirstAidRecord(erpPayload);
           if (response && response.name) {
             newId = response.name;
+            try {
+              const sev = (data.injuryType === 'Critical' || data.injuryType === 'Need Immediate Medical Attention') ? 'Critical' : (data.injuryType === 'Serious' ? 'High' : 'Medium');
+              const incResp = await frappe.createIncident({
+                incident_title: `First Aid: ${data.injuryType || 'Minor Injury'} - ${extractEmployeeId(data.injuredPerson) || 'Employee'}`,
+                category: 'Safety',
+                severity: sev,
+                status: 'Open',
+                investigation_status: 'Pending',
+                line: data.incidentLocation || data.line || 'FL1',
+                work_order: data.work_order || data.workOrder,
+                source_doctype: 'Standard Form 17 For First Aid',
+                source_name: response.name,
+                detection_type: 'Manual Flag',
+                description: `First Aid Log: Treatment '${data.treatmentGiven || 'Treatment provided'}' administered to ${data.injuredPerson || 'person'}. Cause: ${data.cause || 'Unknown'}.`,
+                corrective_action: data.overallComments || data.treatmentGiven || '',
+                reported_by: data.verifiedBy || data.supervisor || ''
+              });
+              if (incResp && (incResp.name || incResp.id)) {
+                linkedIncidentId = incResp.name || incResp.id;
+              }
+            } catch (incErr) {
+              console.warn('[App] Could not auto-create linked Plant Incident for First Aid log:', incErr);
+            }
           }
+        } else {
+          linkedIncidentId = `INC-FA-${Date.now().toString().slice(-6)}`;
         }
       } catch (err) {
         console.error('Failed to sync Standard Form 17 to ERPNext:', err);
@@ -2894,26 +3119,41 @@ function App() {
       }
     }
 
-    // Map data for ERPNext if Swab Test
+    // Map data for ERPNext if Swab Test (Standard Form 14: Acceptance threshold =< 15cfu)
     if (type === 'Swab Test') {
       try {
+        const locationsMap = {
+          filtration: 'Filtration Area',
+          infeed: 'Infeed',
+          cleanRoom: 'Clean Room',
+          labelling: 'Labelling',
+          warehouse: 'Ware-House',
+          blowing: 'Blowing'
+        };
+
+        const breachedZones = [];
+        let maxCfu = 0;
+        Object.keys(data.swabData || {}).forEach(key => {
+          if (key.toLowerCase().includes('warehouse')) return;
+          const row = data.swabData[key] || {};
+          const y = Number(row.yeast || 0);
+          const m = Number(row.mould || 0);
+          const h = Number(row.hpc || 0);
+          const rowMax = Math.max(y, m, h);
+          if (rowMax > 15) {
+            if (rowMax > maxCfu) maxCfu = rowMax;
+            const sub = [];
+            if (y > 15) sub.push(`Yeast: ${y} CFU`);
+            if (m > 15) sub.push(`Mould: ${m} CFU`);
+            if (h > 15) sub.push(`HPC: ${h} CFU`);
+            breachedZones.push(`${locationsMap[key] || key} (${sub.join(', ')})`);
+          }
+        });
+
+        const isContaminated = breachedZones.length > 0;
+
         const conn = frappe.getConnectionSettings();
         if (conn.isLive && conn.connected) {
-          const extractEmployeeId = (val) => {
-            if (!val) return '';
-            const match = val.match(/\(([^)]+)\)/);
-            return match ? match[1] : val;
-          };
-
-          const locationsMap = {
-            filtration: 'Filtration Area',
-            infeed: 'Infeed',
-            cleanRoom: 'Clean Room',
-            labelling: 'Labelling',
-            warehouse: 'Ware-House',
-            blowing: 'Blowing'
-          };
-
           const table_mxza = Object.keys(data.swabData || {}).map(key => ({
             // doctype: 'Swab Test table',
             location: locationsMap[key] || key,
@@ -2934,6 +3174,42 @@ function App() {
           if (response && response.name) {
             newId = response.name;
           }
+
+          if (isContaminated) {
+            try {
+              let matchedLine = 'FL1';
+              const targetWo = data.work_order || data.workOrder;
+              if (targetWo) {
+                const foundWo = (workOrders || []).find(w => (w.name === targetWo || w.id === targetWo || w.work_order === targetWo));
+                if (foundWo && (foundWo.line || foundWo.production_line)) {
+                  matchedLine = foundWo.line || foundWo.production_line;
+                }
+              }
+
+              const incResp = await frappe.createIncident({
+                incident_title: `Microbiology Swab Contamination Out-of-Spec (>15 CFU)`,
+                category: 'Quality Alert',
+                severity: 'Critical',
+                status: 'Open',
+                investigation_status: 'Pending',
+                line: matchedLine,
+                work_order: targetWo,
+                source_doctype: 'Enviromental Swab Test',
+                source_name: response?.name || newId,
+                detection_type: 'Automated Rule',
+                description: `Environmental swab test exceeded acceptance threshold (=< 15 CFU) at: ${breachedZones.join('; ')}. Immediate sanitation, containment, and re-swab required.`,
+                corrective_action: data.overallComments || 'Execute deep cleaning, chemical fogging, and repeat swab verification.',
+                reported_by: extractEmployeeId(data.analyst) || data.analyst || ''
+              });
+              if (incResp && (incResp.name || incResp.id)) {
+                linkedIncidentId = incResp.name || incResp.id;
+              }
+            } catch (incErr) {
+              console.warn('[App] Could not auto-create linked Plant Incident for Swab Test:', incErr);
+            }
+          }
+        } else if (isContaminated) {
+          linkedIncidentId = `INC-SWAB-${Date.now().toString().slice(-6)}`;
         }
       } catch (err) {
         console.error('Failed to sync Enviromental Swab Test to ERPNext:', err);
@@ -2946,12 +3222,6 @@ function App() {
       try {
         const conn = frappe.getConnectionSettings();
         if (conn.isLive && conn.connected) {
-          const extractEmployeeId = (val) => {
-            if (!val) return '';
-            const match = val.match(/\(([^)]+)\)/);
-            return match ? match[1] : '';
-          };
-
           let reason = 'Other';
           let otherReason = '';
           if (data.reasonForVisit === 'Audit' || data.reasonForVisit === 'Tour') {
@@ -3015,12 +3285,110 @@ function App() {
       id: newId,
       type, // 'Incident Report', 'First Aid Log', 'Swab Test'
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      workflow_state: 'Pending Verification',
+      docstatus: 0,
+      status: 'Pending Verification',
+      created_by: currentUser,
+      reported_by: data.reported_by || currentUser,
+      linked_incident: linkedIncidentId,
       ...data
     };
     setSafetyRecords(prev => [newRecord, ...prev]);
     setSafetySaving(false);
     setActiveSafetyForm(null);
-    showAlert(`${type} logged successfully!`, 'success', 'Safety Log Saved');
+    if (linkedIncidentId) {
+      showAlert(`${type} logged successfully! Plant Incident ${linkedIncidentId} auto-created.`, 'success', 'Safety Log & Incident Linked');
+    } else {
+      showAlert(`${type} logged successfully!`, 'success', 'Safety Log Saved');
+    }
+  };
+
+  const handleSaveCommonMaintenance = async (formData, options = {}) => {
+    const { fromWorkOrder = false, targetWoId = '' } = options;
+    const template = formData.template;
+    let newId = `MAINT-${Date.now().toString().slice(-6)}`;
+    const activeWoId = formData.workOrder || targetWoId || (globalMaintWO ? globalMaintWO.id : '');
+
+    if (activeWoId) {
+      const targetWO = (workOrders || []).find(w => w.id === activeWoId || w.name === activeWoId);
+      if (targetWO?.status === 'Cancelled') {
+        showAlert(`Work Order ${activeWoId} is Cancelled. Maintenance checklists cannot be filled for cancelled work orders.`, 'warning', 'Work Order Cancelled');
+        return;
+      }
+    }
+
+    const newRecordData = {
+      templateId: template.id,
+      equipment: template.equipment,
+      area: template.area,
+      workOrder: activeWoId,
+      work_order: activeWoId,
+      name: template.name,
+      weekNo: formData.weekNo,
+      fromDate: formData.fromDate,
+      toDate: formData.toDate,
+      operator: formData.operator || currentUser,
+      supervisor: '',
+      workflow_state: 'Pending Verification',
+      status: 'Pending Verification',
+      docstatus: 0,
+      created_by: currentUser,
+      checkgrid: formData.checkgrid,
+      remarks: formData.remarks,
+      stdTimes: formData.stdTimes,
+      overallComments: formData.overallComments,
+      totalChecked: formData.totalChecked,
+      maxPossible: (template.tasks || []).length,
+      tasks: formData.tasks,
+      is_incident: formData.is_incident ? 1 : 0,
+      incident_severity: formData.incident_severity || 'Medium',
+      incident_note: formData.incident_note || '',
+      linked_incident: formData.linked_incident || '',
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19)
+    };
+
+    let linkedIncidentId = null;
+    const conn = frappe.getConnectionSettings();
+    if (conn.isLive && conn.connected) {
+      try {
+        const response = await frappe.createMaintenanceSchedule(newRecordData);
+        if (response && response.name) {
+          newId = response.name;
+        }
+        if (response?.linked_incident) {
+          linkedIncidentId = response.linked_incident;
+          newRecordData.linked_incident = linkedIncidentId;
+        }
+      } catch (err) {
+        console.error("Failed to save schedule to ERPNext:", err);
+        if (!fromWorkOrder) {
+          showAlert(`Failed to save to ERPNext: ${err.message}. Saving locally instead.`, 'warning', 'Sync Issue');
+        } else {
+          showAlert(`Failed to submit checklist to ERPNext: ${err.message}`, 'error', 'ERPNext Error');
+          throw err;
+        }
+      }
+    }
+
+    const newRecord = {
+      id: newId,
+      ...newRecordData
+    };
+
+    setMaintenanceRecords(prev => [newRecord, ...prev]);
+    await loadMaintenanceSchedules();
+
+    if (linkedIncidentId) {
+      showAlert(`Maintenance checklist for ${template.equipment} logged & linked to Plant Incident ${linkedIncidentId}!`, 'success', 'Checklist & Incident Created');
+    } else {
+      showAlert(`Maintenance checklist for ${template.equipment} logged successfully!`, 'success', 'Checklist Submitted');
+    }
+
+    const woToRefresh = activeWoId || targetWoId;
+    if (woToRefresh) {
+      refreshMaintChecklistValidation(woToRefresh);
+      loadWorkOrders();
+    }
   };
 
   const handleSaveMaintenance = async (e) => {
@@ -3067,6 +3435,14 @@ function App() {
 
     let newId = `MAINT-${Date.now().toString().slice(-6)}`;
     const activeWoId = maintWorkOrder || (globalMaintWO ? globalMaintWO.id : '');
+    if (activeWoId) {
+      const targetWO = (workOrders || []).find(w => w.id === activeWoId || w.name === activeWoId);
+      if (targetWO?.status === 'Cancelled') {
+        showAlert(`Work Order ${activeWoId} is Cancelled. Maintenance checklists cannot be filled for cancelled work orders.`, 'warning', 'Work Order Cancelled');
+        setMaintSaving(false);
+        return;
+      }
+    }
     const newRecordData = {
       templateId: template.id,
       equipment: template.equipment,
@@ -3077,8 +3453,12 @@ function App() {
       weekNo: maintWeekNo,
       fromDate: maintFromDate,
       toDate: maintToDate,
-      operator: resolvedOperator,
-      supervisor: resolvedSupervisor,
+      operator: resolvedOperator || currentUser,
+      supervisor: '',
+      workflow_state: 'Pending Verification',
+      status: 'Pending Verification',
+      docstatus: 0,
+      created_by: currentUser,
       checkgrid: maintCheckgrid,
       remarks: maintRemarks,
       overallComments: maintOverallComments,
@@ -3131,7 +3511,17 @@ function App() {
   };
 
   const handleSaveMaintForm = async (type, data) => {
+    const targetWo = data.work_order || data.workOrder || (data.tableData && data.tableData.work_order);
+    if (targetWo) {
+      const woObj = (workOrders || []).find(w => w.id === targetWo || w.name === targetWo);
+      if (woObj?.status === 'Cancelled') {
+        showAlert(`Work Order ${targetWo} is Cancelled. Maintenance forms cannot be submitted for cancelled work orders.`, 'warning', 'Work Order Cancelled');
+        return;
+      }
+    }
+
     let newId = `MAINT-${Date.now().toString().slice(-6)}`;
+    let linkedIncidentId = data.linked_incident || null;
 
     if (type === 'weight-check') {
       try {
@@ -3170,12 +3560,16 @@ function App() {
             checked_by: resolveEmployeeId(data.checkedBy, extractEmployeeId(data.checkedBy)),
             verified_by: resolveEmployeeId(data.verifiedBy, extractEmployeeId(data.verifiedBy)),
             overall_comments: data.overallComments || '',
-            weight_check_table: mappedRows
+            weight_check_table: mappedRows,
+            is_incident: data.is_incident ? 1 : 0,
+            incident_severity: data.incident_severity || 'Medium',
+            incident_note: data.incident_note || ''
           };
 
           const response = await frappe.createWeightCheckRecord(erpPayload);
           if (response && response.name) {
             newId = response.name;
+            if (response.linked_incident) linkedIncidentId = response.linked_incident;
           }
         }
       } catch (err) {
@@ -3228,12 +3622,16 @@ function App() {
 
             checked_by_1: resolveEmployeeId(data.checkedByProdSV, extractEmployeeId(data.checkedByProdSV)),
             approved_by_2: resolveEmployeeId(data.approvedByProdFM, extractEmployeeId(data.approvedByProdFM)),
-            overall_comments: data.overallComments || ''
+            overall_comments: data.overallComments || '',
+            is_incident: data.is_incident ? 1 : 0,
+            incident_severity: data.incident_severity || 'Medium',
+            incident_note: data.incident_note || ''
           };
 
           const response = await frappe.createBreakdownRecord(erpPayload);
           if (response && response.name) {
             newId = response.name;
+            if (response.linked_incident) linkedIncidentId = response.linked_incident;
           }
         }
       } catch (err) {
@@ -3258,12 +3656,16 @@ function App() {
             date: data.date || data.posting_date || new Date().toISOString().slice(0, 10),
             operator: extractEmployeeId(data.operator || data.performed_by || data.analyst),
             supervisor: extractEmployeeId(data.supervisor || data.verified_by || data.approved_by),
-            comments: data.comments || data.remarks || ''
+            comments: data.comments || data.remarks || '',
+            is_incident: data.is_incident ? 1 : 0,
+            incident_severity: data.incident_severity || 'Medium',
+            incident_note: data.incident_note || ''
           };
 
           const response = await frappe.createHourlyWeightCheck(erpPayload);
           if (response && (response.name || response.data?.name)) {
             newId = response.name || response.data?.name;
+            if (response.linked_incident) linkedIncidentId = response.linked_incident;
           }
         }
       } catch (err) {
@@ -3286,12 +3688,16 @@ function App() {
             ...data,
             doctype: 'Weight Check',
             checked_by: extractEmployeeId(data.checked_by || data.checkedBy),
-            verified_by: extractEmployeeId(data.verified_by || data.verifiedBy)
+            verified_by: extractEmployeeId(data.verified_by || data.verifiedBy),
+            is_incident: data.is_incident ? 1 : 0,
+            incident_severity: data.incident_severity || 'Medium',
+            incident_note: data.incident_note || ''
           };
 
           const response = await frappe.createWeightCheckDynamic(erpPayload);
           if (response && (response.name || response.data?.name)) {
             newId = response.name || response.data?.name;
+            if (response.linked_incident) linkedIncidentId = response.linked_incident;
           }
         }
       } catch (err) {
@@ -3307,7 +3713,10 @@ function App() {
           const erpPayload = {
             doctype: 'Preventive Maintenance Request',
             ...data,
-            posting_date: data.posting_date || data.request_date || data.date || new Date().toISOString().slice(0, 10)
+            posting_date: data.posting_date || data.request_date || data.date || new Date().toISOString().slice(0, 10),
+            is_incident: data.is_incident ? 1 : 0,
+            incident_severity: data.incident_severity || 'Medium',
+            incident_note: data.incident_note || ''
           };
 
           let response = null;
@@ -3320,6 +3729,9 @@ function App() {
 
           if (response && (response.name || response.data?.name)) {
             newId = response.name || response.data?.name;
+            if (response.incident_name || response.linked_incident) {
+              linkedIncidentId = response.incident_name || response.linked_incident;
+            }
           }
         }
       } catch (err) {
@@ -3337,12 +3749,18 @@ function App() {
       operator: data.requested_by || data.checkedBy || data.requestorName || 'N/A',
       supervisor: data.assigned_to || data.verifiedBy || data.approvedByProductionSV || 'N/A',
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
-      ...data
+      ...data,
+      linked_incident: linkedIncidentId || data.linked_incident || undefined
     };
     setMaintenanceRecords(prev => [newRecord, ...prev]);
     loadMaintenanceSchedules();
     setActiveMaintForm(null);
-    showAlert(`${newRecord.name} logged successfully!`, 'success', 'Log Saved');
+
+    if (linkedIncidentId) {
+      showAlert(`${newRecord.name} logged & linked to Plant Incident ${linkedIncidentId}!`, 'success', 'Log & Incident Created');
+    } else {
+      showAlert(`${newRecord.name} logged successfully!`, 'success', 'Log Saved');
+    }
   };
 
   // Stock Adjust Modal states
@@ -3428,7 +3846,7 @@ function App() {
   };
 
   useEffect(() => {
-    if (isLoggedIn) {
+    if (isLoggedIn && (currentTab === 'inventory' || currentTab === 'work-orders' || currentTab === 'bom')) {
       loadItems();
     }
   }, [isLoggedIn, currentTab]);
@@ -3704,10 +4122,7 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    loadWorkOrders();
-    loadMaintenanceSchedules();
-  }, [currentPage, isLoggedIn, defaultCompany]);
+
 
   const loadSalesInvoices = async () => {
     setSalesLoading(true);
@@ -3735,9 +4150,22 @@ function App() {
     }
   };
 
+  // Tab-Based Lazy Data Loading: load module data ONLY when user is on that tab
   useEffect(() => {
-    if (isLoggedIn && (currentTab === 'cleaning' || currentTab === 'approvals')) {
+    if (!isLoggedIn) return;
+
+    if (currentTab === 'cleaning') {
       loadCleaningRecordsFromERP();
+    } else if (currentTab === 'laboratory') {
+      loadLaboratoryRecordsFromERP();
+    } else if (currentTab === 'safety') {
+      loadSafetyRecordsFromERP();
+    } else if (currentTab === 'maintenance') {
+      loadMaintenanceSchedules();
+    } else if (currentTab === 'approvals') {
+      loadCleaningRecordsFromERP();
+      loadLaboratoryRecordsFromERP();
+      loadSafetyRecordsFromERP();
       loadMaintenanceSchedules();
       loadWorkOrders();
     }
@@ -3785,9 +4213,9 @@ function App() {
   const lowStockCount = (erpItems && erpItems.length > 0)
     ? erpItems.filter(item => (Number(item.qty) || 0) <= (Number(item.minLevel) || 0)).length
     : Object.keys(inventory).filter(key => {
-        const item = inventory[key];
-        return item.qty < item.minLevel;
-      }).length;
+      const item = inventory[key];
+      return item.qty < item.minLevel;
+    }).length;
 
   const totalProduction = workOrders.reduce((sum, wo) => sum + (Number(wo.produced) || 0), 0);
   const goodProduction = workOrders.reduce((sum, wo) => {
@@ -3809,21 +4237,43 @@ function App() {
       setCurrentUserRole('');
       setCurrentUserRoles([]);
       setLoginError('Access denied. Ask your administrator to assign an IslandChill MES User or IslandChill Admin User role.');
-      await frappe.logout();
+      frappe.logout().catch(() => {});
       return;
     }
 
-    setCurrentUser(result.user);
-    setCurrentUserRole(result.role);
-    setCurrentUserRoles(result.roles || []);
     if (destination === 'admin') {
       setIsLoggedIn(false);
       window.location.href = '/app';
       return;
     }
 
+    // 1. Fetch user permissions first so we immediately know the allowed landing tab
+    let perms = null;
+    try {
+      perms = await frappe.getUserPortalPermissions(result.user);
+    } catch (e) {
+      console.warn('Error loading portal permissions:', e);
+    }
+    setPortalPermissions(perms);
+
+    // 2. Select initial permitted tab BEFORE setting isLoggedIn to prevent wasteful mounting & loading on dashboard
+    let initialTab = 'dashboard';
+    if (perms && Array.isArray(perms.allowed_pages) && !perms.allowed_pages.includes('*')) {
+      if (!perms.allowed_pages.includes('dashboard')) {
+        initialTab = perms.allowed_pages[0] || 'dashboard';
+      }
+    }
+    setCurrentTab(initialTab);
+
+    // 3. Mark user logged in
+    setCurrentUser(result.user);
+    setCurrentUserRole(result.role);
+    setCurrentUserRoles(result.roles || []);
     setIsLoggedIn(true);
-    if (window.location.pathname !== '/islandchill') window.location.href = '/islandchill';
+
+    if (window.location.pathname !== '/islandchill') {
+      window.location.href = '/islandchill';
+    }
   };
 
   const handleSetup2FA = async (userVal) => {
@@ -3934,16 +4384,21 @@ function App() {
   };
 
   const handleLogout = async () => {
-    await frappe.logout();
+    // 1. Immediate 0ms UI transition: reset state so React renders LoginPage instantly
     setIsLoggedIn(false);
     setCurrentUser('');
     setCurrentUserRole('');
     setCurrentUserRoles([]);
+    setPortalPermissions(null);
     setLoginUsername('');
     setLoginPassword('');
     setCurrentTab('dashboard');
     setIs2FAPhase('none');
-    window.location.href = '/islandchill';
+
+    // 2. Perform background session invalidation without blocking UI or full page reload
+    frappe.logout().catch(e => {
+      console.warn('Background logout notice:', e);
+    });
   };
 
   const handleCopyMFAKey = () => {
@@ -4079,6 +4534,12 @@ function App() {
   };
 
   const handleOpenQuickFillChecklist = (equipmentName, areaName, woId) => {
+    const targetWO = workOrders.find(w => w.id === woId);
+    if (targetWO?.status === 'Cancelled') {
+      showAlert(`Work Order ${woId} is Cancelled. Maintenance checklists cannot be filled for cancelled work orders.`, 'warning', 'Work Order Cancelled');
+      return;
+    }
+
     const templateList = maintTemplates || MAINTENANCE_TEMPLATES_STATIC || [];
     const template = templateList.find(t =>
       (t.equipment && t.equipment.toLowerCase() === equipmentName.toLowerCase()) ||
@@ -4135,70 +4596,7 @@ function App() {
     });
   };
 
-  const handleSaveQuickChecklist = async (e) => {
-    if (e && e.preventDefault) e.preventDefault();
-    if (!quickMaintFillModal) return;
 
-    if (!quickMaintFillModal.workOrder) {
-      showAlert('Work Order ID is required. Please select a Work Order before submitting.', 'error', 'Validation Error');
-      return;
-    }
-    if (!quickMaintFillModal.operator) {
-      showAlert('Sign. of Operator is required.', 'error', 'Validation Error');
-      return;
-    }
-    if (!quickMaintFillModal.supervisor) {
-      showAlert('Sign. of Supervisor is required.', 'error', 'Validation Error');
-      return;
-    }
-
-    try {
-      setSyncStatusMsg('Saving Maintenance Checklist to ERPNext...');
-      const payload = {
-        equipment: quickMaintFillModal.equipment,
-        area: quickMaintFillModal.area,
-        workOrder: quickMaintFillModal.workOrder,
-        operator: quickMaintFillModal.operator,
-        supervisor: quickMaintFillModal.supervisor,
-        overallComments: quickMaintFillModal.overallComments,
-        checkgrid: quickMaintFillModal.checkgrid,
-        remarks: quickMaintFillModal.remarks,
-        stdTimes: quickMaintFillModal.stdTimes,
-        tasks: quickMaintFillModal.template.tasks || [],
-        weekNo: quickMaintFillModal.weekNo,
-        fromDate: quickMaintFillModal.fromDate,
-        toDate: quickMaintFillModal.toDate,
-      };
-
-      const res = await frappe.createMaintenanceSchedule(payload);
-      if (res && res.name) {
-        const newRecord = {
-          id: res.name,
-          templateId: quickMaintFillModal.template.id,
-          equipment: quickMaintFillModal.equipment,
-          area: quickMaintFillModal.area,
-          workOrder: quickMaintFillModal.workOrder,
-          operator: quickMaintFillModal.operator,
-          supervisor: quickMaintFillModal.supervisor,
-          checkgrid: quickMaintFillModal.checkgrid,
-          remarks: quickMaintFillModal.remarks,
-          totalChecked: Object.values(quickMaintFillModal.checkgrid || {}).filter(Boolean).length,
-          timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19)
-        };
-        setMaintenanceRecords(prev => [newRecord, ...prev]);
-        await loadMaintenanceSchedules();
-        showAlert(`Checklist submitted for ${quickMaintFillModal.equipment} (${res.name})`, 'success', 'Checklist Submitted');
-        const savedWoId = quickMaintFillModal.workOrder;
-        setQuickMaintFillModal(null);
-        refreshMaintChecklistValidation(savedWoId);
-        loadWorkOrders();
-      }
-    } catch (err) {
-      showAlert(`Failed to submit checklist: ${err.message}`, 'error', 'ERPNext Error');
-    } finally {
-      setSyncStatusMsg('');
-    }
-  };
 
   // Open Pre-Start Maintenance Validation Modal for a Work Order
   const handleCheckWorkOrderMaintenance = async (woId) => {
@@ -4241,6 +4639,11 @@ function App() {
   const handleStartWorkOrder = async (woId) => {
     const woToStart = workOrders.find(wo => wo.id === woId);
     if (!woToStart) return;
+
+    if (woToStart.status === 'Cancelled') {
+      showAlert(`Work Order ${woToStart.id} is Cancelled and raw materials cannot be issued.`, 'warning', 'Work Order Cancelled');
+      return;
+    }
 
     if (isFuturePlannedDate(woToStart.plannedStart)) {
       showAlert(`Raw Materials cannot be issued yet because Work Order ${woToStart.id} is scheduled for a future date (${woToStart.plannedStart?.substring(0, 10)}).`, 'warning', 'Future Planned Date');
@@ -4585,6 +4988,11 @@ function App() {
   };
 
   const openJobCardAction = (wo, jc, action) => {
+    if (wo?.status === 'Cancelled') {
+      showAlert(`Work Order ${wo.id} is Cancelled. Job Card actions cannot be performed.`, 'warning', 'Work Order Cancelled');
+      return;
+    }
+
     setJcOpOperatorName('');
     setJcOpOperatorEmployeeId('');
     setJcOpOperatorRemarks('');
@@ -4618,7 +5026,7 @@ function App() {
       }
 
       if (wo && !isRawMaterialsIssued) {
-        showAlert(`Raw Materials must be issued (Stock Entry) before starting Job Cards for Work Order ${wo.id}. Please click "📦 Issue Raw Materials".`, 'warning', 'Raw Materials Pending');
+        showAlert(`Raw Materials must be issued (Stock Entry) before starting Job Cards for Work Order ${wo.id}. Please click "Issue Raw Materials".`, 'warning', 'Raw Materials Pending');
         return;
       }
 
@@ -5358,6 +5766,20 @@ function App() {
       if (stockCheck && stockCheck.has_shortage) {
         setWoCreating(false);
         setSyncStatusMsg('');
+
+        let maxManifestableQty = stockCheck.max_manifestable_qty;
+        if (maxManifestableQty === undefined || maxManifestableQty === null) {
+          const possibleBatches = (stockCheck.items || []).map(it => {
+            const req = parseFloat(it.required_qty) || 1;
+            const avail = Math.max(0, parseFloat(it.available_qty) || 0);
+            return Math.floor((avail * quantity) / req);
+          });
+          maxManifestableQty = possibleBatches.length > 0 ? Math.min(...possibleBatches) : 0;
+        }
+        maxManifestableQty = Math.max(0, parseInt(maxManifestableQty, 10) || 0);
+
+        const bottleneckItem = stockCheck.bottleneck_item || (stockCheck.items || []).find(it => !it.is_sufficient);
+
         setRawMaterialShortageModal({
           bomNo,
           productName: product.name,
@@ -5367,7 +5789,13 @@ function App() {
           items: stockCheck.items || [],
           pendingWO: newWO,
           product,
-          executeAction: () => executeWorkOrderCreation(newWO, product, bomNo)
+          maxManifestableQty,
+          bottleneckItem,
+          executeAction: () => executeWorkOrderCreation(newWO, product, bomNo),
+          proceedWithAdjustedQty: (adjustedQty) => {
+            const adjustedWO = { ...newWO, quantity: adjustedQty };
+            executeWorkOrderCreation(adjustedWO, product, bomNo);
+          }
         });
         return;
       }
@@ -5399,7 +5827,7 @@ function App() {
 
     let confirmMsg = `Cancel Work Order ${woId}?\n\nThis will set the Work Order status to Cancelled.`;
     if (submittedEntries.length > 0 || draftEntries.length > 0) {
-      confirmMsg += `\n\n⚠️ WARNING: This Work Order has linked Stock Entries:\n`;
+      confirmMsg += `\n\nWARNING: This Work Order has linked Stock Entries:\n`;
       if (submittedEntries.length > 0) {
         confirmMsg += `- Submitted: ${submittedEntries.map(e => e.name).join(', ')}\n`;
       }
@@ -5573,17 +6001,17 @@ function App() {
     : Math.max(1, Math.ceil(filteredWorkOrders.length / recordsPerPage));
 
   useEffect(() => {
-    if (isLoggedIn) {
+    if (isLoggedIn && (currentTab === 'work-orders' || currentTab === 'dashboard')) {
       loadWorkOrders();
       loadMaintenanceSchedules();
     }
-  }, [currentPage, isLoggedIn, defaultCompany, woStatusFilter, searchQuery]);
+  }, [currentPage, isLoggedIn, defaultCompany, woStatusFilter, searchQuery, currentTab]);
 
   if (isAuthChecking) {
     return (
       <div className="login-page">
         <div className="login-card" style={{ maxWidth: '360px', textAlign: 'center' }}>
-          <div style={{ fontSize: '30px', marginBottom: '12px' }}>❄️</div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px', color: 'var(--accent)' }}><Sparkles size={32} /></div>
           <h2 style={{ fontSize: '20px', marginBottom: '6px' }}>Island Chill</h2>
           <p style={{ color: 'var(--text-muted)', margin: 0 }}>Checking your session…</p>
         </div>
@@ -5636,14 +6064,14 @@ function App() {
             </button>
 
             <div className="login-header" style={{ textAlign: 'center' }}>
-              <div className="totp-icon-header">🛡️</div>
+              <div className="totp-icon-header"><Shield size={28} /></div>
               <h2>Setup Authenticator</h2>
               <p>Scan this QR code with Google Authenticator to enable 2-Factor Authentication (2FA)</p>
             </div>
 
             {loginError && (
               <div className="totp-error-alert">
-                <span>⚠️ {loginError}</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><AlertTriangle size={14} /><span>{loginError}</span></span>
               </div>
             )}
 
@@ -5657,7 +6085,7 @@ function App() {
                 <div className="secret-key-wrapper">
                   <span className="secret-key-text">{tempSecret}</span>
                   <button onClick={handleCopyMFAKey} className="btn-copy" type="button">
-                    {copiedKey ? '✓ Copied' : '📋 Copy'}
+                    {copiedKey ? 'Copied' : 'Copy'}
                   </button>
                 </div>
               </div>
@@ -5703,14 +6131,14 @@ function App() {
             </button>
 
             <div className="login-header" style={{ textAlign: 'center' }}>
-              <div className="totp-icon-header">🛡️</div>
+              <div className="totp-icon-header"><Shield size={28} /></div>
               <h2>MFA Verification</h2>
               <p>Enter the 6-digit code generated by your Google Authenticator app for <strong>{loginUsername}</strong></p>
             </div>
 
             {loginError && (
               <div className="totp-error-alert">
-                <span>⚠️ {loginError}</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><AlertTriangle size={14} /><span>{loginError}</span></span>
               </div>
             )}
 
@@ -5764,7 +6192,7 @@ function App() {
 
           {loginError && (
             <div className="totp-error-alert">
-              <span>⚠️ {loginError}</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><AlertTriangle size={14} /><span>{loginError}</span></span>
             </div>
           )}
 
@@ -5772,7 +6200,7 @@ function App() {
             <div className="form-group">
               <label>Username / Email</label>
               <div className="input-wrapper">
-                <span className="input-icon">👤</span>
+                <span className="input-icon"><User size={16} /></span>
                 <input
                   type="text"
                   className="form-input-icon"
@@ -5788,7 +6216,7 @@ function App() {
             <div className="form-group">
               <label>Password</label>
               <div className="input-wrapper">
-                <span className="input-icon">🔒</span>
+                <span className="input-icon"><Lock size={16} /></span>
                 <input
                   type="password"
                   className="form-input-icon"
@@ -5882,7 +6310,7 @@ function App() {
       {/* Mobile Top Header Bar */}
       {isLoggedIn && (
         <div className="mobile-header-bar">
-          <button className="mobile-menu-btn" onClick={() => setMobileMenuOpen(true)}>☰</button>
+          <button className="mobile-menu-btn" onClick={() => setMobileMenuOpen(true)} aria-label="Open navigation menu"><Menu size={20} /></button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <img src={logo} alt="Island Chill Logo" style={{ height: '32px', width: 'auto' }} />
             <span style={{ color: 'white', fontWeight: '700', fontSize: '15px' }}>Island Chill</span>
@@ -5907,6 +6335,7 @@ function App() {
         handleLogout={handleLogout}
         setSelectedWOId={setSelectedWOId}
         showAdminSwitch={canSwitchPortals(currentUserRoles)}
+        allowedPages={portalPermissions?.allowed_pages}
       />
 
       {/* Main Workspace Area */}
@@ -5962,6 +6391,31 @@ function App() {
           />
         )}
 
+        {/* Dashboard New Tab */}
+        {currentTab === 'dashboard-new' && (
+          <DashboardNewTab
+            workOrders={workOrders}
+            inventory={inventory}
+            erpItems={erpItems}
+            maintenanceRecords={maintenanceRecords}
+            laboratoryRecords={laboratoryRecords}
+            cleaningRecords={cleaningRecords}
+            safetyRecords={safetyRecords}
+            availableWarehouses={availableWarehouses}
+            activeWOsCount={activeWOsCount}
+            pendingWOsCount={pendingWOsCount}
+            inProgressJobCardsCount={inProgressJobCardsCount}
+            lowStockCount={lowStockCount}
+            totalProduction={totalProduction}
+            goodProduction={goodProduction}
+            looseProduction={looseProduction}
+            onNavigate={setCurrentTab}
+            setSelectedWOId={setSelectedWOId}
+            onNewWO={() => setShowNewWODrawer(true)}
+            WORK_ORDER_ACTIVE_STATUSES={WORK_ORDER_ACTIVE_STATUSES}
+          />
+        )}
+
         {/* Form Approvals Hub Tab */}
         {currentTab === 'approvals' && (
           <ApprovalsTab
@@ -5978,9 +6432,13 @@ function App() {
             currentUser={currentUser}
             currentUserRole={currentUserRole}
             isLoggedIn={isLoggedIn}
+            formPermissions={portalPermissions?.allowed_forms}
+            isSuperAdmin={portalPermissions?.is_super_admin}
             onRefreshAll={() => {
               if (isLoggedIn) {
                 loadCleaningRecordsFromERP();
+                loadLaboratoryRecordsFromERP();
+                loadSafetyRecordsFromERP();
                 loadMaintenanceSchedules();
                 loadWorkOrders();
               }
@@ -6160,6 +6618,7 @@ function App() {
         {/* Maintenance Tab */}
         {currentTab === 'maintenance' && (
           <MaintenanceTab
+            formPermissions={portalPermissions?.allowed_forms}
             workOrders={workOrders}
             maintenanceRecords={maintenanceRecords}
             setMaintenanceRecords={setMaintenanceRecords}
@@ -6214,6 +6673,7 @@ function App() {
         {/* Safety Tab */}
         {currentTab === 'safety' && (
           <SafetyTab
+            formPermissions={portalPermissions?.allowed_forms}
             safetyRecords={safetyRecords}
             setSafetyRecords={setSafetyRecords}
             safetySearchQuery={safetySearchQuery}
@@ -6239,6 +6699,18 @@ function App() {
           />
         )}
 
+        {/* Incidents Tab */}
+        {currentTab === 'incidents' && (
+          <IncidentsTab
+            safetyRecords={safetyRecords}
+            setSafetyRecords={setSafetyRecords}
+            onBack={() => setCurrentTab('dashboard-new')}
+            onNavigate={setCurrentTab}
+            setSelectedWOId={setSelectedWOId}
+            workOrders={workOrders}
+          />
+        )}
+
         {/* Workflow Tab */}
         {currentTab === 'workflow' && (
           <WorkflowTab
@@ -6259,6 +6731,7 @@ function App() {
         {/* Laboratory Tab */}
         {currentTab === 'laboratory' && (
           <LaboratoryTab
+            formPermissions={portalPermissions?.allowed_forms}
             laboratoryRecords={laboratoryRecords}
             setLaboratoryRecords={setLaboratoryRecords}
             labSearchQuery={labSearchQuery}
@@ -6291,6 +6764,7 @@ function App() {
         {/* Cleaning Tab */}
         {currentTab === 'cleaning' && (
           <CleaningTab
+            formPermissions={portalPermissions?.allowed_forms}
             cleaningRecords={cleaningRecords}
             setCleaningRecords={setCleaningRecords}
             CLEANING_TEMPLATES={CLEANING_TEMPLATES}
@@ -6346,7 +6820,7 @@ function App() {
             <div className="modal-header">
               <span>Default Company Settings</span>
               {defaultCompany && (
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setShowSettingsModal(false)}>✕</button>
+                <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)' }} onClick={() => setShowSettingsModal(false)}><X size={18} /></button>
               )}
             </div>
             <form onSubmit={handleUpdateSettings}>
@@ -6414,7 +6888,7 @@ function App() {
                 {fullscreenElement === 'chartEnergy' && 'Filling Lines Production Split & Output Balance'}
                 {fullscreenElement === 'chartDefects' && 'Product Defect Breakdown'}
               </span>
-              <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px' }} onClick={() => setFullscreenElement(null)}>✕</button>
+              <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)' }} onClick={() => setFullscreenElement(null)}><X size={18} /></button>
             </div>
             <div className="modal-content" style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'auto', padding: '24px' }}>
               {fullscreenElement === 'live1' && (
@@ -6483,7 +6957,7 @@ function App() {
                     ))}
                     <div style={{ padding: '12px 16px', backgroundColor: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '8px', fontSize: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>Pre-Start Preventative Maintenance Readiness:</span>
-                      <strong style={{ color: 'var(--success)' }}>✓ 10/10 Mandatory Plant Machines Cleared</strong>
+                      <strong style={{ color: 'var(--success)' }}>10/10 Mandatory Plant Machines Cleared</strong>
                     </div>
                   </div>
                 );
@@ -6497,7 +6971,7 @@ function App() {
                     </div>
                     <div style={{ display: 'flex', gap: '16px', fontSize: '12px' }}>
                       <span style={{ color: 'var(--info)' }}>● Produced</span>
-                      <span style={{ color: 'var(--text-muted)' }}>⚬ Target</span>
+                      <span style={{ color: 'var(--text-muted)' }}>Target</span>
                     </div>
                   </div>
                   <div style={{ flex: 1, minHeight: '260px' }}>
@@ -6629,10 +7103,10 @@ function App() {
           <div className="drawer-panel" onClick={(e) => e.stopPropagation()}>
             <div className="drawer-header">
               <h3>Schedule New Production Run</h3>
-              <button className="drawer-close-btn" onClick={() => setShowNewWODrawer(false)}>✕</button>
+              <button className="drawer-close-btn" onClick={() => setShowNewWODrawer(false)} style={{ display: "flex", alignItems: "center", justifyContent: "center" }}><X size={18} /></button>
             </div>
 
-            <form onSubmit={handleCreateNewWO} className="drawer-content" style={{ maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', paddingBottom: '20px' }}>
+            <form onSubmit={handleCreateNewWO} className="drawer-content" style={{ maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', overflowX: 'hidden', paddingBottom: '20px' }}>
               <div className="form-group">
                 <label>Select Product (Item to Manufacture) *</label>
                 {/* <input
@@ -6734,38 +7208,48 @@ function App() {
                 <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--accent)', marginBottom: '10px', marginTop: '4px' }}>
                   Warehouses
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' }}>
 
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label>Source Warehouse * <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>(Raw Materials - Read Only)</span></label>
+                  <div className="form-group" style={{ margin: 0, minWidth: 0 }}>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: '2px', lineHeight: 1.25 }}>
+                      <span>Source Warehouse *</span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'none', fontWeight: 'normal' }}>(Raw Materials - Read Only)</span>
+                    </label>
                     <input
                       type="text"
                       name="sourceWarehouse"
                       className="form-input"
                       value={woSourceWarehouse || 'Stores - CWFPL'}
                       readOnly
-                      style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed', color: 'var(--text-main)', fontWeight: '500' }}
+                      style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed', color: 'var(--text-main)', fontWeight: '500', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
                     />
                   </div>
 
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label>Work-in-Progress Warehouse * <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>(Operations - Read Only)</span></label>
+                  <div className="form-group" style={{ margin: 0, minWidth: 0 }}>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: '2px', lineHeight: 1.25 }}>
+                      <span>Work-in-Progress Warehouse *</span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'none', fontWeight: 'normal' }}>(Operations - Read Only)</span>
+                    </label>
                     <input
                       type="text"
                       name="wipWarehouse"
                       className="form-input"
                       value={woWipWarehouse || 'Work In Progress - CWFPL'}
                       readOnly
-                      style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed', color: 'var(--text-main)', fontWeight: '500' }}
+                      style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed', color: 'var(--text-main)', fontWeight: '500', width: '100%', minWidth: 0, boxSizing: 'border-box' }}
                     />
                   </div>
 
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label>Target Warehouse * <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>(Finished Goods)</span></label>
+                  <div className="form-group" style={{ margin: 0, minWidth: 0 }}>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: '2px', lineHeight: 1.25 }}>
+                      <span>Target Warehouse *</span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'none', fontWeight: 'normal' }}>(Finished Goods)</span>
+                    </label>
                     {warehousesLoading ? (
                       <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Loading...</div>
                     ) : (
                       <select name="fgWarehouse" className="form-input" required
+                        style={{ width: '100%', minWidth: 0, boxSizing: 'border-box' }}
                         value={woFgWarehouse} onChange={e => setWoFgWarehouse(e.target.value)}>
                         <option value="">-- Select Target Warehouse --</option>
                         {availableWarehouses.map((wh) => (
@@ -6775,12 +7259,16 @@ function App() {
                     )}
                   </div>
 
-                  <div className="form-group" style={{ margin: 0 }}>
-                    <label>Extra Goods Warehouse <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>(Extra Produced Products)</span></label>
+                  <div className="form-group" style={{ margin: 0, minWidth: 0 }}>
+                    <label style={{ display: 'flex', flexDirection: 'column', gap: '2px', lineHeight: 1.25 }}>
+                      <span>Extra Goods Warehouse</span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'none', fontWeight: 'normal' }}>(Extra Produced Products)</span>
+                    </label>
                     {warehousesLoading ? (
                       <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Loading...</div>
                     ) : (
                       <select name="extraGoodsWarehouse" className="form-input"
+                        style={{ width: '100%', minWidth: 0, boxSizing: 'border-box' }}
                         value={woExtraGoodsWarehouse} onChange={e => setWoExtraGoodsWarehouse(e.target.value)}>
                         <option value="">-- Select Extra Goods Warehouse --</option>
                         {availableWarehouses.map((wh) => (
@@ -6843,14 +7331,14 @@ function App() {
           <div className="modal-panel" style={{ width: '740px', maxWidth: '95vw', border: '1px solid #fecaca' }}>
             <div className="modal-header" style={{ backgroundColor: '#fef2f2', borderBottom: '1px solid #fee2e2' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#b91c1c', fontWeight: '700', fontSize: '15px' }}>
-                <span style={{ fontSize: '18px' }}>⛔</span>
+                <XCircle size={18} color='var(--danger)' />
                 <span>Insufficient Raw Materials — Production Blocked</span>
               </div>
               <button
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#991b1b' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: '#991b1b' }}
                 onClick={() => setRawMaterialShortageModal(null)}
               >
-                ✕
+                <X size={18} />
               </button>
             </div>
 
@@ -6901,11 +7389,11 @@ function App() {
                         <td style={{ padding: '8px 10px', textAlign: 'center' }}>
                           {item.is_sufficient ? (
                             <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', backgroundColor: '#dcfce7', color: '#15803d' }}>
-                              ✓ In Stock
+                              In Stock
                             </span>
                           ) : (
                             <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '600', backgroundColor: '#fee2e2', color: '#b91c1c' }}>
-                              ⚠ Shortage
+                              Shortage
                             </span>
                           )}
                         </td>
@@ -6914,17 +7402,84 @@ function App() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Manifestation / Achievable Output Insight Card */}
+              <div style={{
+                marginTop: '16px',
+                padding: '14px 16px',
+                borderRadius: '8px',
+                backgroundColor: rawMaterialShortageModal.maxManifestableQty > 0 ? '#f0fdf4' : '#fff1f2',
+                border: `1px solid ${rawMaterialShortageModal.maxManifestableQty > 0 ? '#bbf7d0' : '#fecaca'}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px'
+              }}>
+                <div style={{ flex: '1 1 320px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: '700', color: rawMaterialShortageModal.maxManifestableQty > 0 ? '#15803d' : '#991c1c', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>🎯 Available Stock Manifestation Calculation</span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#475569', marginTop: '4px', lineHeight: '1.4' }}>
+                    {rawMaterialShortageModal.bottleneckItem ? (
+                      <div>
+                        Limiting Raw Material: <strong>{rawMaterialShortageModal.bottleneckItem.item_name}</strong> (Available: {rawMaterialShortageModal.bottleneckItem.available_qty} vs Requested {rawMaterialShortageModal.bottleneckItem.required_qty}).
+                      </div>
+                    ) : null}
+                    <div style={{ marginTop: '2px' }}>
+                      With current available stock, you can manifest a maximum of <strong style={{ color: rawMaterialShortageModal.maxManifestableQty > 0 ? '#15803d' : '#dc2626', fontSize: '13px' }}>{rawMaterialShortageModal.maxManifestableQty?.toLocaleString()} units</strong> of {rawMaterialShortageModal.productName}.
+                    </div>
+                  </div>
+                </div>
+
+                {rawMaterialShortageModal.maxManifestableQty > 0 && (
+                  <div style={{ textAlign: 'right', minWidth: '120px' }}>
+                    <span style={{ fontSize: '11px', color: '#64748b', display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Max Manifestable</span>
+                    <strong style={{ fontSize: '18px', color: '#15803d' }}>{rawMaterialShortageModal.maxManifestableQty?.toLocaleString()} <span style={{ fontSize: '12px', fontWeight: 'normal' }}>Units</span></strong>
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="modal-footer" style={{ padding: '12px 20px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', backgroundColor: '#fafafa' }}>
+            <div className="modal-footer" style={{ padding: '12px 20px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fafafa', flexWrap: 'wrap', gap: '10px' }}>
               <button
                 type="button"
-                className="primary-btn"
-                style={{ padding: '9px 22px', fontSize: '13px', fontWeight: '600' }}
+                className="secondary-btn"
+                style={{ padding: '9px 18px', fontSize: '13px', fontWeight: '500' }}
                 onClick={() => setRawMaterialShortageModal(null)}
               >
-                ← Back to Editor / Adjust Batch Size
+                ← Back to Editor / Cancel
               </button>
+
+              {rawMaterialShortageModal.maxManifestableQty > 0 ? (
+                <button
+                  type="button"
+                  className="primary-btn"
+                  style={{
+                    padding: '9px 20px',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    backgroundColor: '#16a34a',
+                    borderColor: '#16a34a',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    color: '#ffffff'
+                  }}
+                  onClick={() => {
+                    if (rawMaterialShortageModal.proceedWithAdjustedQty) {
+                      rawMaterialShortageModal.proceedWithAdjustedQty(rawMaterialShortageModal.maxManifestableQty);
+                    }
+                  }}
+                >
+                  <Check size={16} />
+                  <span>Proceed and Update to {rawMaterialShortageModal.maxManifestableQty?.toLocaleString()} Units</span>
+                </button>
+              ) : (
+                <span style={{ fontSize: '12px', color: '#991b1b', fontStyle: 'italic' }}>
+                  Cannot create: 0 units manifestable with available stock.
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -6937,12 +7492,12 @@ function App() {
             <div className="modal-header">
               <span>
                 {activeJCOp.action === 'start' && '▶ Start Job Card'}
-                {activeJCOp.action === 'pause' && '⏸ Pause Job Card'}
+                {activeJCOp.action === 'pause' && 'Pause Job Card'}
                 {activeJCOp.action === 'resume' && '▶ Resume Job Card'}
-                {activeJCOp.action === 'finish' && '✓ Complete & Submit Job Card'}
-                {activeJCOp.action === 'remark' && '💬 Add Observation Notes / Remark'}
+                {activeJCOp.action === 'finish' && 'Complete & Submit Job Card'}
+                {activeJCOp.action === 'remark' && 'Add Observation Notes / Remark'}
               </span>
-              <button style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setActiveJCOp(null)}>✕</button>
+              <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)' }} onClick={() => setActiveJCOp(null)}><X size={18} /></button>
             </div>
             <div className="modal-content">
               <p style={{ fontSize: '13px', margin: '0 0 16px 0', color: 'var(--text-muted)' }}>
@@ -7125,7 +7680,7 @@ function App() {
             <div className="modal-panel" onClick={(e) => e.stopPropagation()} style={{ width: '560px' }}>
               <div className="modal-header">
                 <span>Remarks History & Observation Notes: {liveJC?.operation || activeTimelineJC.operation}</span>
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => { setActiveTimelineJC(null); setReplyingToIdx(null); setReplyText(''); }}>✕</button>
+                <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)' }} onClick={() => { setActiveTimelineJC(null); setReplyingToIdx(null); setReplyText(''); }}><X size={18} /></button>
               </div>
               <div className="modal-content" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
@@ -7138,10 +7693,10 @@ function App() {
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'relative', paddingLeft: '20px', borderLeft: '2px solid var(--border-color)', margin: '8px 0 8px 10px' }}>
                       {remarksList.map((log, index) => {
-                        const isStarted = log.text?.includes('🟢 Started') || log.text?.startsWith('Started:');
-                        const isPaused = log.text?.includes('⏸ Paused') || log.text?.startsWith('Paused:');
+                        const isStarted = log.text?.includes('Started') || log.text?.startsWith('Started:');
+                        const isPaused = log.text?.includes('Paused') || log.text?.startsWith('Paused:');
                         const isResumed = log.text?.includes('▶️ Resumed') || log.text?.startsWith('Resumed:');
-                        const isFinished = log.text?.includes('✅ Completed') || log.text?.startsWith('Finished:');
+                        const isFinished = log.text?.includes('Completed') || log.text?.startsWith('Finished:');
 
                         let dotColor = 'var(--accent)';
                         let cardBg = '#f3f4f6';
@@ -7179,7 +7734,7 @@ function App() {
                               boxShadow: '0 0 2px rgba(0,0,0,0.2)'
                             }}></div>
                             <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '2px', fontWeight: '500', display: 'flex', alignItems: 'center' }}>
-                              ⏱️ {log.timestamp} • 👤 {log.operator}
+                              {log.timestamp} • {log.operator}
                               <button
                                 style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: '10px', marginLeft: '12px', textDecoration: 'underline', padding: '0' }}
                                 onClick={() => {
@@ -7209,61 +7764,61 @@ function App() {
                               )}
                             </div>
 
-                          {/* Nested Replies display */}
-                          {log.replies && log.replies.length > 0 && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginLeft: '16px', marginTop: '8px', borderLeft: '2px dashed var(--border-color)', paddingLeft: '12px' }}>
-                              {log.replies.map((reply, rIdx) => (
-                                <div key={rIdx} style={{ position: 'relative' }}>
-                                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '2px' }}>
-                                    ⏱️ {reply.timestamp} • 👤 {reply.operator}
+                            {/* Nested Replies display */}
+                            {log.replies && log.replies.length > 0 && (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginLeft: '16px', marginTop: '8px', borderLeft: '2px dashed var(--border-color)', paddingLeft: '12px' }}>
+                                {log.replies.map((reply, rIdx) => (
+                                  <div key={rIdx} style={{ position: 'relative' }}>
+                                    <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '2px' }}>
+                                      {reply.timestamp} • {reply.operator}
+                                    </div>
+                                    <div style={{
+                                      fontSize: '12px',
+                                      backgroundColor: '#eef2f6',
+                                      padding: '6px 10px',
+                                      borderRadius: '6px',
+                                      color: 'var(--text-heading)'
+                                    }}>
+                                      {reply.text}
+                                    </div>
                                   </div>
-                                  <div style={{
-                                    fontSize: '12px',
-                                    backgroundColor: '#eef2f6',
-                                    padding: '6px 10px',
-                                    borderRadius: '6px',
-                                    color: 'var(--text-heading)'
-                                  }}>
-                                    {reply.text}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Inline Reply input field */}
-                          {replyingToIdx === index && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginLeft: '16px', marginTop: '8px', padding: '8px', backgroundColor: 'rgba(251, 191, 36, 0.05)', borderRadius: '6px', border: '1px solid rgba(251, 191, 36, 0.2)' }}>
-                              <span style={{ fontSize: '11px', fontWeight: '600' }}>Replying as operator: {timelineOperatorName || currentUser}</span>
-                              <div style={{ display: 'flex', gap: '8px' }}>
-                                <input
-                                  type="text"
-                                  className="form-input"
-                                  style={{ padding: '6px', fontSize: '12px', flex: 1 }}
-                                  value={replyText}
-                                  onChange={(e) => setReplyText(e.target.value)}
-                                  placeholder="Type your reply comment..."
-                                  animate="off"
-                                />
-                                <button
-                                  type="button"
-                                  className="primary-btn"
-                                  style={{ padding: '6px 12px', fontSize: '11px' }}
-                                  onClick={() => {
-                                    if (!replyText.trim()) return;
-                                    handleReplyToRemarkJobCard(activeTimelineJC.woId, activeTimelineJC.jcId, index, timelineOperatorName || currentUser, replyText);
-                                    setReplyText('');
-                                    setReplyingToIdx(null);
-                                  }}
-                                >
-                                  Submit
-                                </button>
+                                ))}
                               </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                            )}
+
+                            {/* Inline Reply input field */}
+                            {replyingToIdx === index && (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginLeft: '16px', marginTop: '8px', padding: '8px', backgroundColor: 'rgba(251, 191, 36, 0.05)', borderRadius: '6px', border: '1px solid rgba(251, 191, 36, 0.2)' }}>
+                                <span style={{ fontSize: '11px', fontWeight: '600' }}>Replying as operator: {timelineOperatorName || currentUser}</span>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                  <input
+                                    type="text"
+                                    className="form-input"
+                                    style={{ padding: '6px', fontSize: '12px', flex: 1 }}
+                                    value={replyText}
+                                    onChange={(e) => setReplyText(e.target.value)}
+                                    placeholder="Type your reply comment..."
+                                    animate="off"
+                                  />
+                                  <button
+                                    type="button"
+                                    className="primary-btn"
+                                    style={{ padding: '6px 12px', fontSize: '11px' }}
+                                    onClick={() => {
+                                      if (!replyText.trim()) return;
+                                      handleReplyToRemarkJobCard(activeTimelineJC.woId, activeTimelineJC.jcId, index, timelineOperatorName || currentUser, replyText);
+                                      setReplyText('');
+                                      setReplyingToIdx(null);
+                                    }}
+                                  >
+                                    Submit
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -7442,335 +7997,26 @@ function App() {
         );
       })()}
 
-      {/* Modal: Fill Daily Maintenance Checklist */}
-      {activeMaintTemplate !== null && (() => {
-        const template = maintTemplates[activeMaintTemplate];
-        return (
-          <div className="modal-backdrop">
-            <div className="modal-panel" style={{ width: '920px', maxWidth: '95%' }}>
-              <div className="modal-header">
-                <div>
-                  <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0 }}>Carpenters Water Fiji PTE Limited</h3>
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Daily Preventive Maintenance Schedule</span>
-                </div>
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }} onClick={() => setActiveMaintTemplate(null)}>✕</button>
-              </div>
-              <form onSubmit={handleSaveMaintenance}>
-                <div className="modal-content" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
-
-                  {/* Top metadata input */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
-                    <div>
-                      <label style={{ fontSize: '11px', fontWeight: '600', display: 'block', marginBottom: '4px' }}>Equipment</label>
-                      <input type="text" className="form-input" value={template.equipment} disabled style={{ backgroundColor: '#f3f4f6' }} />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '11px', fontWeight: '600', display: 'block', marginBottom: '4px' }}>Area</label>
-                      <input type="text" className="form-input" value={template.area} disabled style={{ backgroundColor: '#f3f4f6' }} />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '11px', fontWeight: '600', display: 'block', marginBottom: '4px' }}>Work Order ID</label>
-                      <select
-                        className="form-input"
-                        value={maintWorkOrder}
-                        onChange={e => setMaintWorkOrder(e.target.value)}
-                      >
-                        <option value="">Select Work Order</option>
-                        {workOrders.map(wo => (
-                          <option key={wo.id} value={wo.id}>{wo.id} - {wo.productName || wo.product}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '11px', fontWeight: '600', display: 'block', marginBottom: '4px' }}>WEEK NO</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={maintWeekNo}
-                        disabled
-                        style={{ backgroundColor: '#f3f4f6' }}
-                        required
-                      />
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <div style={{ flex: 1 }}>
-                        <label style={{ fontSize: '11px', fontWeight: '600', display: 'block', marginBottom: '4px' }}>From</label>
-                        <input
-                          type="date"
-                          className="form-input"
-                          value={maintFromDate}
-                          disabled
-                          style={{ backgroundColor: '#f3f4f6' }}
-                          required
-                        />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <label style={{ fontSize: '11px', fontWeight: '600', display: 'block', marginBottom: '4px' }}>To</label>
-                        <input
-                          type="date"
-                          className="form-input"
-                          value={maintToDate}
-                          disabled
-                          style={{ backgroundColor: '#f3f4f6' }}
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Checklist Grid Table */}
-                  <div style={{ overflowX: 'auto', marginBottom: '20px' }}>
-                    <table className="custom-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                      <thead>
-                        <tr style={{ backgroundColor: '#f3f4f6' }}>
-                          <th style={{ width: '40px', padding: '6px' }}>Sr.No</th>
-                          <th style={{ minWidth: '220px', padding: '6px', textAlign: 'left' }}>Description</th>
-                          <th style={{ width: '60px', padding: '6px' }}>Std Time</th>
-                          <th style={{ width: '100px', padding: '6px', textAlign: 'center' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-                              <span>Completed</span>
-                              <label style={{ fontSize: '10px', display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer', fontWeight: 'normal' }}>
-                                <input
-                                  type="checkbox"
-                                  checked={template.tasks.length > 0 && template.tasks.every((_, tIdx) => !!maintCheckgrid[tIdx])}
-                                  onChange={e => {
-                                    const checked = e.target.checked;
-                                    const newGrid = {};
-                                    template.tasks.forEach((_, tIdx) => { newGrid[tIdx] = checked; });
-                                    setMaintCheckgrid(newGrid);
-                                  }}
-                                  style={{ cursor: 'pointer' }}
-                                />
-                                <span>Select All</span>
-                              </label>
-                            </div>
-                          </th>
-                          <th style={{ minWidth: '150px', padding: '6px' }}>Remarks</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {template.tasks.map((task, tIdx) => (
-                          <tr key={task.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                            <td style={{ textAlign: 'center', padding: '6px', fontWeight: '600' }}>{task.id}</td>
-                            <td style={{ padding: '6px', fontWeight: '500' }}>{task.desc}</td>
-                            <td style={{ textAlign: 'center', padding: '4px' }}>
-                              <select
-                                className="form-input"
-                                style={{ padding: '2px 4px', fontSize: '11px', height: '26px', width: '70px', textAlign: 'center' }}
-                                value={maintStdTimes[tIdx] !== undefined ? maintStdTimes[tIdx] : (parseInt(task.std) || 0)}
-                                onChange={(e) => {
-                                  setMaintStdTimes(prev => ({
-                                    ...prev,
-                                    [tIdx]: parseInt(e.target.value) || 0
-                                  }));
-                                }}
-                              >
-                                <option value={0}>-</option>
-                                <option value={1}>1 min</option>
-                                <option value={2}>2 min</option>
-                                <option value={3}>3 min</option>
-                                <option value={4}>4 min</option>
-                                <option value={5}>5 min</option>
-                                <option value={10}>10 min</option>
-                                <option value={15}>15 min</option>
-                                <option value={20}>20 min</option>
-                                <option value={30}>30 min</option>
-                                <option value={45}>45 min</option>
-                                <option value={60}>60 min</option>
-                                <option value={90}>90 min</option>
-                                <option value={120}>120 min</option>
-                              </select>
-                            </td>
-                            <td style={{ textAlign: 'center', padding: '4px' }}>
-                              <input
-                                type="checkbox"
-                                checked={!!maintCheckgrid[tIdx]}
-                                onChange={(e) => {
-                                  setMaintCheckgrid(prev => ({
-                                    ...prev,
-                                    [tIdx]: e.target.checked
-                                  }));
-                                }}
-                                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                              />
-                            </td>
-                            <td style={{ padding: '4px' }}>
-                              <input
-                                type="text"
-                                className="form-input"
-                                placeholder="Remarks/Observations"
-                                style={{ padding: '4px 8px', fontSize: '11px', height: '28px' }}
-                                value={maintRemarks[tIdx] || ''}
-                                onChange={(e) => {
-                                  setMaintRemarks(prev => ({
-                                    ...prev,
-                                    [tIdx]: e.target.value
-                                  }));
-                                }}
-                              />
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <div className="form-group" style={{ marginBottom: '16px' }}>
-                    <label style={{ fontSize: '11px', fontWeight: '600' }}>Overall Comments / Remarks</label>
-                    <textarea
-                      className="form-input"
-                      style={{ minHeight: '50px', padding: '6px' }}
-                      value={maintOverallComments}
-                      onChange={e => setMaintOverallComments(e.target.value)}
-                      placeholder="Enter overall comments or observations about this maintenance run..."
-                    />
-                  </div>
-
-                  {/* Signatures & Employee Autocomplete Search */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
-                    <div className="app-dropdown-container" style={{ position: 'relative' }}>
-                      <label style={{ fontSize: '11px', fontWeight: '600', display: 'block', marginBottom: '4px' }}>Sign. Of the Operator <span style={{ color: 'var(--danger)' }}>*</span></label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={maintOperatorDisplay || ''}
-                        onChange={(e) => {
-                          setMaintOperatorDisplay(e.target.value);
-                          setMaintOperator('');
-                          handleSearchEmployees(e.target.value, 'maintOperator');
-                        }}
-                        onFocus={() => {
-                          setActiveSearchField('maintOperator');
-                          setShowEmployeeDropdown(true);
-                          if ((maintOperatorDisplay || '').trim().length === 0) handleSearchEmployees('', 'maintOperator');
-                        }}
-                        placeholder="Search employee..."
-                        required
-                        autoComplete="off"
-                      />
-                      {showEmployeeDropdown && activeSearchField === 'maintOperator' && employeeList.length > 0 && (
-                        <div className="app-dropdown-menu" style={{
-                          position: 'absolute',
-                          top: '100%',
-                          left: 0,
-                          right: 0,
-                          marginTop: '4px',
-                          backgroundColor: 'var(--card-bg, #ffffff)',
-                          border: '1px solid var(--border-color, #e5e7eb)',
-                          borderRadius: '8px',
-                          maxHeight: '180px',
-                          overflowY: 'auto',
-                          zIndex: 3000,
-                          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'
-                        }}>
-                          {employeeList.map((emp) => (
-                            <div
-                              key={emp.name}
-                              style={{
-                                padding: '8px 12px',
-                                cursor: 'pointer',
-                                fontSize: '12px',
-                                borderBottom: '1px solid #f3f4f6',
-                                color: 'var(--text-main, #374151)'
-                              }}
-                              onMouseDown={() => {
-                                setMaintOperator(emp.name);
-                                setMaintOperatorDisplay(emp.employee_name || emp.name);
-                                setShowEmployeeDropdown(false);
-                              }}
-                              className="employee-dropdown-item"
-                            >
-                              <strong>{emp.employee_name}</strong> <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>({emp.name})</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="app-dropdown-container" style={{ position: 'relative' }}>
-                      <label style={{ fontSize: '11px', fontWeight: '600', display: 'block', marginBottom: '4px' }}>Sign. Of the Supervisor <span style={{ color: 'var(--danger)' }}>*</span></label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={maintSupervisorDisplay || ''}
-                        onChange={(e) => {
-                          setMaintSupervisorDisplay(e.target.value);
-                          setMaintSupervisor('');
-                          handleSearchEmployees(e.target.value, 'maintSupervisor');
-                        }}
-                        onFocus={() => {
-                          setActiveSearchField('maintSupervisor');
-                          setShowEmployeeDropdown(true);
-                          if ((maintSupervisorDisplay || '').trim().length === 0) handleSearchEmployees('', 'maintSupervisor');
-                        }}
-                        placeholder="Search employee..."
-                        required
-                        autoComplete="off"
-                      />
-                      {showEmployeeDropdown && activeSearchField === 'maintSupervisor' && employeeList.length > 0 && (
-                        <div className="app-dropdown-menu" style={{
-                          position: 'absolute',
-                          top: '100%',
-                          left: 0,
-                          right: 0,
-                          marginTop: '4px',
-                          backgroundColor: 'var(--card-bg, #ffffff)',
-                          border: '1px solid var(--border-color, #e5e7eb)',
-                          borderRadius: '8px',
-                          maxHeight: '180px',
-                          overflowY: 'auto',
-                          zIndex: 3000,
-                          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'
-                        }}>
-                          {employeeList.map((emp) => (
-                            <div
-                              key={emp.name}
-                              style={{
-                                padding: '8px 12px',
-                                cursor: 'pointer',
-                                fontSize: '12px',
-                                borderBottom: '1px solid #f3f4f6',
-                                color: 'var(--text-main, #374151)'
-                              }}
-                              onMouseDown={() => {
-                                setMaintSupervisor(emp.name);
-                                setMaintSupervisorDisplay(emp.employee_name || emp.name);
-                                setShowEmployeeDropdown(false);
-                              }}
-                              className="employee-dropdown-item"
-                            >
-                              <strong>{emp.employee_name}</strong> <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>({emp.name})</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '11px', fontWeight: '600', display: 'block', marginBottom: '4px' }}>Computed Metrics</label>
-                      <div className="form-input" style={{ backgroundColor: '#f3f4f6', height: '36px', display: 'flex', alignItems: 'center', padding: '0 12px', fontWeight: '700', color: 'var(--accent)' }}>
-                        Total Tasks Completed: {Object.values(maintCheckgrid).filter(Boolean).length}
-                      </div>
-                    </div>
-                  </div>
-
-                </div>
-                <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                  <button type="button" className="secondary-btn" onClick={() => setActiveMaintTemplate(null)}>Cancel</button>
-                  <button type="submit" className="primary-btn" disabled={maintSaving}>
-                    {maintSaving ? (
-                      <>
-                        <span className="spinner" style={{ display: 'inline-block', width: '12px', height: '12px', border: '2px solid #fff', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite', marginRight: '6px' }}></span>
-                        Saving...
-                      </>
-                    ) : 'Save Checklist Record'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        );
-      })()}
+      {/* Modal: Fill Daily Maintenance Checklist (Common Component) */}
+      {activeMaintTemplate !== null && (
+        <DailyMaintenanceChecklistModal
+          isOpen={activeMaintTemplate !== null}
+          template={maintTemplates[activeMaintTemplate]}
+          workOrders={workOrders}
+          initialWorkOrder={maintWorkOrder}
+          initialWeekNo={maintWeekNo}
+          initialFromDate={maintFromDate}
+          initialToDate={maintToDate}
+          employeeList={employeeList}
+          handleSearchEmployees={handleSearchEmployees}
+          currentUser={currentUser}
+          onClose={() => setActiveMaintTemplate(null)}
+          onSave={async (formData) => {
+            await handleSaveCommonMaintenance(formData, { fromWorkOrder: false });
+            setActiveMaintTemplate(null);
+          }}
+        />
+      )}
 
       {/* Modal: View Saved Maintenance Checklist Report */}
       {viewingRecord && (() => {
@@ -7783,7 +8029,7 @@ function App() {
                     <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0 }}>Island Chill / Crush / US Cola</h3>
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Standard Form 88: Weight Check Report ({viewingRecord.id})</span>
                   </div>
-                  <button className="no-print" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }} onClick={() => setViewingRecord(null)}>✕</button>
+                  <button className="no-print" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)' }} onClick={() => setViewingRecord(null)}><X size={18} /></button>
                 </div>
                 <div className="modal-content" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
                   <div style={{ padding: '8px 12px', backgroundColor: '#f9fafb', borderLeft: '4px solid var(--accent)', color: 'var(--text-heading)', fontSize: '12px', marginBottom: '12px' }}>
@@ -7823,8 +8069,8 @@ function App() {
                   )}
                 </div>
                 <div className="modal-footer no-print" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                  <button type="button" className="primary-btn" onClick={() => setEmailModal({ reportId: viewingRecord.id, reportType: 'Weight Check Report' })} style={{ backgroundColor: '#a27b5c', borderColor: '#a27b5c' }}>📧 Send Email</button>
-                  <button type="button" className="primary-btn" onClick={() => window.print()} style={{ backgroundColor: 'var(--accent)', borderColor: 'var(--accent)' }}>🖨️ Print Report</button>
+                  <button type="button" className="primary-btn" onClick={() => setEmailModal({ reportId: viewingRecord.id, reportType: 'Weight Check Report' })} style={{ backgroundColor: '#a27b5c', borderColor: '#a27b5c' }}>Send Email</button>
+                  <button type="button" className="primary-btn" onClick={() => window.print()} style={{ backgroundColor: 'var(--accent)', borderColor: 'var(--accent)' }}>Print Report</button>
                   <button type="button" className="secondary-btn" onClick={() => setViewingRecord(null)}>Close Report</button>
                 </div>
               </div>
@@ -7841,7 +8087,7 @@ function App() {
                     <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0 }}>Island Chill - Carpenters Waters (Fiji) PTE Limited</h3>
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Machine Breakdown Report ({viewingRecord.id})</span>
                   </div>
-                  <button className="no-print" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }} onClick={() => setViewingRecord(null)}>✕</button>
+                  <button className="no-print" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)' }} onClick={() => setViewingRecord(null)}><X size={18} /></button>
                 </div>
                 <div className="modal-content" style={{ maxHeight: '75vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '12px' }}>
 
@@ -7879,8 +8125,8 @@ function App() {
 
                 </div>
                 <div className="modal-footer no-print" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                  <button type="button" className="primary-btn" onClick={() => setEmailModal({ reportId: viewingRecord.id, reportType: 'Machine Breakdown Report' })} style={{ backgroundColor: '#a27b5c', borderColor: '#a27b5c' }}>📧 Send Email</button>
-                  <button type="button" className="primary-btn" onClick={() => window.print()} style={{ backgroundColor: 'var(--accent)', borderColor: 'var(--accent)' }}>🖨️ Print Report</button>
+                  <button type="button" className="primary-btn" onClick={() => setEmailModal({ reportId: viewingRecord.id, reportType: 'Machine Breakdown Report' })} style={{ backgroundColor: '#a27b5c', borderColor: '#a27b5c' }}>Send Email</button>
+                  <button type="button" className="primary-btn" onClick={() => window.print()} style={{ backgroundColor: 'var(--accent)', borderColor: 'var(--accent)' }}>Print Report</button>
                   <button type="button" className="secondary-btn" onClick={() => setViewingRecord(null)}>Close Report</button>
                 </div>
               </div>
@@ -7897,12 +8143,12 @@ function App() {
                   <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0 }}>Carpenters Water Fiji PTE Limited</h3>
                   <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Archived Preventive Maintenance Schedule Details ({viewingRecord.id})</span>
                 </div>
-                <button className="no-print" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }} onClick={() => setViewingRecord(null)}>✕</button>
+                <button className="no-print" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)' }} onClick={() => setViewingRecord(null)}><X size={18} /></button>
               </div>
-              <div className="modal-content" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
+              <div className="modal-content" style={{ maxHeight: '75vh', overflowY: 'auto', overflowX: 'hidden' }}>
 
                 {/* Top metadata */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
                   <div>
                     <label style={{ fontSize: '11px', fontWeight: '600', display: 'block', marginBottom: '4px' }}>Equipment</label>
                     <div style={{ padding: '8px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: '#f9fafb', fontSize: '12px', fontWeight: '600' }}>
@@ -7916,23 +8162,27 @@ function App() {
                     </div>
                   </div>
                   <div>
+                    <label style={{ fontSize: '11px', fontWeight: '600', display: 'block', marginBottom: '4px' }}>Work Order ID</label>
+                    <div style={{ padding: '8px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: '#f9fafb', fontSize: '12px', fontWeight: '600' }}>
+                      {viewingRecord.workOrder || viewingRecord.work_order || 'N/A'}
+                    </div>
+                  </div>
+                  <div>
                     <label style={{ fontSize: '11px', fontWeight: '600', display: 'block', marginBottom: '4px' }}>WEEK NO</label>
                     <div style={{ padding: '8px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: '#f9fafb', fontSize: '12px', fontWeight: '700', color: 'var(--accent)' }}>
                       Wk {viewingRecord.weekNo}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <div style={{ flex: 1 }}>
-                      <label style={{ fontSize: '11px', fontWeight: '600', display: 'block', marginBottom: '4px' }}>From</label>
-                      <div style={{ padding: '8px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: '#f9fafb', fontSize: '12px' }}>
-                        {viewingRecord.fromDate}
-                      </div>
+                  <div>
+                    <label style={{ fontSize: '11px', fontWeight: '600', display: 'block', marginBottom: '4px' }}>From</label>
+                    <div style={{ padding: '8px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: '#f9fafb', fontSize: '12px' }}>
+                      {viewingRecord.fromDate}
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <label style={{ fontSize: '11px', fontWeight: '600', display: 'block', marginBottom: '4px' }}>To</label>
-                      <div style={{ padding: '8px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: '#f9fafb', fontSize: '12px' }}>
-                        {viewingRecord.toDate}
-                      </div>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '11px', fontWeight: '600', display: 'block', marginBottom: '4px' }}>To</label>
+                    <div style={{ padding: '8px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: '#f9fafb', fontSize: '12px' }}>
+                      {viewingRecord.toDate}
                     </div>
                   </div>
                 </div>
@@ -7964,7 +8214,7 @@ function App() {
                             <td style={{ padding: '6px', fontWeight: '500' }}>{task.desc}</td>
                             <td style={{ textAlign: 'center', padding: '6px', color: 'var(--text-muted)' }}>{task.std}</td>
                             <td style={{ textAlign: 'center', padding: '4px', fontSize: '16px' }}>
-                              {isChecked ? '✅' : '❌'}
+                              {isChecked ? <Check size={14} color='var(--success)' /> : <X size={14} color='var(--danger)' />}
                             </td>
                             <td style={{ padding: '6px', fontStyle: 'italic', color: 'var(--text-heading)' }}>
                               {(viewingRecord.remarks && viewingRecord.remarks[tIdx]) || '-'}
@@ -7988,13 +8238,13 @@ function App() {
                   <div>
                     <label style={{ fontSize: '11px', fontWeight: '600', display: 'block', marginBottom: '4px' }}>Sign. Of the Operator</label>
                     <div style={{ padding: '8px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: '#f9fafb', fontSize: '12px', fontWeight: '600' }}>
-                      👤 {viewingRecord.operator || 'Not Signed'}
+                      {viewingRecord.operator || 'Not Signed'}
                     </div>
                   </div>
                   <div>
                     <label style={{ fontSize: '11px', fontWeight: '600', display: 'block', marginBottom: '4px' }}>Sign. Of the Supervisor</label>
                     <div style={{ padding: '8px', border: '1px solid var(--border-color)', borderRadius: '6px', backgroundColor: '#f9fafb', fontSize: '12px', fontWeight: '600' }}>
-                      👤 {viewingRecord.supervisor || 'Not Signed'}
+                      {viewingRecord.supervisor || 'Not Signed'}
                     </div>
                   </div>
                   <div>
@@ -8007,8 +8257,8 @@ function App() {
 
               </div>
               <div className="modal-footer no-print" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                <button type="button" className="primary-btn" onClick={() => setEmailModal({ reportId: viewingRecord.id, reportType: viewingRecord.equipment + ' PM Report' })} style={{ backgroundColor: '#a27b5c', borderColor: '#a27b5c' }}>📧 Send Email</button>
-                <button type="button" className="primary-btn" onClick={() => window.print()} style={{ backgroundColor: 'var(--accent)', borderColor: 'var(--accent)' }}>🖨️ Print Report</button>
+                <button type="button" className="primary-btn" onClick={() => setEmailModal({ reportId: viewingRecord.id, reportType: viewingRecord.equipment + ' PM Report' })} style={{ backgroundColor: '#a27b5c', borderColor: '#a27b5c' }}>Send Email</button>
+                <button type="button" className="primary-btn" onClick={() => window.print()} style={{ backgroundColor: 'var(--accent)', borderColor: 'var(--accent)' }}>Print Report</button>
                 <button type="button" className="secondary-btn" onClick={() => setViewingRecord(null)}>Close Report</button>
               </div>
             </div>
@@ -8029,6 +8279,7 @@ function App() {
           activeSearchField={activeSearchField}
           setActiveSearchField={setActiveSearchField}
           workOrders={workOrders}
+          currentUser={currentUser}
         />
       )}
 
@@ -8121,363 +8372,20 @@ function App() {
         );
       })()}
 
-      {/* Modal: Laboratory Form 1 */}
-      {activeLabForm === 'form1' && (
-        <LabForm1Modal
-          onClose={() => setActiveLabForm(null)}
-          onSubmit={(data) => handleSaveLaboratory('Form 1 (Micro raw)', data)}
-          saving={labSaving}
-          employeeList={employeeList}
-          handleSearchEmployees={handleSearchEmployees}
-          showEmployeeDropdown={showEmployeeDropdown}
-          setShowEmployeeDropdown={setShowEmployeeDropdown}
-          activeSearchField={activeSearchField}
-          prefilledWorkOrder={selectedLabWO ? selectedLabWO.id : ''}
-        />
-      )}
+      {/* Modal: Laboratory & Quality Control Forms */}
+      <LaboratoryFormModal
+        activeLabForm={activeLabForm}
+        onClose={() => setActiveLabForm(null)}
+        onSubmit={handleSaveLaboratory}
+        saving={labSaving}
+        employeeList={employeeList}
+        handleSearchEmployees={handleSearchEmployees}
+        showEmployeeDropdown={showEmployeeDropdown}
+        setShowEmployeeDropdown={setShowEmployeeDropdown}
+        activeSearchField={activeSearchField}
+        selectedLabWO={selectedLabWO}
+      />
 
-      {/* Modal: Laboratory Form 9 */}
-      {activeLabForm === 'form9' && (
-        <LabForm9Modal
-          onClose={() => setActiveLabForm(null)}
-          onSubmit={(data) => handleSaveLaboratory('Form 9 (Chemical)', data)}
-          saving={labSaving}
-          employeeList={employeeList}
-          handleSearchEmployees={handleSearchEmployees}
-          showEmployeeDropdown={showEmployeeDropdown}
-          setShowEmployeeDropdown={setShowEmployeeDropdown}
-          activeSearchField={activeSearchField}
-          prefilledWorkOrder={selectedLabWO ? selectedLabWO.id : ''}
-        />
-      )}
-
-      {/* Modal: Laboratory Form 11 */}
-      {activeLabForm === 'form11' && (
-        <LabForm11Modal
-          onClose={() => setActiveLabForm(null)}
-          onSubmit={(data) => handleSaveLaboratory('Form 11 (Micro water)', data)}
-          saving={labSaving}
-          employeeList={employeeList}
-          handleSearchEmployees={handleSearchEmployees}
-          showEmployeeDropdown={showEmployeeDropdown}
-          setShowEmployeeDropdown={setShowEmployeeDropdown}
-          activeSearchField={activeSearchField}
-          prefilledWorkOrder={selectedLabWO ? selectedLabWO.id : ''}
-        />
-      )}
-
-      {/* Modal: Laboratory Form 21 */}
-      {activeLabForm === 'form21' && (
-        <LabForm21Modal
-          onClose={() => setActiveLabForm(null)}
-          onSubmit={(data) => handleSaveLaboratory('Form 21 (Taste/Visual)', data)}
-          saving={labSaving}
-          employeeList={employeeList}
-          handleSearchEmployees={handleSearchEmployees}
-          showEmployeeDropdown={showEmployeeDropdown}
-          setShowEmployeeDropdown={setShowEmployeeDropdown}
-          activeSearchField={activeSearchField}
-          prefilledWorkOrder={selectedLabWO ? selectedLabWO.id : ''}
-        />
-      )}
-
-      {/* Modal: Laboratory Form 35 */}
-      {activeLabForm === 'form35' && (
-        <LabForm35Modal
-          onClose={() => setActiveLabForm(null)}
-          onSubmit={(data) => handleSaveLaboratory('Form 35: Gold Stone Rum & Cola', data)}
-          employeeList={employeeList}
-          handleSearchEmployees={handleSearchEmployees}
-          showEmployeeDropdown={showEmployeeDropdown}
-          setShowEmployeeDropdown={setShowEmployeeDropdown}
-          activeSearchField={activeSearchField}
-          prefilledWorkOrder={selectedLabWO ? selectedLabWO.id : ''}
-        />
-      )}
-
-      {/* Modal: Laboratory Form 36 */}
-      {activeLabForm === 'form36' && (
-        <LabForm36Modal
-          onClose={() => setActiveLabForm(null)}
-          onSubmit={(data) => handleSaveLaboratory('Form 36 (Bourbon/Cola)', data)}
-          employeeList={employeeList}
-          handleSearchEmployees={handleSearchEmployees}
-          showEmployeeDropdown={showEmployeeDropdown}
-          setShowEmployeeDropdown={setShowEmployeeDropdown}
-          activeSearchField={activeSearchField}
-          prefilledWorkOrder={selectedLabWO ? selectedLabWO.id : ''}
-        />
-      )}
-
-      {/* Modal: Laboratory Form 86 */}
-      {activeLabForm === 'form86' && (
-        <LabForm86Modal
-          onClose={() => setActiveLabForm(null)}
-          onSubmit={(data) => handleSaveLaboratory('Form 86: Incubator Temperature Record', data)}
-          saving={labSaving}
-          employeeList={employeeList}
-          handleSearchEmployees={handleSearchEmployees}
-          showEmployeeDropdown={showEmployeeDropdown}
-          setShowEmployeeDropdown={setShowEmployeeDropdown}
-          activeSearchField={activeSearchField}
-          prefilledWorkOrder={selectedLabWO ? selectedLabWO.id : ''}
-        />
-      )}
-
-      {/* Modal: Laboratory Form 88 */}
-      {activeLabForm === 'form88' && (
-        <LabForm88Modal
-          onClose={() => setActiveLabForm(null)}
-          onSubmit={(data) => handleSaveLaboratory('Form 88: Weight Check Checklist', data)}
-          saving={labSaving}
-          employeeList={employeeList}
-          handleSearchEmployees={handleSearchEmployees}
-          showEmployeeDropdown={showEmployeeDropdown}
-          setShowEmployeeDropdown={setShowEmployeeDropdown}
-          activeSearchField={activeSearchField}
-          prefilledWorkOrder={selectedLabWO ? selectedLabWO.id : ''}
-        />
-      )}
-
-      {/* Modal: Laboratory Form 103 */}
-      {activeLabForm === 'form103' && (
-        <LabForm103Modal
-          onClose={() => setActiveLabForm(null)}
-          onSubmit={(data) => handleSaveLaboratory('Form 103 (Silver Log)', data)}
-          saving={labSaving}
-          employeeList={employeeList}
-          handleSearchEmployees={handleSearchEmployees}
-          showEmployeeDropdown={showEmployeeDropdown}
-          setShowEmployeeDropdown={setShowEmployeeDropdown}
-          activeSearchField={activeSearchField}
-          prefilledWorkOrder={selectedLabWO ? selectedLabWO.id : ''}
-        />
-      )}
-
-      {/* Modal: Laboratory Form 104 Seam Checklist Form */}
-      {activeLabForm === 'form104' && (
-        <LabForm104Modal
-          onClose={() => setActiveLabForm(null)}
-          onSubmit={(data) => handleSaveLaboratory('Form 104 (Seam Checklist Form)', data)}
-          saving={labSaving}
-          employeeList={employeeList}
-          handleSearchEmployees={handleSearchEmployees}
-          showEmployeeDropdown={showEmployeeDropdown}
-          setShowEmployeeDropdown={setShowEmployeeDropdown}
-          activeSearchField={activeSearchField}
-          prefilledWorkOrder={selectedLabWO ? selectedLabWO.id : ''}
-        />
-      )}
-
-      {/* Modal: Laboratory Form 12 Autoclave Record */}
-      {(activeLabForm === 'form12' || activeLabForm === 'form85') && (
-        <LabForm12Modal
-          onClose={() => setActiveLabForm(null)}
-          onSubmit={(data) => handleSaveLaboratory('Form 12 (Autoclave Record)', data)}
-          saving={labSaving}
-          employeeList={employeeList}
-          handleSearchEmployees={handleSearchEmployees}
-          showEmployeeDropdown={showEmployeeDropdown}
-          setShowEmployeeDropdown={setShowEmployeeDropdown}
-          activeSearchField={activeSearchField}
-          prefilledWorkOrder={selectedLabWO ? selectedLabWO.id : ''}
-        />
-      )}
-
-      {/* Modal: Laboratory Form 13 Media Preparation Record */}
-      {activeLabForm === 'form13' && (
-        <LabForm13Modal
-          onClose={() => setActiveLabForm(null)}
-          onSubmit={(data) => handleSaveLaboratory('Form 13 (Media Preparation Record)', data)}
-          saving={labSaving}
-          employeeList={employeeList}
-          handleSearchEmployees={handleSearchEmployees}
-          showEmployeeDropdown={showEmployeeDropdown}
-          setShowEmployeeDropdown={setShowEmployeeDropdown}
-          activeSearchField={activeSearchField}
-          prefilledWorkOrder={selectedLabWO ? selectedLabWO.id : ''}
-        />
-      )}
-
-      {/* Modal: Laboratory Form 64 Rinse-Off Test for Raw Materials */}
-      {activeLabForm === 'form64' && (
-        <LabForm64Modal
-          onClose={() => setActiveLabForm(null)}
-          onSubmit={(data) => handleSaveLaboratory('Form 64 (Rinse-Off Test for Raw Materials)', data)}
-          saving={labSaving}
-          employeeList={employeeList}
-          handleSearchEmployees={handleSearchEmployees}
-          showEmployeeDropdown={showEmployeeDropdown}
-          setShowEmployeeDropdown={setShowEmployeeDropdown}
-          activeSearchField={activeSearchField}
-          prefilledWorkOrder={selectedLabWO ? selectedLabWO.id : ''}
-        />
-      )}
-
-      {/* Modal: Laboratory Form 72 Library Sample Record */}
-      {activeLabForm === 'form72' && (
-        <LabForm72Modal
-          onClose={() => setActiveLabForm(null)}
-          onSubmit={(data) => handleSaveLaboratory('Form 72 (Library Sample Record)', data)}
-          saving={labSaving}
-          employeeList={employeeList}
-          handleSearchEmployees={handleSearchEmployees}
-          showEmployeeDropdown={showEmployeeDropdown}
-          setShowEmployeeDropdown={setShowEmployeeDropdown}
-          activeSearchField={activeSearchField}
-          prefilledWorkOrder={selectedLabWO ? selectedLabWO.id : ''}
-        />
-      )}
-
-      {/* Modal: Laboratory Form 47 Traceability of products */}
-      {activeLabForm === 'form47' && (
-        <LabForm47Modal
-          onClose={() => setActiveLabForm(null)}
-          onSubmit={(data) => handleSaveLaboratory('Form 47 (Traceability of products)', data)}
-          saving={labSaving}
-          employeeList={employeeList}
-          handleSearchEmployees={handleSearchEmployees}
-          showEmployeeDropdown={showEmployeeDropdown}
-          setShowEmployeeDropdown={setShowEmployeeDropdown}
-          activeSearchField={activeSearchField}
-          prefilledWorkOrder={selectedLabWO ? selectedLabWO.id : ''}
-        />
-      )}
-
-      {/* Modal: Laboratory Form 39 Induction */}
-      {activeLabForm === 'form39' && (
-        <LabForm39Modal
-          onClose={() => setActiveLabForm(null)}
-          onSubmit={(data) => handleSaveLaboratory('Form 39 (Induction)', data)}
-          saving={labSaving}
-          employeeList={employeeList}
-          handleSearchEmployees={handleSearchEmployees}
-          showEmployeeDropdown={showEmployeeDropdown}
-          setShowEmployeeDropdown={setShowEmployeeDropdown}
-          activeSearchField={activeSearchField}
-          prefilledWorkOrder={selectedLabWO ? selectedLabWO.id : ''}
-        />
-      )}
-
-      {/* Modal: Laboratory Form 83 Microbiological Analysis */}
-      {activeLabForm === 'form83' && (
-        <LabForm83Modal
-          onClose={() => setActiveLabForm(null)}
-          onSubmit={(data) => handleSaveLaboratory('Form 83 (Microbiological Analysis)', data)}
-          saving={labSaving}
-          employeeList={employeeList}
-          handleSearchEmployees={handleSearchEmployees}
-          showEmployeeDropdown={showEmployeeDropdown}
-          setShowEmployeeDropdown={setShowEmployeeDropdown}
-          activeSearchField={activeSearchField}
-          prefilledWorkOrder={selectedLabWO ? selectedLabWO.id : ''}
-        />
-      )}
-
-      {/* Modal: Laboratory Form 84 Sanitation */}
-      {activeLabForm === 'form84' && (
-        <LabForm84Modal
-          onClose={() => setActiveLabForm(null)}
-          onSubmit={(data) => handleSaveLaboratory('Form 84 (Sanitation)', data)}
-          saving={labSaving}
-          employeeList={employeeList}
-          handleSearchEmployees={handleSearchEmployees}
-          showEmployeeDropdown={showEmployeeDropdown}
-          setShowEmployeeDropdown={setShowEmployeeDropdown}
-          activeSearchField={activeSearchField}
-          prefilledWorkOrder={selectedLabWO ? selectedLabWO.id : ''}
-        />
-      )}
-
-      {/* Modal: Laboratory Form 34 Monitoring */}
-      {activeLabForm === 'form34' && (
-        <LabForm34Modal
-          onClose={() => setActiveLabForm(null)}
-          onSubmit={(data) => handleSaveLaboratory('Form 34: Monitoring', data)}
-          saving={labSaving}
-          employeeList={employeeList}
-          handleSearchEmployees={handleSearchEmployees}
-          showEmployeeDropdown={showEmployeeDropdown}
-          setShowEmployeeDropdown={setShowEmployeeDropdown}
-          activeSearchField={activeSearchField}
-          prefilledWorkOrder={selectedLabWO ? selectedLabWO.id : ''}
-        />
-      )}
-
-      {/* Modal: Laboratory Form 100 Production Record Form */}
-      {activeLabForm === 'form100' && (
-        <LabForm100Modal
-          onClose={() => setActiveLabForm(null)}
-          onSubmit={(data) => handleSaveLaboratory('Form 100: Production Record Form', data)}
-          saving={labSaving}
-          employeeList={employeeList}
-          handleSearchEmployees={handleSearchEmployees}
-          showEmployeeDropdown={showEmployeeDropdown}
-          setShowEmployeeDropdown={setShowEmployeeDropdown}
-          activeSearchField={activeSearchField}
-          prefilledWorkOrder={selectedLabWO ? selectedLabWO.id : ''}
-        />
-      )}
-
-      {/* Modal: Laboratory Form 69 Mock Product Recall */}
-      {activeLabForm === 'form69' && (
-        <LabForm69Modal
-          onClose={() => setActiveLabForm(null)}
-          onSubmit={(data) => handleSaveLaboratory('Form 69: Mock Product Recall', data)}
-          saving={labSaving}
-          employeeList={employeeList}
-          handleSearchEmployees={handleSearchEmployees}
-          showEmployeeDropdown={showEmployeeDropdown}
-          setShowEmployeeDropdown={setShowEmployeeDropdown}
-          activeSearchField={activeSearchField}
-          prefilledWorkOrder={selectedLabWO ? selectedLabWO.id : ''}
-        />
-      )}
-
-      {/* Modal: Laboratory Form 70 Recall Review */}
-      {activeLabForm === 'form70' && (
-        <LabForm70Modal
-          onClose={() => setActiveLabForm(null)}
-          onSubmit={(data) => handleSaveLaboratory('Form 70: Recall Review', data)}
-          saving={labSaving}
-          employeeList={employeeList}
-          handleSearchEmployees={handleSearchEmployees}
-          showEmployeeDropdown={showEmployeeDropdown}
-          setShowEmployeeDropdown={setShowEmployeeDropdown}
-          activeSearchField={activeSearchField}
-          prefilledWorkOrder={selectedLabWO ? selectedLabWO.id : ''}
-        />
-      )}
-
-      {/* Modal: Laboratory Form 16 Container Loading Inspection */}
-      {activeLabForm === 'form16' && (
-        <LabForm16Modal
-          onClose={() => setActiveLabForm(null)}
-          onSubmit={(data) => handleSaveLaboratory('Form 16 (Container Loading Inspection)', data)}
-          saving={labSaving}
-          employeeList={employeeList}
-          handleSearchEmployees={handleSearchEmployees}
-          showEmployeeDropdown={showEmployeeDropdown}
-          setShowEmployeeDropdown={setShowEmployeeDropdown}
-          activeSearchField={activeSearchField}
-          prefilledWorkOrder={selectedLabWO ? selectedLabWO.id : ''}
-        />
-      )}
-
-      {/* Modal: Laboratory Form 105 CSD RTD Line Start Sensory Evaluation */}
-      {activeLabForm === 'form105' && (
-        <LabForm105Modal
-          onClose={() => setActiveLabForm(null)}
-          onSubmit={(data) => handleSaveLaboratory('Form 105 (CSD RTD Line Start Sensory Evaluation)', data)}
-          saving={labSaving}
-          employeeList={employeeList}
-          handleSearchEmployees={handleSearchEmployees}
-          showEmployeeDropdown={showEmployeeDropdown}
-          setShowEmployeeDropdown={setShowEmployeeDropdown}
-          activeSearchField={activeSearchField}
-          prefilledWorkOrder={selectedLabWO ? selectedLabWO.id : ''}
-        />
-      )}
 
       {/* Modal: View Laboratory Report Details */}
       {viewingLabRecord && (
@@ -8493,7 +8401,7 @@ function App() {
           <div className="modal-panel" style={{ maxWidth: '650px', width: '95%' }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3 className="modal-title">Finish Work Order & Manufacture</h3>
-              <button className="close-btn" onClick={() => setFinishWoModal(null)}>✕</button>
+              <button className="close-btn" onClick={() => setFinishWoModal(null)} style={{ display: "flex", alignItems: "center", justifyContent: "center" }}><X size={18} /></button>
             </div>
 
             <form onSubmit={(e) => {
@@ -8586,7 +8494,7 @@ function App() {
                           />
                           {isExtraExceeded && (
                             <div style={{ color: '#ef4444', fontSize: '11px', marginTop: '4px', fontWeight: '600' }}>
-                              ⚠️ Cannot exceed remaining quantity (Max: {maxAllowedExtraInUom % 1 === 0 ? maxAllowedExtraInUom : maxAllowedExtraInUom.toFixed(2)} {finishWoModal.extraUom}). Process loss cannot be negative.
+                              Cannot exceed remaining quantity (Max: {maxAllowedExtraInUom % 1 === 0 ? maxAllowedExtraInUom : maxAllowedExtraInUom.toFixed(2)} {finishWoModal.extraUom}). Process loss cannot be negative.
                             </div>
                           )}
                         </div>
@@ -8695,7 +8603,7 @@ function App() {
           <div className="modal-panel" style={{ maxWidth: '850px', width: '95%' }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3 className="modal-title">{stockEntryModal.stockEntryName ? `Edit Stock Entry Draft: ${stockEntryModal.stockEntryName}` : 'New Stock Entry (Material Transfer for Manufacture)'}</h3>
-              <button className="close-btn" onClick={() => setStockEntryModal(null)}>✕</button>
+              <button className="close-btn" onClick={() => setStockEntryModal(null)} style={{ display: "flex", alignItems: "center", justifyContent: "center" }}><X size={18} /></button>
             </div>
 
             <form onSubmit={(e) => {
@@ -8703,18 +8611,21 @@ function App() {
               handleConfirmStockEntry(stockEntryModal);
             }}>
               <div className="modal-content" style={{ maxHeight: '70vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '12px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' }}>
                   <div>
                     <label className="input-label">Series</label>
-                    <input type="text" className="text-input" value="MAT-STE-YYYY.-" disabled style={{ opacity: 0.7 }} />
+                    <input type="text" className="text-input" value="MAT-STE-YYYY.-" disabled style={{ opacity: 0.7, width: '100%', boxSizing: 'border-box' }} />
                   </div>
                   <div>
                     <label className="input-label">Stock Entry Type</label>
-                    <input type="text" className="text-input" value="Material Transfer for Manufacture" disabled style={{ opacity: 0.7 }} />
+                    <input type="text" className="text-input" value="Material Transfer for Manufacture" disabled style={{ opacity: 0.7, width: '100%', boxSizing: 'border-box' }} />
                   </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px' }}>
                   <div>
                     <label className="input-label">Work Order</label>
-                    <input type="text" className="text-input" value={stockEntryModal.woId} disabled style={{ opacity: 0.7 }} />
+                    <input type="text" className="text-input" value={stockEntryModal.woId} disabled style={{ opacity: 0.7, width: '100%', boxSizing: 'border-box' }} />
                   </div>
                   <div>
                     <label className="input-label">Company *</label>
@@ -8724,8 +8635,12 @@ function App() {
                       value={stockEntryModal.company}
                       onChange={(e) => setStockEntryModal(prev => ({ ...prev, company: e.target.value }))}
                       required
+                      style={{ width: '100%', boxSizing: 'border-box' }}
                     />
                   </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 200px))', gap: '12px' }}>
                   <div>
                     <label className="input-label">Posting Date *</label>
                     <input
@@ -8735,6 +8650,7 @@ function App() {
                       value={currentFijiDateTime.date}
                       readOnly
                       required
+                      style={{ width: '100%', boxSizing: 'border-box' }}
                     />
                   </div>
                   <div>
@@ -8746,6 +8662,7 @@ function App() {
                       value={currentFijiDateTime.time}
                       readOnly
                       required
+                      style={{ width: '100%', boxSizing: 'border-box' }}
                     />
                   </div>
                 </div>
@@ -8876,7 +8793,7 @@ function App() {
                                         style={{ padding: '6px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0', fontSize: '11px', color: '#111' }}
                                         onClick={() => selectSeSource(idx, w)}
                                       >
-                                        🏢 {w.warehouse_name}
+                                        {w.warehouse_name}
                                       </div>
                                     ))}
                                   </div>
@@ -8909,7 +8826,7 @@ function App() {
                                         style={{ padding: '6px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0', fontSize: '11px', color: '#111' }}
                                         onClick={() => selectSeTarget(idx, w)}
                                       >
-                                        🏢 {w.warehouse_name}
+                                        {w.warehouse_name}
                                       </div>
                                     ))}
                                   </div>
@@ -8941,7 +8858,7 @@ function App() {
                                     setStockEntryModal(prev => ({ ...prev, items: newItems }));
                                   }}
                                 >
-                                  🗑️
+                                  <Trash2 size={14} />
                                 </button>
                               </td>
                             </tr>
@@ -9015,9 +8932,9 @@ function App() {
           <div className="modal-panel" style={{ maxWidth: '500px', width: '90%', background: '#faf6f0', border: '1px solid #dcd1c4', borderRadius: '12px', boxShadow: '0 10px 25px rgba(92, 74, 60, 0.15)' }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header" style={{ borderBottom: '1px solid #eadecf', paddingBottom: '12px' }}>
               <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#5c4a3c', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                📧 Dispatch Report via Email
+                Dispatch Report via Email
               </h3>
-              <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#8c7664' }} onClick={() => setEmailModal(null)}>✕</button>
+              <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: '#8c7664' }} onClick={() => setEmailModal(null)}><X size={18} /></button>
             </div>
 
             <form onSubmit={handleSendEmail} style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
@@ -9058,7 +8975,7 @@ function App() {
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: '#f5efe6', padding: '10px', borderRadius: '8px', border: '1px solid #eadecf' }}>
-                <span style={{ fontSize: '20px' }}>📎</span>
+                <Paperclip size={18} />
                 <div style={{ fontSize: '12px', color: '#5c4a3c' }}>
                   <strong>Attachment:</strong> {emailModal.reportType} (Generated PDF Simulation)
                 </div>
@@ -9193,12 +9110,12 @@ function App() {
           <div className="modal-panel" style={{ width: '850px', maxWidth: '95%' }}>
             <div className="modal-header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>🛠️ Work Order Pre-Start Maintenance Validation</h3>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '8px' }}><Wrench size={18} /><span>Work Order Pre-Start Maintenance Validation</span></h3>
                 <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
                   Work Order: <strong style={{ color: 'var(--accent)' }}>{maintValidationModal.woId}</strong>
                 </p>
               </div>
-              <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }} onClick={() => setMaintValidationModal(prev => ({ ...prev, isOpen: false }))}>✕</button>
+              <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)' }} onClick={() => setMaintValidationModal(prev => ({ ...prev, isOpen: false }))}><X size={18} /></button>
             </div>
 
             <WorkOrderMaintenanceChecklists
@@ -9226,287 +9143,35 @@ function App() {
                   if (woObj) proceedToStartRun(woObj);
                 }}
               >
-                {maintValidationModal.allCompleted ? '✓ Proceed & Start Work Order' : `Complete All ${maintValidationModal.totalCount || 'Required'} Checklists to Start`}
+                {maintValidationModal.allCompleted ? 'Proceed & Start Work Order' : `Complete All ${maintValidationModal.totalCount || 'Required'} Checklists to Start`}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal: Quick Fill Maintenance Checklist — matches original Daily PM form exactly */}
-      {quickMaintFillModal && (() => {
-        const modal = quickMaintFillModal;
-        const tasks = modal.template.tasks || [];
-        const completedCount = tasks.filter((_, idx) => !!modal.checkgrid[idx]).length;
-        // Work orders that are NOT completed
-        const activeWOs = workOrders.filter(wo =>
-          !['Completed', 'Stopped', 'Cancelled'].includes(wo.status)
-        );
-        return (
-          <div className="modal-backdrop" style={{ zIndex: 1100 }}>
-            <div className="modal-panel" style={{ width: '920px', maxWidth: '97%' }}>
-              <div className="modal-header">
-                <div>
-                  <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0 }}>Carpenters Water Fiji PTE Limited</h3>
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Daily Preventive Maintenance Schedule</span>
-                </div>
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }} onClick={() => setQuickMaintFillModal(null)}>✕</button>
-              </div>
-
-              <form onSubmit={handleSaveQuickChecklist}>
-                <div className="modal-content" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
-
-                  {/* Metadata grid — Equipment (readonly), Area (readonly), Work Order ID (mandatory select), Week No */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
-                    <div>
-                      <label style={{ fontSize: '11px', fontWeight: '600', display: 'block', marginBottom: '4px' }}>Equipment</label>
-                      <input type="text" className="form-input" value={modal.equipment} disabled style={{ backgroundColor: 'var(--bg-secondary)' }} />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '11px', fontWeight: '600', display: 'block', marginBottom: '4px' }}>Area</label>
-                      <input type="text" className="form-input" value={modal.area} disabled style={{ backgroundColor: 'var(--bg-secondary)' }} />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '11px', fontWeight: '600', display: 'block', marginBottom: '4px', color: 'var(--accent)' }}>Work Order ID <span style={{ color: 'var(--danger)' }}>*</span></label>
-                      <select
-                        className="form-input"
-                        required
-                        value={modal.workOrder}
-                        onChange={e => setQuickMaintFillModal(prev => ({ ...prev, workOrder: e.target.value }))}
-                        style={{ borderColor: !modal.workOrder ? 'var(--danger)' : undefined }}
-                      >
-                        <option value="">— Select Work Order —</option>
-                        {activeWOs.map(wo => (
-                          <option key={wo.id} value={wo.id}>
-                            {wo.id} — {wo.productName || wo.product || wo.item} [{wo.status}]
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label style={{ fontSize: '11px', fontWeight: '600', display: 'block', marginBottom: '4px' }}>WEEK NO</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={modal.weekNo || ''}
-                        disabled
-                        style={{ backgroundColor: 'var(--bg-secondary)' }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Checklist Table — SR.NO / DESCRIPTION / STD TIME / COMPLETED / REMARKS */}
-                  <div style={{ overflowX: 'auto', marginBottom: '20px' }}>
-                    <table className="custom-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                      <thead>
-                        <tr style={{ backgroundColor: 'var(--bg-card)' }}>
-                          <th style={{ width: '40px', padding: '6px', textAlign: 'center' }}>NO</th>
-                          <th style={{ padding: '6px', textAlign: 'left' }}>TASK DESCRIPTION</th>
-                          <th style={{ width: '80px', padding: '6px', textAlign: 'center' }}>STD TIME</th>
-                          <th style={{ width: '100px', padding: '6px', textAlign: 'center' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-                              <span>COMPLETED</span>
-                              <label style={{ fontSize: '10px', display: 'flex', alignItems: 'center', gap: '3px', cursor: 'pointer', fontWeight: 'normal' }}>
-                                <input
-                                  type="checkbox"
-                                  checked={tasks.length > 0 && tasks.every((_, tIdx) => !!modal.checkgrid?.[tIdx])}
-                                  onChange={e => {
-                                    const checked = e.target.checked;
-                                    const updated = {};
-                                    tasks.forEach((_, tIdx) => { updated[tIdx] = checked; });
-                                    setQuickMaintFillModal(prev => ({
-                                      ...prev,
-                                      checkgrid: updated
-                                    }));
-                                  }}
-                                  style={{ cursor: 'pointer' }}
-                                />
-                                <span>Select All</span>
-                              </label>
-                            </div>
-                          </th>
-                          <th style={{ minWidth: '160px', padding: '6px' }}>REMARKS</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {tasks.map((task, tIdx) => (
-                          <tr key={task.id || tIdx} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                            <td style={{ textAlign: 'center', padding: '6px', fontWeight: '600' }}>{tIdx + 1}</td>
-                            <td style={{ padding: '6px', fontWeight: '500' }}>{task.desc || task.description}</td>
-                            <td style={{ textAlign: 'center', padding: '4px' }}>
-                              <select
-                                className="form-input"
-                                style={{ padding: '2px 4px', fontSize: '11px', height: '26px', width: '72px', textAlign: 'center' }}
-                                value={modal.stdTimes && modal.stdTimes[tIdx] !== undefined ? modal.stdTimes[tIdx] : 0}
-                                onChange={e => setQuickMaintFillModal(prev => ({
-                                  ...prev,
-                                  stdTimes: { ...(prev.stdTimes || {}), [tIdx]: parseInt(e.target.value) || 0 }
-                                }))}
-                              >
-                                <option value={0}>-</option>
-                                <option value={1}>1 min</option>
-                                <option value={2}>2 min</option>
-                                <option value={3}>3 min</option>
-                                <option value={4}>4 min</option>
-                                <option value={5}>5 min</option>
-                                <option value={10}>10 min</option>
-                                <option value={15}>15 min</option>
-                                <option value={20}>20 min</option>
-                                <option value={30}>30 min</option>
-                                <option value={45}>45 min</option>
-                                <option value={60}>60 min</option>
-                                <option value={90}>90 min</option>
-                                <option value={120}>120 min</option>
-                              </select>
-                            </td>
-                            <td style={{ textAlign: 'center', padding: '4px' }}>
-                              <input
-                                type="checkbox"
-                                checked={!!modal.checkgrid[tIdx]}
-                                onChange={e => {
-                                  const checked = e.target.checked;
-                                  setQuickMaintFillModal(prev => ({
-                                    ...prev,
-                                    checkgrid: { ...prev.checkgrid, [tIdx]: checked }
-                                  }));
-                                }}
-                                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
-                              />
-                            </td>
-                            <td style={{ padding: '4px' }}>
-                              <input
-                                type="text"
-                                className="form-input"
-                                placeholder="Remarks/Observations"
-                                style={{ padding: '4px 8px', fontSize: '11px', height: '28px' }}
-                                value={modal.remarks[tIdx] || ''}
-                                onChange={e => {
-                                  const val = e.target.value;
-                                  setQuickMaintFillModal(prev => ({
-                                    ...prev,
-                                    remarks: { ...prev.remarks, [tIdx]: val }
-                                  }));
-                                }}
-                              />
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Overall Comments */}
-                  <div className="form-group" style={{ marginBottom: '16px' }}>
-                    <label style={{ fontSize: '11px', fontWeight: '600' }}>OVERALL COMMENTS / REMARKS</label>
-                    <textarea
-                      className="form-input"
-                      style={{ minHeight: '56px', padding: '6px' }}
-                      value={modal.overallComments}
-                      onChange={e => setQuickMaintFillModal(prev => ({ ...prev, overallComments: e.target.value }))}
-                      placeholder="Enter overall comments or observations about this maintenance run..."
-                    />
-                  </div>
-
-                  {/* Signatures & Computed Metrics */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
-                    {/* Operator */}
-                    <div className="app-dropdown-container" style={{ position: 'relative' }}>
-                      <label style={{ fontSize: '11px', fontWeight: '600', display: 'block', marginBottom: '4px' }}>Sign. Of the Operator <span style={{ color: 'var(--danger)' }}>*</span></label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={modal.operatorSearch !== undefined ? modal.operatorSearch : modal.operator}
-                        onChange={e => {
-                          const val = e.target.value;
-                          setQuickMaintFillModal(prev => ({ ...prev, operatorSearch: val, showOpDropdown: true }));
-                          handleSearchEmployees(val, 'qmOperator');
-                        }}
-                        onFocus={() => {
-                          setActiveSearchField('qmOperator');
-                          setQuickMaintFillModal(prev => ({ ...prev, showOpDropdown: true }));
-                          if ((modal.operatorSearch || '').length === 0) handleSearchEmployees('', 'qmOperator');
-                        }}
-                        placeholder="Search employee..."
-                        required
-                        autoComplete="off"
-                      />
-                      {modal.showOpDropdown && showEmployeeDropdown && activeSearchField === 'qmOperator' && employeeList.length > 0 && (
-                        <div className="app-dropdown-menu" style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '4px', backgroundColor: 'var(--card-bg, #ffffff)', border: '1px solid var(--border-color, #e5e7eb)', borderRadius: '8px', maxHeight: '180px', overflowY: 'auto', zIndex: 3000, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2), 0 8px 10px -6px rgba(0,0,0,0.1)' }}>
-                          {employeeList.map(emp => (
-                            <div key={emp.name} className="employee-dropdown-item" style={{ padding: '8px 12px', cursor: 'pointer', fontSize: '12px', borderBottom: '1px solid #f3f4f6' }}
-                              onMouseDown={() => {
-                                const displayName = emp.employee_name || emp.name;
-                                setQuickMaintFillModal(prev => ({ ...prev, operator: emp.name, operatorSearch: displayName, showOpDropdown: false }));
-                                setShowEmployeeDropdown(false);
-                              }}>
-                              👤 <strong>{emp.employee_name || emp.name}</strong> <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}>({emp.name})</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {modal.operator && <div style={{ fontSize: '10px', color: 'var(--success)', marginTop: '2px' }}>✓ {modal.operatorSearch || modal.operator}</div>}
-                    </div>
-
-                    {/* Supervisor */}
-                    <div className="app-dropdown-container" style={{ position: 'relative' }}>
-                      <label style={{ fontSize: '11px', fontWeight: '600', display: 'block', marginBottom: '4px' }}>Sign. Of the Supervisor <span style={{ color: 'var(--danger)' }}>*</span></label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={modal.supervisorSearch !== undefined ? modal.supervisorSearch : modal.supervisor}
-                        onChange={e => {
-                          const val = e.target.value;
-                          setQuickMaintFillModal(prev => ({ ...prev, supervisorSearch: val, showSvDropdown: true }));
-                          handleSearchEmployees(val, 'qmSupervisor');
-                        }}
-                        onFocus={() => {
-                          setActiveSearchField('qmSupervisor');
-                          setQuickMaintFillModal(prev => ({ ...prev, showSvDropdown: true }));
-                          if ((modal.supervisorSearch || '').length === 0) handleSearchEmployees('', 'qmSupervisor');
-                        }}
-                        placeholder="Search employee..."
-                        required
-                        autoComplete="off"
-                      />
-                      {modal.showSvDropdown && showEmployeeDropdown && activeSearchField === 'qmSupervisor' && employeeList.length > 0 && (
-                        <div className="app-dropdown-menu" style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '4px', backgroundColor: 'var(--card-bg, #ffffff)', border: '1px solid var(--border-color, #e5e7eb)', borderRadius: '8px', maxHeight: '180px', overflowY: 'auto', zIndex: 3000, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2), 0 8px 10px -6px rgba(0,0,0,0.1)' }}>
-                          {employeeList.map(emp => (
-                            <div key={emp.name} className="employee-dropdown-item" style={{ padding: '8px 12px', cursor: 'pointer', fontSize: '12px', borderBottom: '1px solid #f3f4f6' }}
-                              onMouseDown={() => {
-                                const displayName = emp.employee_name || emp.name;
-                                setQuickMaintFillModal(prev => ({ ...prev, supervisor: emp.name, supervisorSearch: displayName, showSvDropdown: false }));
-                                setShowEmployeeDropdown(false);
-                              }}>
-                              👤 <strong>{emp.employee_name || emp.name}</strong> <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}>({emp.name})</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {modal.supervisor && <div style={{ fontSize: '10px', color: 'var(--success)', marginTop: '2px' }}>✓ {modal.supervisorSearch || modal.supervisor}</div>}
-                    </div>
-
-                    {/* Computed Metrics */}
-                    <div>
-                      <label style={{ fontSize: '11px', fontWeight: '600', display: 'block', marginBottom: '4px', color: 'var(--accent)' }}>Computed Metrics</label>
-                      <div className="form-input" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--accent)', fontWeight: '600', fontSize: '12px' }}>
-                        Total Tasks Completed: {completedCount}
-                      </div>
-                    </div>
-                  </div>
-
-                </div>
-
-                <div className="modal-footer" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '12px', display: 'flex', justifyContent: 'space-between' }}>
-                  <button type="button" className="secondary-btn" onClick={() => setQuickMaintFillModal(null)}>Cancel</button>
-                  <button type="submit" className="primary-btn">
-                    Save Checklist Record
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        );
-      })()}
+      {/* Modal: Quick Fill Maintenance Checklist (Common Component) */}
+      {quickMaintFillModal && (
+        <DailyMaintenanceChecklistModal
+          isOpen={Boolean(quickMaintFillModal)}
+          template={quickMaintFillModal.template}
+          workOrders={workOrders}
+          initialWorkOrder={quickMaintFillModal.workOrder}
+          isWorkOrderRequired={true}
+          initialWeekNo={quickMaintFillModal.weekNo}
+          initialFromDate={quickMaintFillModal.fromDate}
+          initialToDate={quickMaintFillModal.toDate}
+          employeeList={employeeList}
+          handleSearchEmployees={handleSearchEmployees}
+          currentUser={currentUser}
+          onClose={() => setQuickMaintFillModal(null)}
+          onSave={async (formData) => {
+            const savedWoId = formData.workOrder || quickMaintFillModal.workOrder;
+            await handleSaveCommonMaintenance(formData, { fromWorkOrder: true, targetWoId: savedWoId });
+            setQuickMaintFillModal(null);
+          }}
+        />
+      )}
 
 
       {/* Custom Alert Message Modal */}
@@ -9514,7 +9179,7 @@ function App() {
         <div className="modal-backdrop" style={{ zIndex: 1200 }} onClick={() => setAlertModal(null)}>
           <div className="modal-panel" style={{ maxWidth: '400px', textAlign: 'center', padding: '24px' }} onClick={(e) => e.stopPropagation()}>
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>
-              {alertModal.type === 'error' ? '❌' : alertModal.type === 'warning' ? '⚠️' : '✅'}
+              {alertModal.type === 'error' ? <XCircle size={28} color='var(--danger)' /> : alertModal.type === 'warning' ? <AlertTriangle size={28} color='var(--warning)' /> : <CheckCircle2 size={28} color='var(--success)' />}
             </div>
             <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '8px', color: 'var(--text-heading)' }}>
               {alertModal.title}

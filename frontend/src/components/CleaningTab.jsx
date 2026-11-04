@@ -1,5 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { frappe } from '../services/frappe';
+import {
+  BroomSparklesIcon,
+  Check,
+  X,
+  AlertTriangle,
+  Thermometer,
+  ClipboardList,
+  FileText,
+  Printer,
+  RefreshCw,
+  FileEdit,
+  Lock,
+  User,
+  Eye,
+  Loader2
+} from 'lucide-react';
+import Badge from './ui/Badge';
+import { StageStatusBadge, StageAuditCard } from './StageAuditCard';
 
 const parseSelectOptions = (rawOptions) => {
   if (!rawOptions) return [];
@@ -80,15 +98,15 @@ export const CLEANING_TEMPLATES = [
   { id: 'perimeter-clean', name: 'Form 46: Outside Perimeter Cleaning', doctype: 'Outside Perimeter Cleaning', description: 'Log outside perimeter cleaning inspection and checklist.' }
 ];
 
-export function CleaningFormModal({ templateId, onClose, onSubmit, employeeList, handleSearchEmployees, showEmployeeDropdown, setShowEmployeeDropdown, activeSearchField, setActiveSearchField, workOrders = [] }) {
+export function CleaningFormModal({ templateId, onClose, onSubmit, employeeList, handleSearchEmployees, showEmployeeDropdown, setShowEmployeeDropdown, activeSearchField, setActiveSearchField, workOrders = [], currentUser = '' }) {
   const template = CLEANING_TEMPLATES.find(t => t.id === templateId);
   const [postingDate, setPostingDate] = useState(new Date().toISOString().slice(0, 10));
   const [postingTime, setPostingTime] = useState(new Date().toTimeString().slice(0, 5));
   const [workOrder, setWorkOrder] = useState('');
 
   // Cleaner / Checker autocomplete
-  const [cleanerSearch, setCleanerSearch] = useState('');
-  const [cleaner, setCleaner] = useState('');
+  const [cleanerSearch, setCleanerSearch] = useState(currentUser || '');
+  const [cleaner, setCleaner] = useState(currentUser || '');
   const [cleanerId, setCleanerId] = useState('');
 
   // Supervisor autocomplete
@@ -135,7 +153,7 @@ export function CleaningFormModal({ templateId, onClose, onSubmit, employeeList,
             ];
           }
           if (isMounted) {
-            console.log('📋 OUTSIDE PERIMETER CLEANING DYNAMIC META:', doctypeMeta);
+            console.log('[CleaningTab] OUTSIDE PERIMETER CLEANING DYNAMIC META:', doctypeMeta);
             setMeta({ ...(doctypeMeta || {}), fields });
             const tableFieldsList = fields.filter(f => f.fieldtype === 'Table' && f.options);
             const childMetasObj = {};
@@ -331,7 +349,7 @@ export function CleaningFormModal({ templateId, onClose, onSubmit, employeeList,
             frappe.getCipChemicals ? frappe.getCipChemicals() : (frappe.getLinkOptions ? frappe.getLinkOptions('CIP Chemical') : [])
           ]);
 
-          console.log("🔍 Equipment List API Response:", rawEqs);
+          console.log("[Equipment List API Response]:", rawEqs);
 
           // Filter on client-side as fallback in case server returns all records
           let eqs = (rawEqs || []).filter(eq => {
@@ -342,7 +360,7 @@ export function CleaningFormModal({ templateId, onClose, onSubmit, employeeList,
             return true;
           });
 
-          console.log("✅ Final Equipment List to Display:", eqs);
+          console.log("[Final Equipment List to Display]:", eqs);
 
           setEqList(eqs);
           setChemTestsList(chems || []);
@@ -442,23 +460,21 @@ export function CleaningFormModal({ templateId, onClose, onSubmit, employeeList,
       finalData.cleaning_of_the_balance_done_by = balanceCleaner;
       finalData.balanceCleanerId = balanceCleanerId;
     } else if (templateId === 'sanitation') {
-      if (!cleaner) { alert('Please select operator name.'); return; }
-      finalData.performed_by = cleaner;
+      const activeCleaner = cleaner || currentUser || 'Operator';
+      finalData.performed_by = activeCleaner;
+      finalData.cleaner = activeCleaner;
       finalData.cleanerId = cleanerId;
-      if (supervisor) {
-        finalData.supervisor = supervisor;
-        finalData.supervisorId = supervisorId;
-      }
+      finalData.supervisor = '';
     } else {
       // Cleaning checklists
-      if (!cleaner) { alert('Please select cleaner name.'); return; }
-      finalData.cleaner = cleaner;
+      const activeCleaner = cleaner || currentUser || 'Sanitation Staff';
+      finalData.cleaner = activeCleaner;
       finalData.cleanerId = cleanerId;
-      if (supervisor) {
-        finalData.supervisor = supervisor;
-        finalData.supervisorId = supervisorId;
-      }
+      finalData.supervisor = '';
     }
+    finalData.workflow_state = 'Pending Verification';
+    finalData.docstatus = 0;
+    finalData.status = 'Pending Verification';
     if (templateId === 'toilet-clean' || templateId === 'dining-clean' || templateId === 'floor-clean' || templateId === 'lab-office-clean') {
       const activePurposes = Object.keys(selectedPurposes).filter(k => selectedPurposes[k]);
       if (activePurposes.length === 0 && purposesList.length > 0) {
@@ -475,14 +491,19 @@ export function CleaningFormModal({ templateId, onClose, onSubmit, employeeList,
       <div className="modal-panel" style={{ width: '580px', maxWidth: '95%' }} onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <div>
-            <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0 }}>🧹 {template?.name}</h3>
+            <h3 style={{ fontSize: '16px', fontWeight: '700', margin: 0, display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+              <BroomSparklesIcon size={18} />
+              <span>{template?.name}</span>
+            </h3>
             {formNumber && (
               <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', fontWeight: '500' }}>
                 Form No: {formNumber}
               </div>
             )}
           </div>
-          <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }} onClick={onClose}>✕</button>
+          <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }} onClick={onClose}>
+            <X size={18} />
+          </button>
         </div>
         <form onSubmit={handleFormSubmit}>
           <div className="modal-content" style={{ maxHeight: '70vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '14px', padding: '16px', fontSize: '12px' }}>
@@ -525,8 +546,9 @@ export function CleaningFormModal({ templateId, onClose, onSubmit, employeeList,
                       templateId === 'sanitation' ? 'Performed By (Operator) *' : 'Cleaner Name *'}
                 </span>
                 {cleanerId && (
-                  <span style={{ fontSize: '10px', color: 'var(--success)', fontWeight: '700', backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
-                    ✓ {cleanerId}
+                  <span style={{ fontSize: '10px', color: 'var(--success)', fontWeight: '700', backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: '2px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                    <Check size={11} />
+                    <span>{cleanerId}</span>
                   </span>
                 )}
               </label>
@@ -626,112 +648,14 @@ export function CleaningFormModal({ templateId, onClose, onSubmit, employeeList,
               )}
             </div>
 
-            {/* Supervisor field (where applicable) */}
-            {['toilet-clean', 'dining-clean', 'floor-clean', 'lab-office-clean', 'sanitation', 'perimeter-clean'].includes(templateId) && (
-              <div className="form-group" style={{ position: 'relative' }}>
-                <label className="input-label" style={{ fontWeight: '600', marginBottom: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>Verified By (Supervisor)</span>
-                  {supervisorId && (
-                    <span style={{ fontSize: '10px', color: 'var(--success)', fontWeight: '700', backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
-                      ✓ {supervisorId}
-                    </span>
-                  )}
-                </label>
-                <input
-                  type="text"
-                  className="text-input"
-                  placeholder="Search employee name or ID..."
-                  value={supervisorSearch}
-                  onChange={e => {
-                    const val = e.target.value;
-                    setSupervisorSearch(val);
-                    setSupervisor(val);
-                    setSupervisorId('');
-                    if (handleSearchEmployees) handleSearchEmployees(val, 'supervisor');
-                    setActiveSearchField('supervisor');
-                    setShowEmployeeDropdown(true);
-                  }}
-                  onFocus={() => {
-                    if (handleSearchEmployees && employeeList.length === 0) handleSearchEmployees('', 'supervisor');
-                    setActiveSearchField('supervisor');
-                    setShowEmployeeDropdown(true);
-                  }}
-                />
-                {showEmployeeDropdown && activeSearchField === 'supervisor' && (
-                  <div
-                    className="autocomplete-dropdown"
-                    style={{
-                      position: 'absolute',
-                      top: 'calc(100% + 4px)',
-                      left: 0,
-                      right: 0,
-                      zIndex: 99999,
-                      maxHeight: '180px',
-                      overflowY: 'auto',
-                      backgroundColor: '#ffffff',
-                      border: '1px solid var(--border-color, #cbd5e1)',
-                      borderRadius: '8px',
-                      boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15)',
-                      padding: '4px'
-                    }}
-                  >
-                    {employeeList.length === 0 ? (
-                      <div style={{ padding: '10px', fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center' }}>
-                        No matching employees found
-                      </div>
-                    ) : (
-                      employeeList.map(emp => (
-                        <div
-                          key={emp.name}
-                          className="dropdown-item"
-                          style={{
-                            padding: '8px 10px',
-                            cursor: 'pointer',
-                            borderRadius: '6px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '10px',
-                            marginBottom: '2px'
-                          }}
-                          onMouseEnter={e => e.currentTarget.style.backgroundColor = '#f1f5f9'}
-                          onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                          onMouseDown={e => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            const fullName = emp.employee_name || emp.name;
-                            setSupervisorSearch(`${fullName} (${emp.name})`);
-                            setSupervisor(fullName);
-                            setSupervisorId(emp.name);
-                            setShowEmployeeDropdown(false);
-                          }}
-                          onClick={e => {
-                            e.stopPropagation();
-                            const fullName = emp.employee_name || emp.name;
-                            setSupervisorSearch(`${fullName} (${emp.name})`);
-                            setSupervisor(fullName);
-                            setSupervisorId(emp.name);
-                            setShowEmployeeDropdown(false);
-                          }}
-                        >
-                          <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'var(--primary, #3b82f6)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '700', flexShrink: 0 }}>
-                            {(emp.employee_name || emp.name || 'E').substring(0, 2).toUpperCase()}
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontSize: '12px', fontWeight: '600', color: '#0f172a' }}>{emp.employee_name || emp.name}</span>
-                              <span style={{ fontSize: '10px', fontWeight: '700', color: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', padding: '1px 5px', borderRadius: '4px' }}>{emp.name}</span>
-                            </div>
-                            <span style={{ fontSize: '11px', color: '#64748b', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {emp.designation || 'Staff'} {emp.department ? `• ${emp.department}` : ''}
-                            </span>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
+            {/* 2-Stage Verification Note */}
+            <div style={{ backgroundColor: 'rgba(245, 158, 11, 0.08)', border: '1px dashed #f59e0b', borderRadius: '8px', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+              <span style={{ fontSize: '18px' }}>⚖️</span>
+              <div style={{ fontSize: '11px', color: 'var(--text-main)' }}>
+                <strong style={{ color: '#d97706', display: 'block', marginBottom: '2px' }}>Auto-Routed for Verification</strong>
+                This cleaning log will be submitted into <strong>Pending Verification</strong>. Verification & final approval will be completed in the <strong>Form Approvals Desk</strong>.
               </div>
-            )}
+            </div>
 
             {/* Dynamic content for toilet clean */}
             {templateId === 'toilet-clean' && (
@@ -741,8 +665,9 @@ export function CleaningFormModal({ templateId, onClose, onSubmit, employeeList,
                   {loadingPurposes ? (
                     <div>Loading purposes...</div>
                   ) : purposesList.length === 0 ? (
-                    <div style={{ color: 'var(--danger)', fontWeight: '600' }}>
-                      ⚠️ No toilet cleaning purposes found. Please add a purpose first using the "Toilet Cleaning Purpose" form.
+                    <div style={{ color: 'var(--danger)', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <AlertTriangle size={15} />
+                      <span>No toilet cleaning purposes found. Please add a purpose first using the "Toilet Cleaning Purpose" form.</span>
                     </div>
                   ) : (
                     purposesList.map(p => (
@@ -804,8 +729,9 @@ export function CleaningFormModal({ templateId, onClose, onSubmit, employeeList,
                   {loadingPurposes ? (
                     <div>Loading purposes...</div>
                   ) : purposesList.length === 0 ? (
-                    <div style={{ color: 'var(--danger)', fontWeight: '600' }}>
-                      ⚠️ No dining room cleaning purposes found. Please add a purpose first using the "Dining Room Cleaning Purpose" form.
+                    <div style={{ color: 'var(--danger)', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <AlertTriangle size={15} />
+                      <span>No dining room cleaning purposes found. Please add a purpose first using the "Dining Room Cleaning Purpose" form.</span>
                     </div>
                   ) : (
                     purposesList.map(p => (
@@ -847,8 +773,9 @@ export function CleaningFormModal({ templateId, onClose, onSubmit, employeeList,
                   {loadingPurposes ? (
                     <div>Loading purposes...</div>
                   ) : purposesList.length === 0 ? (
-                    <div style={{ color: 'var(--danger)', fontWeight: '600' }}>
-                      ⚠️ No factory floor cleaning purposes found. Please add a purpose first using the "Factory Floor Cleaning Purpose" form.
+                    <div style={{ color: 'var(--danger)', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <AlertTriangle size={15} />
+                      <span>No factory floor cleaning purposes found. Please add a purpose first using the "Factory Floor Cleaning Purpose" form.</span>
                     </div>
                   ) : (
                     purposesList.map(p => (
@@ -881,8 +808,9 @@ export function CleaningFormModal({ templateId, onClose, onSubmit, employeeList,
                   {loadingPurposes ? (
                     <div>Loading purposes...</div>
                   ) : purposesList.length === 0 ? (
-                    <div style={{ color: 'var(--danger)', fontWeight: '600' }}>
-                      ⚠️ No lab and office cleaning purposes found. Please add a purpose first using the "Lab and Office Cleaning Purpose" form.
+                    <div style={{ color: 'var(--danger)', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <AlertTriangle size={15} />
+                      <span>No lab and office cleaning purposes found. Please add a purpose first using the "Lab and Office Cleaning Purpose" form.</span>
                     </div>
                   ) : (
                     purposesList.map(p => (
@@ -912,7 +840,10 @@ export function CleaningFormModal({ templateId, onClose, onSubmit, employeeList,
               <>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px', border: '1px solid var(--border-color)', marginBottom: '8px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <span style={{ fontWeight: '700', color: 'var(--text-heading)', fontSize: '13px' }}>🌡️ Incubator No. 1</span>
+                    <span style={{ fontWeight: '700', color: 'var(--text-heading)', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <Thermometer size={15} />
+                      <span>Incubator No. 1</span>
+                    </span>
                     <div className="form-group">
                       <label className="input-label">Check Time *</label>
                       <input
@@ -936,7 +867,10 @@ export function CleaningFormModal({ templateId, onClose, onSubmit, employeeList,
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: '1px solid var(--border-color)', paddingLeft: '16px' }}>
-                    <span style={{ fontWeight: '700', color: 'var(--text-heading)', fontSize: '13px' }}>🌡️ Incubator No. 2</span>
+                    <span style={{ fontWeight: '700', color: 'var(--text-heading)', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <Thermometer size={15} />
+                      <span>Incubator No. 2</span>
+                    </span>
                     <div className="form-group">
                       <label className="input-label">Check Time *</label>
                       <input
@@ -975,18 +909,18 @@ export function CleaningFormModal({ templateId, onClose, onSubmit, employeeList,
             {/* Balance Calibration */}
             {templateId === 'balance-calib' && (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-                  <div className="form-group">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px' }}>
+                  <div className="form-group" style={{ minWidth: 0 }}>
                     <label className="input-label">10g weight reading = *</label>
-                    <input type="number" step="any" className="text-input" required value={formData.weight_10g || ''} onChange={e => handleInputChange('weight_10g', parseFloat(e.target.value) || 0.0)} />
+                    <input type="number" step="any" className="text-input" style={{ width: '100%' }} required value={formData.weight_10g || ''} onChange={e => handleInputChange('weight_10g', parseFloat(e.target.value) || 0.0)} />
                   </div>
-                  <div className="form-group">
+                  <div className="form-group" style={{ minWidth: 0 }}>
                     <label className="input-label">20g weight reading = *</label>
-                    <input type="number" step="any" className="text-input" required value={formData.weight_20g || ''} onChange={e => handleInputChange('weight_20g', parseFloat(e.target.value) || 0.0)} />
+                    <input type="number" step="any" className="text-input" style={{ width: '100%' }} required value={formData.weight_20g || ''} onChange={e => handleInputChange('weight_20g', parseFloat(e.target.value) || 0.0)} />
                   </div>
-                  <div className="form-group">
+                  <div className="form-group" style={{ minWidth: 0 }}>
                     <label className="input-label">50g weight reading = *</label>
-                    <input type="number" step="any" className="text-input" required value={formData.weight_50g || ''} onChange={e => handleInputChange('weight_50g', parseFloat(e.target.value) || 0.0)} />
+                    <input type="number" step="any" className="text-input" style={{ width: '100%' }} required value={formData.weight_50g || ''} onChange={e => handleInputChange('weight_50g', parseFloat(e.target.value) || 0.0)} />
                   </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -1003,8 +937,9 @@ export function CleaningFormModal({ templateId, onClose, onSubmit, employeeList,
                   <label className="input-label" style={{ fontWeight: '600', marginBottom: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span>Cleaning of the Balance done by *</span>
                     {balanceCleanerId && (
-                      <span style={{ fontSize: '10px', color: 'var(--success)', fontWeight: '700', backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
-                        ✓ {balanceCleanerId}
+                      <span style={{ fontSize: '10px', color: 'var(--success)', fontWeight: '700', backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: '2px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                        <Check size={11} />
+                        <span>{balanceCleanerId}</span>
                       </span>
                     )}
                   </label>
@@ -1199,8 +1134,9 @@ export function CleaningFormModal({ templateId, onClose, onSubmit, employeeList,
             {templateId === 'perimeter-clean' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 {loadingMeta ? (
-                  <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: '600' }}>
-                    ⏳ Fetching dynamic meta fields from ERPNext DocType "Outside Perimeter Cleaning"...
+                  <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: '600', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <Loader2 size={16} className="spinning" />
+                    <span>Fetching dynamic meta fields from ERPNext DocType "Outside Perimeter Cleaning"...</span>
                   </div>
                 ) : (
                   <>
@@ -1338,161 +1274,164 @@ export function CleaningFormModal({ templateId, onClose, onSubmit, employeeList,
                         );
                       }
 
-                    if (field.fieldtype === 'Link') {
-                      const targetDoctype = field.options || 'Employee';
-                      const isEmpTarget = targetDoctype === 'Employee' || targetDoctype === 'User';
-                      const sKey = field.fieldname;
-                      const datalistId = `dl_clean_${sKey}`;
+                      if (field.fieldtype === 'Link') {
+                        const targetDoctype = field.options || 'Employee';
+                        const isEmpTarget = targetDoctype === 'Employee' || targetDoctype === 'User';
+                        const sKey = field.fieldname;
+                        const datalistId = `dl_clean_${sKey}`;
 
-                      const fetchedOpts = linkOptionsMap[targetDoctype] || [];
-                      const empOpts = (employeeList || []).map(e => `${e.employee_name || e.name} (${e.name})`);
-                      const combinedOpts = Array.from(new Set([
-                        ...empOpts,
-                        ...fetchedOpts
-                      ])).filter(Boolean);
+                        const fetchedOpts = linkOptionsMap[targetDoctype] || [];
+                        const empOpts = (employeeList || []).map(e => `${e.employee_name || e.name} (${e.name})`);
+                        const combinedOpts = Array.from(new Set([
+                          ...empOpts,
+                          ...fetchedOpts
+                        ])).filter(Boolean);
+
+                        return (
+                          <div key={field.fieldname} className="form-group" style={{ position: 'relative' }}>
+                            <label className="input-label" style={{ fontWeight: '600' }}>
+                              {field.label} {field.reqd ? '*' : ''}
+                            </label>
+                            <input
+                              type="text"
+                              list={isEmpTarget ? undefined : datalistId}
+                              className="text-input"
+                              placeholder={`Select or type ${field.label}...`}
+                              value={formData[field.fieldname] || ''}
+                              onChange={e => handleInputChange(field.fieldname, e.target.value)}
+                              onFocus={() => {
+                                if (isEmpTarget && handleSearchEmployees) {
+                                  handleSearchEmployees(formData[field.fieldname] || '', sKey);
+                                  if (setShowEmployeeDropdown) setShowEmployeeDropdown(true);
+                                }
+                              }}
+                            />
+                            {!isEmpTarget && (
+                              <datalist id={datalistId}>
+                                {combinedOpts.map((opt, idx) => (
+                                  <option key={idx} value={opt} />
+                                ))}
+                              </datalist>
+                            )}
+
+                            {isEmpTarget && showEmployeeDropdown && activeSearchField === sKey && employeeList?.length > 0 && (
+                              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', maxHeight: '150px', overflowY: 'auto', zIndex: 1200, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                                {employeeList.map(emp => {
+                                  const empVal = `${emp.employee_name || emp.name} (${emp.name})`;
+                                  return (
+                                    <div
+                                      key={emp.name}
+                                      style={{ padding: '6px 10px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9' }}
+                                      onMouseDown={() => {
+                                        handleInputChange(field.fieldname, empVal);
+                                        if (setShowEmployeeDropdown) setShowEmployeeDropdown(false);
+                                      }}
+                                    >
+                                      <strong>{emp.employee_name}</strong> <span style={{ color: '#64748b' }}>({emp.name})</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
 
                       return (
-                        <div key={field.fieldname} className="form-group" style={{ position: 'relative' }}>
+                        <div key={field.fieldname} className="form-group">
                           <label className="input-label" style={{ fontWeight: '600' }}>
                             {field.label} {field.reqd ? '*' : ''}
                           </label>
                           <input
-                            type="text"
-                            list={isEmpTarget ? undefined : datalistId}
+                            type={field.fieldtype === 'Int' || field.fieldtype === 'Float' ? 'number' : 'text'}
                             className="text-input"
-                            placeholder={`Select or type ${field.label}...`}
                             value={formData[field.fieldname] || ''}
                             onChange={e => handleInputChange(field.fieldname, e.target.value)}
-                            onFocus={() => {
-                              if (isEmpTarget && handleSearchEmployees) {
-                                handleSearchEmployees(formData[field.fieldname] || '', sKey);
-                                if (setShowEmployeeDropdown) setShowEmployeeDropdown(true);
-                              }
-                            }}
                           />
-                          {!isEmpTarget && (
-                            <datalist id={datalistId}>
-                              {combinedOpts.map((opt, idx) => (
-                                <option key={idx} value={opt} />
-                              ))}
-                            </datalist>
-                          )}
-
-                          {isEmpTarget && showEmployeeDropdown && activeSearchField === sKey && employeeList?.length > 0 && (
-                            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', maxHeight: '150px', overflowY: 'auto', zIndex: 1200, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-                              {employeeList.map(emp => {
-                                const empVal = `${emp.employee_name || emp.name} (${emp.name})`;
-                                return (
-                                  <div
-                                    key={emp.name}
-                                    style={{ padding: '6px 10px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9' }}
-                                    onMouseDown={() => {
-                                      handleInputChange(field.fieldname, empVal);
-                                      if (setShowEmployeeDropdown) setShowEmployeeDropdown(false);
-                                    }}
-                                  >
-                                    <strong>{emp.employee_name}</strong> <span style={{ color: '#64748b' }}>({emp.name})</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
                         </div>
                       );
-                    }
+                    })}
 
-                    return (
-                      <div key={field.fieldname} className="form-group">
-                        <label className="input-label" style={{ fontWeight: '600' }}>
-                          {field.label} {field.reqd ? '*' : ''}
-                        </label>
-                        <input
-                          type={field.fieldtype === 'Int' || field.fieldtype === 'Float' ? 'number' : 'text'}
-                          className="text-input"
-                          value={formData[field.fieldname] || ''}
-                          onChange={e => handleInputChange(field.fieldname, e.target.value)}
-                        />
-                      </div>
-                    );
-                  })}
+                    {/* Dynamic Table Fields (Child Tables) */}
+                    {(meta?.fields || []).filter(f => f.fieldtype === 'Table').map(tf => {
+                      const childDoctype = tf.options;
+                      const childFields = (childMetas[childDoctype] || []).filter(cf => cf.fieldtype !== 'Section Break' && cf.fieldtype !== 'Column Break' && cf.fieldtype !== 'Fold' && cf.hidden !== 1);
+                      const currentRows = tableData[tf.fieldname] || [];
 
-                  {/* Dynamic Table Fields (Child Tables) */}
-                  {(meta?.fields || []).filter(f => f.fieldtype === 'Table').map(tf => {
-                    const childDoctype = tf.options;
-                    const childFields = (childMetas[childDoctype] || []).filter(cf => cf.fieldtype !== 'Section Break' && cf.fieldtype !== 'Column Break' && cf.fieldtype !== 'Fold' && cf.hidden !== 1);
-                    const currentRows = tableData[tf.fieldname] || [];
-
-                    return (
-                      <div key={tf.fieldname} className="form-group" style={{ marginTop: '12px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                          <label className="input-label" style={{ fontWeight: '700', fontSize: '13px' }}>📋 {tf.label}</label>
-                          <button type="button" className="secondary-btn" style={{ fontSize: '11px', padding: '4px 8px' }} onClick={() => addTableRow(tf.fieldname, childDoctype)}>
-                            + Add Row
-                          </button>
-                        </div>
-
-                        {currentRows.length === 0 ? (
-                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic', padding: '8px', border: '1px dashed var(--border-color)', borderRadius: '6px', textAlign: 'center' }}>
-                            No rows added yet. Click "+ Add Row" above.
+                      return (
+                        <div key={tf.fieldname} className="form-group" style={{ marginTop: '12px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <label className="input-label" style={{ fontWeight: '700', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                              <ClipboardList size={15} />
+                              <span>{tf.label}</span>
+                            </label>
+                            <button type="button" className="secondary-btn" style={{ fontSize: '11px', padding: '4px 8px' }} onClick={() => addTableRow(tf.fieldname, childDoctype)}>
+                              + Add Row
+                            </button>
                           </div>
-                        ) : (
-                          <div style={{ overflowX: 'auto' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
-                              <thead>
-                                <tr style={{ backgroundColor: '#f1f5f9', textAlign: 'left' }}>
-                                  {childFields.map(cf => (
-                                    <th key={cf.fieldname} style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>{cf.label}</th>
-                                  ))}
-                                  <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '40px' }}>Action</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {currentRows.map((row, rIdx) => (
-                                  <tr key={rIdx}>
+
+                          {currentRows.length === 0 ? (
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic', padding: '8px', border: '1px dashed var(--border-color)', borderRadius: '6px', textAlign: 'center' }}>
+                              No rows added yet. Click "+ Add Row" above.
+                            </div>
+                          ) : (
+                            <div style={{ overflowX: 'auto' }}>
+                              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                                <thead>
+                                  <tr style={{ backgroundColor: '#f1f5f9', textAlign: 'left' }}>
                                     {childFields.map(cf => (
-                                      <td key={cf.fieldname} style={{ padding: '4px 6px', border: '1px solid #cbd5e1' }}>
-                                        {cf.fieldtype === 'Select' ? (
-                                          <select
-                                            className="text-input"
-                                            style={{ padding: '4px', fontSize: '11px' }}
-                                            value={row[cf.fieldname] || ''}
-                                            onChange={e => handleTableInputChange(tf.fieldname, rIdx, cf.fieldname, e.target.value)}
-                                          >
-                                            <option value="">-- Select --</option>
-                                            {parseSelectOptions(cf.options).map(opt => (
-                                              <option key={opt} value={opt}>{opt}</option>
-                                            ))}
-                                          </select>
-                                        ) : cf.fieldtype === 'Link' ? (
-                                          <>
-                                            <input
-                                              type="text"
-                                              list={`dl_clean_tbl_${cf.fieldname}_${rIdx}`}
+                                      <th key={cf.fieldname} style={{ padding: '6px 8px', border: '1px solid #cbd5e1' }}>{cf.label}</th>
+                                    ))}
+                                    <th style={{ padding: '6px 8px', border: '1px solid #cbd5e1', width: '40px' }}>Action</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {currentRows.map((row, rIdx) => (
+                                    <tr key={rIdx}>
+                                      {childFields.map(cf => (
+                                        <td key={cf.fieldname} style={{ padding: '4px 6px', border: '1px solid #cbd5e1' }}>
+                                          {cf.fieldtype === 'Select' ? (
+                                            <select
                                               className="text-input"
                                               style={{ padding: '4px', fontSize: '11px' }}
                                               value={row[cf.fieldname] || ''}
                                               onChange={e => handleTableInputChange(tf.fieldname, rIdx, cf.fieldname, e.target.value)}
-                                            />
-                                            <datalist id={`dl_clean_tbl_${cf.fieldname}_${rIdx}`}>
-                                              {(linkOptionsMap[cf.options || 'Employee'] || []).map(opt => (
-                                                <option key={opt} value={opt} />
+                                            >
+                                              <option value="">-- Select --</option>
+                                              {parseSelectOptions(cf.options).map(opt => (
+                                                <option key={opt} value={opt}>{opt}</option>
                                               ))}
-                                            </datalist>
-                                          </>
-                                        ) : (
-                                          <input
-                                            type={cf.fieldtype === 'Date' ? 'date' : cf.fieldtype === 'Time' ? 'time' : (cf.fieldtype === 'Datetime' || cf.fieldtype === 'Date Time') ? 'datetime-local' : cf.fieldtype === 'Float' || cf.fieldtype === 'Int' ? 'number' : 'text'}
-                                            className="text-input"
-                                            style={{ padding: '4px', fontSize: '11px' }}
-                                            value={row[cf.fieldname] || ((cf.fieldtype === 'Datetime' || cf.fieldtype === 'Date Time') ? (new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)) : '')}
-                                            onChange={e => handleTableInputChange(tf.fieldname, rIdx, cf.fieldname, e.target.value)}
-                                          />
-                                        )}
+                                            </select>
+                                          ) : cf.fieldtype === 'Link' ? (
+                                            <>
+                                              <input
+                                                type="text"
+                                                list={`dl_clean_tbl_${cf.fieldname}_${rIdx}`}
+                                                className="text-input"
+                                                style={{ padding: '4px', fontSize: '11px' }}
+                                                value={row[cf.fieldname] || ''}
+                                                onChange={e => handleTableInputChange(tf.fieldname, rIdx, cf.fieldname, e.target.value)}
+                                              />
+                                              <datalist id={`dl_clean_tbl_${cf.fieldname}_${rIdx}`}>
+                                                {(linkOptionsMap[cf.options || 'Employee'] || []).map(opt => (
+                                                  <option key={opt} value={opt} />
+                                                ))}
+                                              </datalist>
+                                            </>
+                                          ) : (
+                                            <input
+                                              type={cf.fieldtype === 'Date' ? 'date' : cf.fieldtype === 'Time' ? 'time' : (cf.fieldtype === 'Datetime' || cf.fieldtype === 'Date Time') ? 'datetime-local' : cf.fieldtype === 'Float' || cf.fieldtype === 'Int' ? 'number' : 'text'}
+                                              className="text-input"
+                                              style={{ padding: '4px', fontSize: '11px' }}
+                                              value={row[cf.fieldname] || ((cf.fieldtype === 'Datetime' || cf.fieldtype === 'Date Time') ? (new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)) : '')}
+                                              onChange={e => handleTableInputChange(tf.fieldname, rIdx, cf.fieldname, e.target.value)}
+                                            />
+                                          )}
                                         </td>
                                       ))}
                                       <td style={{ padding: '4px', border: '1px solid #cbd5e1', textAlign: 'center' }}>
-                                        <button type="button" style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }} onClick={() => removeTableRow(tf.fieldname, rIdx)}>
-                                          ✕
+                                        <button type="button" style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }} onClick={() => removeTableRow(tf.fieldname, rIdx)}>
+                                          <X size={14} />
                                         </button>
                                       </td>
                                     </tr>
@@ -1513,6 +1452,55 @@ export function CleaningFormModal({ templateId, onClose, onSubmit, employeeList,
             <div className="form-group">
               <label className="input-label">Observations / Remarks</label>
               <textarea className="text-input" style={{ minHeight: '50px' }} value={formData.remarks || ''} onChange={e => handleInputChange('remarks', e.target.value)} placeholder="Enter details..." />
+            </div>
+
+            {/* Operational Incident / Deviation Flag */}
+            <div style={{
+              background: formData.is_incident ? '#fffbeb' : '#f8fafc',
+              border: formData.is_incident ? '1.5px solid #f59e0b' : '1px solid #e2e8f0',
+              borderRadius: '8px',
+              padding: '12px',
+              transition: 'all 0.2s ease'
+            }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: '600', color: formData.is_incident ? '#b45309' : '#334155' }}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(formData.is_incident)}
+                  onChange={e => handleInputChange('is_incident', e.target.checked ? 1 : 0)}
+                  style={{ width: '16px', height: '16px', accentColor: '#f59e0b', cursor: 'pointer' }}
+                />
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <AlertTriangle size={15} color="#f59e0b" />
+                  <span>Flag as Operational Incident / Deviation</span>
+                </span>
+              </label>
+              {Boolean(formData.is_incident) && (
+                <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="input-label" style={{ fontWeight: '600' }}>Incident Severity</label>
+                    <select
+                      className="text-input"
+                      value={formData.incident_severity || 'Medium'}
+                      onChange={e => handleInputChange('incident_severity', e.target.value)}
+                    >
+                      <option value="Critical">Critical</option>
+                      <option value="High">High</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Low">Low</option>
+                    </select>
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="input-label" style={{ fontWeight: '600' }}>Incident / Deviation Note</label>
+                    <textarea
+                      className="text-input"
+                      style={{ minHeight: '50px' }}
+                      placeholder="Describe what you observed (e.g. sanitation failure, leak, chemical residue)..."
+                      value={formData.incident_note || ''}
+                      onChange={e => handleInputChange('incident_note', e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
           </div>
@@ -1680,14 +1668,19 @@ export function CleaningRecordDetailModal({ record, onClose, employeeList = [] }
       <div className="modal-panel print-report-container" style={{ width: '720px', maxWidth: '95%' }}>
         <div className="modal-header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
           <div>
-            <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-heading)', margin: 0 }}>📄 QC Clean Record: {record.id}</h3>
+            <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-heading)', margin: 0, display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+              <FileText size={16} />
+              <span>QC Clean Record: {record.id}</span>
+            </h3>
             {formNumber && (
               <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', fontWeight: '500' }}>
                 Form No: {formNumber}
               </div>
             )}
           </div>
-          <button className="no-print" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }} onClick={onClose}>✕</button>
+          <button className="no-print" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }} onClick={onClose}>
+            <X size={18} />
+          </button>
         </div>
         <div className="modal-content" style={{ padding: '16px', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', paddingBottom: '10px', borderBottom: '1px solid #f3f4f6' }}>
@@ -1713,6 +1706,9 @@ export function CleaningRecordDetailModal({ record, onClose, employeeList = [] }
               <div><span style={{ color: 'var(--text-muted)' }}>Verified By:</span><br /><strong>{supervisorName}</strong></div>
             )}
           </div>
+
+          {/* 3-Stage Workflow Status & Audit Trail */}
+          <StageAuditCard record={record} />
           <div style={{ padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
             <h4 style={{ margin: '0 0 10px 0', fontWeight: '700', fontSize: '13px', color: 'var(--text-heading)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px' }}>Parameters & Checklist</h4>
             <table className="custom-table" style={{ width: '100%', fontSize: '12px' }}>
@@ -1781,22 +1777,24 @@ export function CleaningRecordDetailModal({ record, onClose, employeeList = [] }
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
               <div>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Approved By: </span>
-                <span style={{ fontWeight: '700', color: 'var(--text-heading)' }}>{supervisorName !== 'N/A' ? supervisorName : 'L. Chaudhry'}</span>
+                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Verified / Approved By: </span>
+                <span style={{ fontWeight: '700', color: 'var(--text-heading)' }}>{supervisorName !== 'N/A' ? supervisorName : (record.verified_by || record.approved_by || 'Pending Review')}</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Signature: </span>
-                <span style={{
-                  fontFamily: "cursive, 'Brush Script MT', sans-serif",
-                  fontSize: '16px',
-                  fontWeight: '700',
-                  color: 'var(--accent)',
-                  borderBottom: '1px solid var(--border-color)',
-                  padding: '0 8px'
-                }}>
-                  {supervisorName !== 'N/A' ? supervisorName : 'L. Chaudhry'}
-                </span>
-              </div>
+              {(supervisorName !== 'N/A' || record.verified_by || record.approved_by) && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ color: 'var(--text-muted)', fontWeight: '600' }}>Sign-off: </span>
+                  <span style={{
+                    fontFamily: "cursive, 'Brush Script MT', sans-serif",
+                    fontSize: '16px',
+                    fontWeight: '700',
+                    color: 'var(--accent)',
+                    borderBottom: '1px solid var(--border-color)',
+                    padding: '0 8px'
+                  }}>
+                    {supervisorName !== 'N/A' ? supervisorName : (record.verified_by || record.approved_by)}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1807,9 +1805,10 @@ export function CleaningRecordDetailModal({ record, onClose, employeeList = [] }
             type="button"
             className="primary-btn"
             onClick={() => window.print()}
-            style={{ backgroundColor: 'var(--accent)', borderColor: 'var(--accent)', whiteSpace: 'nowrap' }}
+            style={{ backgroundColor: 'var(--accent)', borderColor: 'var(--accent)', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
-            🖨️ Print Report
+            <Printer size={14} />
+            <span>Print Report</span>
           </button>
           <button type="button" className="secondary-btn" onClick={onClose} style={{ whiteSpace: 'nowrap' }}>Close Report</button>
         </div>
@@ -1831,7 +1830,8 @@ export default function CleaningTab({
   setViewingCleaningRecord,
   onRefreshCleaningRecords,
   employeeList = [],
-  workOrders = []
+  workOrders = [],
+  formPermissions = null
 }) {
   useEffect(() => {
     if (onRefreshCleaningRecords) {
@@ -1873,7 +1873,8 @@ export default function CleaningTab({
             className="secondary-btn"
             style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', fontSize: '12px', cursor: 'pointer', borderRadius: '6px' }}
           >
-            🔄 Sync ERPNext Logs
+            <RefreshCw size={14} />
+            <span>Sync ERPNext Logs</span>
           </button>
         )}
       </div>
@@ -1904,9 +1905,12 @@ export default function CleaningTab({
 
       {/* Template Card Grids */}
       <div style={{ marginBottom: '24px' }}>
-        <h3 style={{ fontSize: '14px', fontWeight: '700', marginBottom: '12px', color: 'var(--text-heading)' }}>📋 Select Sanitation or Calibration Form</h3>
+        <h3 style={{ fontSize: '14px', fontWeight: '700', marginBottom: '12px', color: 'var(--text-heading)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+          <ClipboardList size={16} />
+          <span>Select Sanitation or Calibration Form</span>
+        </h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '16px' }}>
-          {CLEANING_TEMPLATES.map(tpl => (
+          {CLEANING_TEMPLATES.filter(tpl => !formPermissions || !formPermissions[tpl.id] || formPermissions[tpl.id].can_view !== false).map(tpl => (
             <div
               key={tpl.id}
               style={{
@@ -1921,16 +1925,41 @@ export default function CleaningTab({
               }}
             >
               <div>
-                <h4 style={{ fontSize: '13px', fontWeight: '700', margin: '0 0 4px 0', color: 'var(--text-heading)' }}>🧹 {tpl.name}</h4>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                  <Badge
+                    variant="primary"
+                    size="md"
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      padding: 0,
+                      borderRadius: '8px',
+                      flexShrink: 0
+                    }}
+                  >
+                    <BroomSparklesIcon size={18} />
+                  </Badge>
+                  <h4 style={{ fontSize: '13px', fontWeight: '700', margin: 0, color: 'var(--text-heading)' }}>
+                    {tpl.name}
+                  </h4>
+                </div>
                 <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>{tpl.description}</p>
               </div>
-              <button
-                className="primary-btn"
-                style={{ alignSelf: 'flex-start', fontSize: '11px', padding: '6px 12px' }}
-                onClick={() => setActiveCleaningForm(tpl.id)}
-              >
-                📝 Fill Form
-              </button>
+              {(!formPermissions || !formPermissions[tpl.id] || formPermissions[tpl.id].can_create !== false) ? (
+                <button
+                  className="primary-btn"
+                  style={{ alignSelf: 'flex-start', fontSize: '11px', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  onClick={() => setActiveCleaningForm(tpl.id)}
+                >
+                  <FileEdit size={13} />
+                  <span>Fill Form</span>
+                </button>
+              ) : (
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic', padding: '4px 8px', background: 'var(--bg-secondary)', borderRadius: '4px', alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <Lock size={12} />
+                  <span>View Only</span>
+                </span>
+              )}
             </div>
           ))}
         </div>
@@ -1939,7 +1968,10 @@ export default function CleaningTab({
       {/* History Table */}
       <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
-          <h3 style={{ fontSize: '14px', fontWeight: '700', margin: 0, color: 'var(--text-heading)' }}>📋 Sanitation & QC Log History</h3>
+          <h3 style={{ fontSize: '14px', fontWeight: '700', margin: 0, color: 'var(--text-heading)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <ClipboardList size={16} />
+            <span>Sanitation & QC Log History</span>
+          </h3>
 
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             {/* Search */}
@@ -1978,7 +2010,8 @@ export default function CleaningTab({
                     <th style={{ padding: '10px', textAlign: 'left' }}>Form Template</th>
                     <th style={{ padding: '10px', textAlign: 'left' }}>Work Order</th>
                     <th style={{ padding: '10px', textAlign: 'left' }}>Performed By</th>
-                    <th style={{ padding: '10px', textAlign: 'left' }}>Status</th>
+                    <th style={{ padding: '10px', textAlign: 'left' }}>Workflow Status</th>
+                    <th style={{ padding: '10px', textAlign: 'left' }}>Sanitation Status</th>
                     <th style={{ padding: '10px', textAlign: 'left' }}>Submitted</th>
                     <th style={{ padding: '10px', textAlign: 'center' }}>Actions</th>
                   </tr>
@@ -1999,10 +2032,19 @@ export default function CleaningTab({
                             <span style={{ color: 'var(--text-muted)' }}>—</span>
                           )}
                         </td>
-                        <td style={{ padding: '10px' }}>👤 {resolveEmployeeName(rec.operator_name || rec.cleaner || rec.recorded_by || rec.checked_by || rec.performed_by, employeeList)}</td>
                         <td style={{ padding: '10px' }}>
-                          <span className={`badge ${isPass ? 'badge-completed' : 'badge-failed'}`} style={{ fontSize: '10px', padding: '2px 6px' }}>
-                            {isPass ? '✓ Satisfactory' : '⚠️ Action Required'}
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <User size={13} style={{ color: 'var(--text-muted)' }} />
+                            <span>{resolveEmployeeName(rec.operator_name || rec.cleaner || rec.recorded_by || rec.checked_by || rec.performed_by, employeeList)}</span>
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px' }}>
+                          <StageStatusBadge record={rec} />
+                        </td>
+                        <td style={{ padding: '10px' }}>
+                          <span className={`badge ${isPass ? 'badge-completed' : 'badge-failed'}`} style={{ fontSize: '10px', padding: '2px 6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            {isPass ? <Check size={11} /> : <AlertTriangle size={11} />}
+                            <span>{isPass ? 'Satisfactory' : 'Action Required'}</span>
                           </span>
                         </td>
                         <td style={{ padding: '10px', color: 'var(--text-muted)' }}>{rec.timestamp}</td>
@@ -2010,10 +2052,11 @@ export default function CleaningTab({
                           <button
                             type="button"
                             className="secondary-btn"
-                            style={{ padding: '4px 8px', fontSize: '11px' }}
+                            style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                             onClick={() => setViewingCleaningRecord(rec)}
                           >
-                            👁️ View Details / Print
+                            <Eye size={12} />
+                            <span>View Details / Print</span>
                           </button>
                         </td>
                       </tr>

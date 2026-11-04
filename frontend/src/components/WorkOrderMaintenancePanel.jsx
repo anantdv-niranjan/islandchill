@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import { frappe } from '../services/frappe';
 import WorkOrderMaintenanceChecklists from './WorkOrderMaintenanceChecklists';
 
-export default function WorkOrderMaintenancePanel({ wo, isScheduledFuture, revision, onFillChecklist }) {
+export default function WorkOrderMaintenancePanel({ wo, isScheduledFuture, revision, onFillChecklist, isCancelled }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [retry, setRetry] = useState(0);
+
+  const isCancelledWO = isCancelled ?? (wo?.status === 'Cancelled');
 
   useEffect(() => {
     let cancelled = false;
@@ -48,7 +50,9 @@ export default function WorkOrderMaintenancePanel({ wo, isScheduledFuture, revis
       <button type="button" className="secondary-btn" onClick={() => setRetry(value => value + 1)}>Retry</button>
     </div>
   );
-  if (!result?.checklists?.length) return <p className="text-muted">No maintenance checklists are applicable to this Work Order.</p>;
+  if (!result?.checklists?.length) {
+    return <p className="text-muted">{isCancelledWO ? 'No maintenance checklists are applicable to this cancelled Work Order.' : 'No maintenance checklists are applicable to this Work Order.'}</p>;
+  }
 
   return (
     <WorkOrderMaintenanceChecklists
@@ -59,7 +63,8 @@ export default function WorkOrderMaintenancePanel({ wo, isScheduledFuture, revis
         totalCount: result.total_count ?? result.checklists.length,
         allCompleted: Boolean(result.all_completed)
       }}
-      onFillChecklist={onFillChecklist}
+      isCancelled={isCancelledWO}
+      onFillChecklist={isCancelledWO ? null : onFillChecklist}
     />
   );
 }

@@ -1,6 +1,26 @@
 import React from 'react';
 import logo from '../../public/logo.png';
 import { frappe } from '../services/frappe';
+import {
+  LayoutDashboard,
+  Sparkles,
+  GitBranch,
+  CheckCircle2,
+  ClipboardList,
+  TriangleAlert,
+  Package,
+  DollarSign,
+  FlaskConical,
+  Wrench,
+  ShieldAlert,
+  Microscope,
+  BroomSparklesIcon,
+  BarChart3,
+  Headphones,
+  Users,
+  LogOutIcon,
+  SettingsIcon
+} from 'lucide-react';
 
 /**
  * Sidebar Component
@@ -16,24 +36,31 @@ export default function Sidebar({
   setMobileMenuOpen,
   handleLogout,
   setSelectedWOId,
-  showAdminSwitch = false
+  showAdminSwitch = false,
+  allowedPages = ['*']
 }) {
   const navItems = [
-    { id: 'dashboard', label: '📊 Dashboard', resetSelectedWO: true },
-    { id: 'workflow', label: '🔄 Business Workflow' },
-    { id: 'approvals', label: '✅ Form Approvals' },
-    { id: 'work-orders', label: '📋 Work Orders' },
-    { id: 'inventory', label: '📦 Stock / Inventory' },
-    { id: 'sales', label: '💰 Sales Desk' },
-    { id: 'bom', label: '🧪 BOM Recipes' },
-    { id: 'maintenance', label: '🔧 Maintenance' },
-    { id: 'safety', label: '🦺 Health & Safety' },
-    { id: 'laboratory', label: '🔬 Laboratory' },
-    { id: 'cleaning', label: '🧹 Cleaning & Sanitation' },
-    { id: 'reports', label: '📊 Reports' },
-    { id: 'support', label: '🎧 Support Helpdesk' },
-    { id: 'hr', label: '👥 Human Resource' },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, resetSelectedWO: true },
+    { id: 'dashboard-new', label: 'Dashboard New', icon: Sparkles },
+    { id: 'workflow', label: 'Business Workflow', icon: GitBranch },
+    { id: 'approvals', label: 'Form Approvals', icon: CheckCircle2 },
+    { id: 'work-orders', label: 'Work Orders', icon: ClipboardList },
+    { id: 'incidents', label: 'Incidents', icon: TriangleAlert },
+    { id: 'inventory', label: 'Stock / Inventory', icon: Package },
+    { id: 'sales', label: 'Sales Desk', icon: DollarSign },
+    { id: 'bom', label: 'BOM Recipes', icon: FlaskConical },
+    { id: 'maintenance', label: 'Maintenance', icon: Wrench },
+    { id: 'safety', label: 'Health & Safety', icon: ShieldAlert },
+    { id: 'laboratory', label: 'Laboratory', icon: Microscope },
+    { id: 'cleaning', label: 'Cleaning & Sanitation', icon: BroomSparklesIcon },
+    { id: 'reports', label: 'Reports', icon: BarChart3 },
+    { id: 'support', label: 'Support Helpdesk', icon: Headphones },
+    { id: 'hr', label: 'Human Resource', icon: Users },
   ];
+
+  const visibleNavItems = (!allowedPages || allowedPages.includes('*'))
+    ? navItems
+    : navItems.filter(item => allowedPages.includes(item.id));
 
   return (
     <aside className={`sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
@@ -46,7 +73,7 @@ export default function Sidebar({
       </div>
 
       <nav className="sidebar-nav">
-        {navItems.map((item) => (
+        {visibleNavItems.map((item) => (
           <button
             key={item.id}
             className={`nav-item ${currentTab === item.id ? 'active' : ''}`}
@@ -58,8 +85,26 @@ export default function Sidebar({
                 setSelectedWOId(null);
               }
             }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
           >
-            {item.label}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
+              {item.icon && <item.icon size={18} />}
+              {item.label}
+            </span>
+            {item.badge && (
+              <span
+                style={{
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  fontSize: '10px',
+                  fontWeight: '700',
+                  padding: '1px 6px',
+                  borderRadius: '10px'
+                }}
+              >
+                {item.badge}
+              </span>
+            )}
           </button>
         ))}
       </nav>
@@ -67,7 +112,7 @@ export default function Sidebar({
       <div className="sidebar-footer">
         {showAdminSwitch && (
           <a className="portal-switch-button" href="/app">
-            <span aria-hidden="true">⚙️</span>
+            <span aria-hidden="true"><SettingsIcon style={{ width: '1rem', height: '1rem' }} /></span>
             Switch to ERPNext Admin
           </a>
         )}
@@ -79,8 +124,8 @@ export default function Sidebar({
               <span className="user-role">{currentUserRole}</span>
             </div>
           </div>
-          <button onClick={handleLogout} style={{ color: '#ef4444', fontSize: '14px', padding: '4px' }} title="Log Out">
-            🚪
+          <button onClick={handleLogout} style={{ color: '#ef4444', fontSize: '14px', padding: '4px', backgroundColor: 'transparent', borderColor: 'transparent' }} title="Log Out">
+            <LogOutIcon />
           </button>
         </div>
       </div>

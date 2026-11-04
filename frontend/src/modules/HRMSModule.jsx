@@ -1,3 +1,21 @@
+import {
+  Users,
+  Calendar,
+  DollarSign,
+  TrendingUp,
+  Network,
+  RotateCcw,
+  Check,
+  X,
+  Search,
+  Crown,
+  Share2,
+  Diamond,
+  Lightbulb,
+  Zap,
+  AlertTriangle,
+  UserPlus
+} from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { frappe } from '../services/frappe';
 
@@ -439,12 +457,12 @@ const HRMSModule = () => {
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           {activeTab === 'directory' && (
             <button className="primary-btn" onClick={() => setIsAddEmpOpen(true)}>
-              ➕ Onboard Employee
+              Onboard Employee
             </button>
           )}
           {activeTab === 'org-chart' && (
             <button className="secondary-btn" style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }} onClick={handleResetChart}>
-              🔄 Reset Chart
+              Reset Chart
             </button>
           )}
 
@@ -454,13 +472,13 @@ const HRMSModule = () => {
               className={`hrms-tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
               onClick={() => setActiveTab('dashboard')}
             >
-              📈 Dashboard
+              Dashboard
             </button>
             <button 
               className={`hrms-tab-btn ${activeTab === 'directory' ? 'active' : ''}`}
               onClick={() => setActiveTab('directory')}
             >
-              👥 Employees
+              Employees
             </button>
             <button 
               className={`hrms-tab-btn ${activeTab === 'org-chart' ? 'active' : ''}`}
@@ -469,7 +487,7 @@ const HRMSModule = () => {
                 cancelConnection();
               }}
             >
-              🏗️ Org Chart
+              Org Chart
             </button>
           </div>
         </div>
@@ -482,7 +500,7 @@ const HRMSModule = () => {
             <div className="metric-widget">
               <div className="metric-widget-header">
                 <span>Total Staff</span>
-                <span>👥</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center' }}><Users size={20} /></span>
               </div>
               <div className="metric-value-container">
                 <span className="metric-val">{totalEmployeesCount}</span>
@@ -492,7 +510,7 @@ const HRMSModule = () => {
             <div className="metric-widget">
               <div className="metric-widget-header">
                 <span>Pending Leaves</span>
-                <span>📅</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center' }}><Calendar size={20} color='var(--warning)' /></span>
               </div>
               <div className="metric-value-container">
                 <span className="metric-val" style={{ color: 'var(--warning)' }}>{pendingLeavesCount}</span>
@@ -502,7 +520,7 @@ const HRMSModule = () => {
             <div className="metric-widget">
               <div className="metric-widget-header">
                 <span>Avg Monthly Payroll</span>
-                <span>💰</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center' }}><DollarSign size={20} color='var(--success)' /></span>
               </div>
               <div className="metric-value-container">
                 <span className="metric-val">FJD {monthlyPayrollTotal.toLocaleString()}</span>
@@ -619,14 +637,14 @@ const HRMSModule = () => {
                         onClick={() => handleLeaveAction(leave.id, 'Rejected')}
                         style={{ padding: '6px 10px', fontSize: '11px', color: 'var(--danger)', borderColor: 'var(--danger)' }}
                       >
-                        ✕ Reject
+                        Reject
                       </button>
                       <button 
                         className="secondary-btn" 
                         onClick={() => handleLeaveAction(leave.id, 'Approved')}
                         style={{ padding: '6px 10px', fontSize: '11px', color: 'var(--success)', borderColor: 'var(--success)' }}
                       >
-                        ✓ Approve
+                        Approve
                       </button>
                     </div>
                   </div>
@@ -655,7 +673,9 @@ const HRMSModule = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   style={{ paddingLeft: '32px' }}
                 />
-                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>🔍</span>
+                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5, display: 'flex', alignItems: 'center' }}>
+                  <Search size={14} />
+                </span>
               </div>
 
               <select 
@@ -745,27 +765,27 @@ const HRMSModule = () => {
             <div className="palette-section-title">Drag or Add Roles</div>
             <div className="palette-items">
               <button className="palette-item" onClick={() => handleAddElement('ceo')}>
-                <div className="palette-icon-box">👑</div>
+                <div className="palette-icon-box" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}><Crown size={18} color="var(--accent)" /></div>
                 <span>General Manager</span>
               </button>
               <button className="palette-item" onClick={() => handleAddElement('manager')}>
-                <div className="palette-icon-box">👥</div>
+                <div className="palette-icon-box" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}><Users size={18} color="var(--info)" /></div>
                 <span>Dept Lead</span>
               </button>
               <button className="palette-item" onClick={() => handleAddElement('gateway')}>
-                <div className="palette-icon-box">🔶</div>
+                <div className="palette-icon-box" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}><Diamond size={18} color="var(--warning)" /></div>
                 <span>Gatekeeper</span>
               </button>
             </div>
             <div style={{ marginTop: 'auto', fontSize: '11px', color: 'var(--text-muted)' }}>
-              💡 Click a connector dot inside a node to draw reporting lines.
+              Click a connector dot inside a node to draw reporting lines.
             </div>
           </div>
 
           <div className="bpmn-canvas-wrapper" ref={svgRef}>
             <div className="bpmn-controls-header">
               <div className="canvas-mode-indicator">
-                <span>⚡ Interactive Org Modeler</span>
+                <span>Interactive Org Modeler</span>
               </div>
               {selectedNodeId && (
                 <button 
@@ -834,7 +854,7 @@ const HRMSModule = () => {
                         className={`bpmn-gateway-node ${isSelected ? 'selected' : ''}`}
                       >
                         <polygon points="25,0 50,25 25,50 0,25" className="bpmn-gateway-bg" />
-                        <text x="25" y="29" textAnchor="middle" fontSize="10" fontWeight="600" fill="#92400e">🔶</text>
+                        <text x="25" y="29" textAnchor="middle" fontSize="10" fontWeight="700" fill="#92400e">GW</text>
                         {/* Connector dots */}
                         <circle cx="25" cy="25" r="4" className="bpmn-conn-point" onMouseDown={(e) => handleConnectorMouseDown(e, n.id)} />
                       </g>
@@ -961,15 +981,15 @@ const HRMSModule = () => {
             <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700' }}>Onboard Employee</h3>
             <button 
               onClick={() => setIsAddEmpOpen(false)}
-              style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-muted)' }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}
             >
-              ✕
+              <X size={18} />
             </button>
           </div>
 
           {formError && (
             <div style={{ padding: '10px', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', borderRadius: '6px', fontSize: '12px' }}>
-              ⚠️ {formError}
+              {formError}
             </div>
           )}
 

@@ -1,6 +1,30 @@
 import React, { useState } from 'react';
 import line1 from '../../public/line1.png';
 import line2 from '../../public/line2.png';
+import {
+  FileText,
+  Settings,
+  Package,
+  Shield,
+  Trophy,
+  Check,
+  AlertTriangle,
+  Truck,
+  Maximize2,
+  FlaskConical,
+  Building2,
+  Droplets,
+  Container,
+  Zap,
+  Wind,
+  CircleDot,
+  ShoppingCart,
+  Factory,
+  ClipboardList,
+  Eye,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-react';
 
 /**
  * DashboardTab Component
@@ -197,7 +221,9 @@ export default function DashboardTab({
         <div className="flow-card blue" onClick={() => setCurrentTab('work-orders')} title="Click to view all Work Orders">
           <div className="flow-card-top">
             <div className="flow-card-header-left">
-              <div className="flow-icon-container">📝</div>
+              <div className="flow-icon-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <FileText size={18} />
+              </div>
               <span className="flow-stage-tag">Stage 01 • Planning</span>
             </div>
             <span className="flow-next-arrow">→</span>
@@ -217,7 +243,9 @@ export default function DashboardTab({
         <div className="flow-card" onClick={() => setCurrentTab('work-orders')} title="Click to view Job Cards">
           <div className="flow-card-top">
             <div className="flow-card-header-left">
-              <div className="flow-icon-container">⚙️</div>
+              <div className="flow-icon-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Settings size={18} />
+              </div>
               <span className="flow-stage-tag">Stage 02 • Production</span>
             </div>
             <span className="flow-next-arrow">→</span>
@@ -236,7 +264,9 @@ export default function DashboardTab({
         <div className="flow-card green" onClick={() => setCurrentTab('inventory')} title="Click to view ERPNext Inventory">
           <div className="flow-card-top">
             <div className="flow-card-header-left">
-              <div className="flow-icon-container">📦</div>
+              <div className="flow-icon-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Package size={18} />
+              </div>
               <span className="flow-stage-tag">Stage 03 • Inventory</span>
             </div>
             <span className="flow-next-arrow">→</span>
@@ -257,10 +287,14 @@ export default function DashboardTab({
         <div className="flow-card purple" onClick={() => setCurrentTab('maintenance')} title="Click to view Maintenance & Plant Checklists">
           <div className="flow-card-top">
             <div className="flow-card-header-left">
-              <div className="flow-icon-container">🛡️</div>
+              <div className="flow-icon-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Shield size={18} />
+              </div>
               <span className="flow-stage-tag">Stage 04 • Readiness</span>
             </div>
-            <span className="flow-next-arrow">✓</span>
+            <span className="flow-next-arrow" style={{ display: 'inline-flex', alignItems: 'center' }}>
+              <Check size={16} />
+            </span>
           </div>
           <div className="flow-card-body">
             <h3>Pre-Start PM</h3>
@@ -280,7 +314,9 @@ export default function DashboardTab({
         <div className="metric-widget">
           <div className="metric-widget-header">
             <span>Total Production</span>
-            <span className="icon">🏆</span>
+            <span className="icon" style={{ display: 'inline-flex', alignItems: 'center' }}>
+              <Trophy size={18} />
+            </span>
           </div>
           <div className="metric-value-container">
             <span className="metric-val">{Number(totalProducedNum).toFixed(2)} Box</span>
@@ -296,7 +332,9 @@ export default function DashboardTab({
         <div className="metric-widget">
           <div className="metric-widget-header">
             <span>First-Pass Good Qty</span>
-            <span className="icon">✓</span>
+            <span className="icon" style={{ display: 'inline-flex', alignItems: 'center' }}>
+              <Check size={18} />
+            </span>
           </div>
           <div className="metric-value-container">
             <span className="metric-val">{goodProducedNum.toFixed(2)} Box</span>
@@ -312,7 +350,9 @@ export default function DashboardTab({
         <div className="metric-widget">
           <div className="metric-widget-header">
             <span>Process Loss / Scrap</span>
-            <span className="icon">⚠</span>
+            <span className="icon" style={{ display: 'inline-flex', alignItems: 'center' }}>
+              <AlertTriangle size={18} />
+            </span>
           </div>
           <div className="metric-value-container">
             <span className="metric-val">{looseProducedNum.toFixed(2)} Box</span>
@@ -328,7 +368,9 @@ export default function DashboardTab({
         <div className="metric-widget">
           <div className="metric-widget-header">
             <span>FG Ready for Dispatch</span>
-            <span className="icon">🚚</span>
+            <span className="icon" style={{ display: 'inline-flex', alignItems: 'center' }}>
+              <Truck size={18} />
+            </span>
           </div>
           <div className="metric-value-container">
             <span className="metric-val">{fgStock.toLocaleString()} Box</span>
@@ -361,7 +403,9 @@ export default function DashboardTab({
                 </div>
               </div>
             </div>
-            <button className="fullscreen-btn" style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10, background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff', borderRadius: '4px', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }} onClick={() => setFullscreenElement('live1')} title="Fullscreen Feed">⛶</button>
+            <button className="fullscreen-btn" style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10, background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff', borderRadius: '4px', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }} onClick={() => setFullscreenElement('live1')} title="Fullscreen Feed">
+              <Maximize2 size={16} />
+            </button>
             <div className="live-badge"><span className="live-dot"></span><span>LIVE</span></div>
             <div className="line-info-overlay">
               <h3 className="line-title">Filling Line 1 (Water Bottling)</h3>
@@ -403,7 +447,9 @@ export default function DashboardTab({
                 </div>
               </div>
             </div>
-            <button className="fullscreen-btn" style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10, background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff', borderRadius: '4px', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }} onClick={() => setFullscreenElement('live2')} title="Fullscreen Feed">⛶</button>
+            <button className="fullscreen-btn" style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10, background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff', borderRadius: '4px', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }} onClick={() => setFullscreenElement('live2')} title="Fullscreen Feed">
+              <Maximize2 size={16} />
+            </button>
             <div className="live-badge"><span className="live-dot"></span><span>LIVE</span></div>
             <div className="line-info-overlay">
               <h3 className="line-title">Filling Line 2 (Alcoholic & Cans)</h3>
@@ -449,9 +495,18 @@ export default function DashboardTab({
           <span style={{ color: 'var(--text-muted)' }}>Online & Synchronized with ERPNext Database</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px', color: 'var(--text-muted)' }}>
-          <span>🛡️ PM Checklist: <strong style={{ color: 'var(--success)' }}>{clearedEquipmentCount}/10 Cleared</strong></span>
-          <span>🧪 QA Lab: <strong style={{ color: 'var(--info)' }}>{qaPassCount} Tests Logged</strong></span>
-          <span>🏬 Active Facilities: <strong style={{ color: 'var(--accent)' }}>{availableWarehouses.length || 6} Warehouses</strong></span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+            <Shield size={14} style={{ color: 'var(--success)' }} />
+            <span>PM Checklist: <strong style={{ color: 'var(--success)' }}>{clearedEquipmentCount}/10 Cleared</strong></span>
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+            <FlaskConical size={14} style={{ color: 'var(--info)' }} />
+            <span>QA Lab: <strong style={{ color: 'var(--info)' }}>{qaPassCount} Tests Logged</strong></span>
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+            <Building2 size={14} style={{ color: 'var(--accent)' }} />
+            <span>Active Facilities: <strong style={{ color: 'var(--accent)' }}>{availableWarehouses.length || 6} Warehouses</strong></span>
+          </span>
         </div>
       </div>
 
@@ -469,7 +524,9 @@ export default function DashboardTab({
                 Computed dynamically from active runs & equipment readiness
               </div>
             </div>
-            <button style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '16px', padding: '4px' }} onClick={() => setFullscreenElement('chartOee')} title="Fullscreen OEE View">⛶</button>
+            <button style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', display: 'inline-flex', alignItems: 'center' }} onClick={() => setFullscreenElement('chartOee')} title="Fullscreen OEE View">
+              <Maximize2 size={16} />
+            </button>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -532,7 +589,10 @@ export default function DashboardTab({
             fontSize: '11px'
           }}>
             <span style={{ color: 'var(--text-muted)' }}>Pre-Start Checklist Cleared:</span>
-            <span style={{ fontWeight: '600', color: 'var(--success)' }}>✓ {clearedEquipmentCount}/{totalEquipmentCount} Equipment Cleared</span>
+            <span style={{ fontWeight: '600', color: 'var(--success)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <Check size={14} />
+              <span>{clearedEquipmentCount}/{totalEquipmentCount} Equipment Cleared</span>
+            </span>
           </div>
         </div>
 
@@ -545,7 +605,9 @@ export default function DashboardTab({
                 Real Work Order batches: Planned Target vs Actual Produced
               </div>
             </div>
-            <button style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '16px', padding: '4px' }} onClick={() => setFullscreenElement('chartFlow')} title="Fullscreen Production Trend">⛶</button>
+            <button style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', display: 'inline-flex', alignItems: 'center' }} onClick={() => setFullscreenElement('chartFlow')} title="Fullscreen Production Trend">
+              <Maximize2 size={16} />
+            </button>
           </div>
 
           {/* Chart Header Stats */}
@@ -715,7 +777,9 @@ export default function DashboardTab({
                 Operational balance and output across active bottling lines
               </div>
             </div>
-            <button style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '16px', padding: '4px' }} onClick={() => setFullscreenElement('chartEnergy')} title="Fullscreen Details">⛶</button>
+            <button style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', display: 'inline-flex', alignItems: 'center' }} onClick={() => setFullscreenElement('chartEnergy')} title="Fullscreen Details">
+              <Maximize2 size={16} />
+            </button>
           </div>
 
           {/* Line 1 vs Line 2 Comparison */}
@@ -728,7 +792,10 @@ export default function DashboardTab({
             {/* Line 1 */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px' }}>
-                <span>💧 Line 1 (Water Bottling)</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <Droplets size={13} style={{ color: '#00d2ff' }} />
+                  <span>Line 1 (Water Bottling)</span>
+                </span>
                 <strong>{line1Produced.toFixed(0)} Box ({line1Planned > 0 ? Math.round((line1Produced / line1Planned) * 100) : 0}%)</strong>
               </div>
               <div style={{ height: '7px', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '3px', overflow: 'hidden' }}>
@@ -739,7 +806,10 @@ export default function DashboardTab({
             {/* Line 2 */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '4px' }}>
-                <span>🥫 Line 2 (Alcoholic & Cans)</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <Container size={13} style={{ color: '#ff9900' }} />
+                  <span>Line 2 (Alcoholic & Cans)</span>
+                </span>
                 <strong>{line2Produced.toFixed(0)} Box ({line2Planned > 0 ? Math.round((line2Produced / line2Planned) * 100) : 0}%)</strong>
               </div>
               <div style={{ height: '7px', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '3px', overflow: 'hidden' }}>
@@ -759,7 +829,8 @@ export default function DashboardTab({
           <div className="details-card-header" style={{ marginBottom: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h3 className="details-card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>⚡ Plant Utilities & Raw Material Silos</span>
+                <Zap size={16} style={{ color: 'var(--warning)' }} />
+                <span>Plant Utilities & Raw Material Silos</span>
               </h3>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
                 Real-time storage levels for uninterrupted bottling operations
@@ -774,7 +845,10 @@ export default function DashboardTab({
             {/* Spring Water Reservoir */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', marginBottom: '3px' }}>
-                <span style={{ fontWeight: '500', color: 'var(--text-main)' }}>💧 Treated Spring Water Reservoir</span>
+                <span style={{ fontWeight: '500', color: 'var(--text-main)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <Droplets size={13} style={{ color: '#00d2ff' }} />
+                  <span>Treated Spring Water Reservoir</span>
+                </span>
                 <span style={{ fontWeight: '600', color: '#00d2ff' }}>{Number(waterQty).toLocaleString()} Litres</span>
               </div>
               <div style={{ height: '7px', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '3.5px', overflow: 'hidden' }}>
@@ -789,7 +863,10 @@ export default function DashboardTab({
             {/* CO2 Gas Bulk Tank */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', marginBottom: '3px' }}>
-                <span style={{ fontWeight: '500', color: 'var(--text-main)' }}>💨 Carbon Dioxide (CO2 Gas) Bulk</span>
+                <span style={{ fontWeight: '500', color: 'var(--text-main)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <Wind size={13} style={{ color: 'var(--info)' }} />
+                  <span>Carbon Dioxide (CO2 Gas) Bulk</span>
+                </span>
                 <span style={{ fontWeight: '600', color: 'var(--info)' }}>{Number(co2Qty).toLocaleString()} Kg</span>
               </div>
               <div style={{ height: '7px', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '3.5px', overflow: 'hidden' }}>
@@ -804,7 +881,10 @@ export default function DashboardTab({
             {/* PET Preforms */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', marginBottom: '3px' }}>
-                <span style={{ fontWeight: '500', color: 'var(--text-main)' }}>🧴 68g PET Preforms (Bottles)</span>
+                <span style={{ fontWeight: '500', color: 'var(--text-main)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <Container size={13} style={{ color: 'var(--warning)' }} />
+                  <span>68g PET Preforms (Bottles)</span>
+                </span>
                 <span style={{ fontWeight: '600', color: 'var(--warning)' }}>{Number(preformsQty).toLocaleString()} Nos</span>
               </div>
               <div style={{ height: '7px', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '3.5px', overflow: 'hidden' }}>
@@ -819,7 +899,10 @@ export default function DashboardTab({
             {/* CSD Caps */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', marginBottom: '3px' }}>
-                <span style={{ fontWeight: '500', color: 'var(--text-main)' }}>🔘 CSD Closures & Tamper Caps</span>
+                <span style={{ fontWeight: '500', color: 'var(--text-main)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <CircleDot size={13} style={{ color: '#10b981' }} />
+                  <span>CSD Closures & Tamper Caps</span>
+                </span>
                 <span style={{ fontWeight: '600', color: '#10b981' }}>{Number(capsQty).toLocaleString()} Nos</span>
               </div>
               <div style={{ height: '7px', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '3.5px', overflow: 'hidden' }}>
@@ -843,7 +926,8 @@ export default function DashboardTab({
           <div className="details-card-header" style={{ marginBottom: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h3 className="details-card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>🛒 Dispatch Staging Cart • Loading Bay</span>
+                <ShoppingCart size={16} style={{ color: 'var(--accent)' }} />
+                <span>Dispatch Staging Cart • Loading Bay</span>
               </h3>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
                 Palletized finished goods ready for transport & distributor dispatch
@@ -866,16 +950,18 @@ export default function DashboardTab({
               alignItems: 'center'
             }}>
               <div>
-                <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-main)' }}>
-                  📦 Crush Fruit Cocktail 2.5L
+                <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-main)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  <Package size={14} style={{ color: 'var(--warning)' }} />
+                  <span>Crush Fruit Cocktail 2.5L</span>
                 </div>
                 <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
                   Pallet #PLT-041 • Bay 1 • 4,680 Litres (195 Boxes)
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <span className="badge badge-completed" style={{ fontSize: '10px', padding: '2px 8px' }}>
-                  ✓ Staged for Dock
+                <span className="badge badge-completed" style={{ fontSize: '10px', padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                  <Check size={10} />
+                  <span>Staged for Dock</span>
                 </span>
                 <div style={{ fontSize: '10px', color: 'var(--success)', marginTop: '3px' }}>
                   QA Lab Cleared
@@ -893,16 +979,18 @@ export default function DashboardTab({
               alignItems: 'center'
             }}>
               <div>
-                <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-main)' }}>
-                  📦 Crush Cola 2.5L
+                <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-main)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                  <Package size={14} style={{ color: 'var(--warning)' }} />
+                  <span>Crush Cola 2.5L</span>
                 </div>
                 <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
                   Pallet #PLT-042 • Bay 2 • 2,400 Litres (100 Boxes)
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <span className="badge badge-completed" style={{ fontSize: '10px', padding: '2px 8px' }}>
-                  ✓ Staged for Dock
+                <span className="badge badge-completed" style={{ fontSize: '10px', padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                  <Check size={10} />
+                  <span>Staged for Dock</span>
                 </span>
                 <div style={{ fontSize: '10px', color: 'var(--success)', marginTop: '3px' }}>
                   Shrink-Wrap Done
@@ -942,7 +1030,8 @@ export default function DashboardTab({
           <div className="details-card-header" style={{ marginBottom: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h3 className="details-card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>🏭 Shift Performance & Conveyor Speeds</span>
+                <Factory size={16} style={{ color: 'var(--info)' }} />
+                <span>Shift Performance & Conveyor Speeds</span>
               </h3>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
                 Conveyor throughput, shift personnel & continuous line metrics
@@ -957,7 +1046,10 @@ export default function DashboardTab({
             {/* Line 1 Speed Gauge */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', marginBottom: '3px' }}>
-                <span>💧 Line 1 Speed (Water Line)</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <Droplets size={13} style={{ color: '#00d2ff' }} />
+                  <span>Line 1 Speed (Water Line)</span>
+                </span>
                 <strong>120.00 ctn/hr <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>(85.7% max)</span></strong>
               </div>
               <div style={{ height: '7px', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '3.5px', overflow: 'hidden' }}>
@@ -972,7 +1064,10 @@ export default function DashboardTab({
             {/* Line 2 Speed Gauge */}
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', marginBottom: '3px' }}>
-                <span>🥫 Line 2 Speed (Soft Drinks & Cans)</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <Container size={13} style={{ color: '#ff9900' }} />
+                  <span>Line 2 Speed (Soft Drinks & Cans)</span>
+                </span>
                 <strong>95.00 ctn/hr <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>(86.4% max)</span></strong>
               </div>
               <div style={{ height: '7px', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '3.5px', overflow: 'hidden' }}>
@@ -997,11 +1092,17 @@ export default function DashboardTab({
             }}>
               <div>
                 <div style={{ color: 'var(--text-muted)', fontSize: '10px' }}>Plant Safety Record</div>
-                <strong style={{ color: 'var(--success)' }}>🛡️ 412 Days Zero LTI</strong>
+                <strong style={{ color: 'var(--success)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <Shield size={12} />
+                  <span>412 Days Zero LTI</span>
+                </strong>
               </div>
               <div>
                 <div style={{ color: 'var(--text-muted)', fontSize: '10px' }}>Micro-Lab Clearance</div>
-                <strong style={{ color: 'var(--info)' }}>🧪 100% Passed Tests</strong>
+                <strong style={{ color: 'var(--info)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <FlaskConical size={12} />
+                  <span>100% Passed Tests</span>
+                </strong>
               </div>
             </div>
           </div>
@@ -1018,14 +1119,18 @@ export default function DashboardTab({
       <div className="dashboard-card" style={{ padding: '20px', marginTop: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
           <div>
-            <h3 style={{ fontSize: '16px', fontWeight: '600', margin: 0 }}>📋 Real-Time Work Order Monitor</h3>
+            <h3 style={{ fontSize: '16px', fontWeight: '600', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ClipboardList size={18} style={{ color: 'var(--info)' }} />
+              <span>Real-Time Work Order Monitor</span>
+            </h3>
             <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
               Active and scheduled production runs synced from ERPNext
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <button type="button" className="secondary-btn" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => setCurrentTab('inventory')}>
-              📦 Check Stock
+            <button type="button" className="secondary-btn" style={{ padding: '6px 12px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '5px' }} onClick={() => setCurrentTab('inventory')}>
+              <Package size={14} />
+              <span>Check Stock</span>
             </button>
             <button type="button" className="primary-btn" style={{ padding: '6px 14px', fontSize: '12px' }} onClick={() => setCurrentTab('work-orders')}>
               View All Work Orders →
@@ -1081,7 +1186,17 @@ export default function DashboardTab({
                           color: isLine1 ? '#00d2ff' : '#ff9900',
                           border: `1px solid ${isLine1 ? 'rgba(0, 210, 255, 0.2)' : 'rgba(255, 153, 0, 0.2)'}`
                         }}>
-                          {isLine1 ? '💧 Line 1 (Water)' : '🥫 Line 2 (Cans)'}
+                          {isLine1 ? (
+                            <>
+                              <Droplets size={12} />
+                              <span>Line 1 (Water)</span>
+                            </>
+                          ) : (
+                            <>
+                              <Container size={12} />
+                              <span>Line 2 (Cans)</span>
+                            </>
+                          )}
                         </span>
                       </td>
                       <td>
@@ -1106,9 +1221,15 @@ export default function DashboardTab({
                       </td>
                       <td>
                         {wo.maintAllCompleted ? (
-                          <span style={{ color: 'var(--success)', fontSize: '11px', fontWeight: '500' }}>✓ Cleared</span>
+                          <span style={{ color: 'var(--success)', fontSize: '11px', fontWeight: '500', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                            <Check size={12} />
+                            <span>Cleared</span>
+                          </span>
                         ) : wo.maintCompletedCount > 0 ? (
-                          <span style={{ color: 'var(--warning)', fontSize: '11px' }}>⚙ {wo.maintCompletedCount}/{wo.maintTotalCount || 4} Done</span>
+                          <span style={{ color: 'var(--warning)', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                            <Settings size={12} />
+                            <span>{wo.maintCompletedCount}/{wo.maintTotalCount || 4} Done</span>
+                          </span>
                         ) : (
                           <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>— Scheduled</span>
                         )}
@@ -1117,10 +1238,11 @@ export default function DashboardTab({
                         <button
                           type="button"
                           className="secondary-btn"
-                          style={{ padding: '4px 10px', fontSize: '11px' }}
+                          style={{ padding: '4px 10px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                           onClick={() => { setSelectedWOId(wo.id); setCurrentTab('work-orders'); }}
                         >
-                          👁 Inspect
+                          <Eye size={12} />
+                          <span>Inspect</span>
                         </button>
                       </td>
                     </tr>
@@ -1144,8 +1266,10 @@ export default function DashboardTab({
               className="secondary-btn"
               disabled={woMonitorPage === 1}
               onClick={() => setWoMonitorPage(p => Math.max(1, p - 1))}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
             >
-              ◀ Previous
+              <ChevronLeft size={14} />
+              <span>Previous</span>
             </button>
             <span style={{ fontSize: '12px', fontWeight: '600' }}>
               Page {woMonitorPage} of {Math.max(1, Math.ceil(workOrders.length / 6))} ({workOrders.length} Total Runs)
@@ -1155,8 +1279,10 @@ export default function DashboardTab({
               className="secondary-btn"
               disabled={woMonitorPage >= Math.ceil(workOrders.length / 6)}
               onClick={() => setWoMonitorPage(p => p + 1)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
             >
-              Next ▶
+              <span>Next</span>
+              <ChevronRight size={14} />
             </button>
           </div>
         )}

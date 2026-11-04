@@ -1,0 +1,242 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-10-29 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "incident_title",
+  "category",
+  "severity",
+  "status",
+  "investigation_status",
+  "context_section",
+  "production_line",
+  "work_order",
+  "production_item",
+  "batch_no",
+  "column_break_ctx",
+  "reported_time",
+  "reported_by",
+  "source_section",
+  "detection_type",
+  "source_doctype",
+  "source_name",
+  "impact_section",
+  "downtime_minutes",
+  "units_rejected",
+  "rca_section",
+  "description",
+  "root_cause_analysis",
+  "corrective_action",
+  "resolution_section",
+  "resolved_by",
+  "resolution_date"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Naming Series",
+   "options": "INC-.YYYY.-.#####",
+   "reqd": 1
+  },
+  {
+   "fieldname": "incident_title",
+   "fieldtype": "Data",
+   "label": "Incident Title",
+   "reqd": 1
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Select",
+   "label": "Category",
+   "options": "\nEquipment Fault\nQuality Alert\nMaterial Shortage\nCleaning Required\nSafety\nProcess Deviation",
+   "reqd": 1
+  },
+  {
+   "fieldname": "severity",
+   "fieldtype": "Select",
+   "label": "Severity",
+   "options": "\nCritical\nHigh\nMedium\nLow",
+   "reqd": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Open\nAcknowledged\nPending\nResolved\nClosed",
+   "default": "Open",
+   "reqd": 1
+  },
+  {
+   "fieldname": "investigation_status",
+   "fieldtype": "Select",
+   "label": "Investigation Status",
+   "options": "Pending\nIn Progress\nCompleted\nResolved",
+   "default": "Pending"
+  },
+  {
+   "fieldname": "context_section",
+   "fieldtype": "Section Break",
+   "label": "Context & Tracing"
+  },
+  {
+   "fieldname": "production_line",
+   "fieldtype": "Select",
+   "label": "Production Line",
+   "options": "\nFL1\nFL2\nFL3\nFL4\nFL5\nFL6\nFL7\nWater Treatment\nUtilities"
+  },
+  {
+   "fieldname": "work_order",
+   "fieldtype": "Link",
+   "label": "Work Order",
+   "options": "Work Order"
+  },
+  {
+   "fieldname": "production_item",
+   "fieldtype": "Link",
+   "label": "Production Item",
+   "options": "Item"
+  },
+  {
+   "fieldname": "batch_no",
+   "fieldtype": "Link",
+   "label": "Batch No",
+   "options": "Batch"
+  },
+  {
+   "fieldname": "column_break_ctx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "reported_time",
+   "fieldtype": "Datetime",
+   "label": "Reported Time"
+  },
+  {
+   "fieldname": "reported_by",
+   "fieldtype": "Link",
+   "label": "Reported By",
+   "options": "User"
+  },
+  {
+   "fieldname": "source_section",
+   "fieldtype": "Section Break",
+   "label": "Source Link"
+  },
+  {
+   "fieldname": "detection_type",
+   "fieldtype": "Select",
+   "label": "Detection Type",
+   "options": "\nAutomated Rule\nManual Flag\nDirect Entry",
+   "default": "Direct Entry"
+  },
+  {
+   "fieldname": "source_doctype",
+   "fieldtype": "Link",
+   "label": "Source DocType",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "source_name",
+   "fieldtype": "Dynamic Link",
+   "label": "Source Document",
+   "options": "source_doctype"
+  },
+  {
+   "fieldname": "impact_section",
+   "fieldtype": "Section Break",
+   "label": "Impact Metrics"
+  },
+  {
+   "fieldname": "downtime_minutes",
+   "fieldtype": "Int",
+   "label": "Downtime (minutes)",
+   "default": 0
+  },
+  {
+   "fieldname": "units_rejected",
+   "fieldtype": "Int",
+   "label": "Units Rejected",
+   "default": 0
+  },
+  {
+   "fieldname": "rca_section",
+   "fieldtype": "Section Break",
+   "label": "Description & RCA"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Incident Description",
+   "reqd": 1
+  },
+  {
+   "fieldname": "root_cause_analysis",
+   "fieldtype": "Long Text",
+   "label": "Root Cause Analysis (RCA)"
+  },
+  {
+   "fieldname": "corrective_action",
+   "fieldtype": "Long Text",
+   "label": "Corrective & Preventive Action (CAPA)"
+  },
+  {
+   "fieldname": "resolution_section",
+   "fieldtype": "Section Break",
+   "label": "Resolution"
+  },
+  {
+   "fieldname": "resolved_by",
+   "fieldtype": "Link",
+   "label": "Resolved By",
+   "options": "User"
+  },
+  {
+   "fieldname": "resolution_date",
+   "fieldtype": "Date",
+   "label": "Resolution Date"
+  }
+ ],
+ "modified": "2026-10-29 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Islandchill",
+ "name": "Plant Incident",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "report": 1,
+   "role": "IslandChill MES User",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "report": 1,
+   "role": "IslandChill Admin User",
+   "write": 1,
+   "delete": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

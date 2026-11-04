@@ -89,6 +89,7 @@ export default function WorkOrdersTab({
               ) : (
                 displayedWorkOrders.map(wo => {
                   const isSelected = selectedWOId === wo.id;
+                  const isCancelled = wo.status === 'Cancelled';
                   let pct = 0;
                   if (wo.status === 'Completed') {
                     pct = 100;
@@ -103,10 +104,40 @@ export default function WorkOrdersTab({
                     (wo.produced_qty && Number(wo.produced_qty) > 0) ||
                     wo.status === 'Completed'
                   );
+                  const isMaintCompleted = Boolean(wo.maintAllCompleted);
+                  const isBothCompleted = isRawMaterialsIssued && isMaintCompleted;
+
+                  let jobCardDisabledReason = '';
+                  if (isCancelled) {
+                    jobCardDisabledReason = 'Work Order is Cancelled.';
+                  } else if (!isBothCompleted) {
+                    if (!isRawMaterialsIssued && !isMaintCompleted) {
+                      jobCardDisabledReason = 'Complete both Raw Material Issue and Maintenance checklists to unlock Job Cards.';
+                    } else if (!isRawMaterialsIssued) {
+                      jobCardDisabledReason = 'Issue Raw Materials to unlock Job Cards.';
+                    } else {
+                      jobCardDisabledReason = 'Complete Maintenance checklists to unlock Job Cards.';
+                    }
+                  }
+
+                  const maintLabel = isCancelled
+                    ? `Maintenance (${wo.maintCompletedCount || 0}/${wo.maintTotalCount || 0})`
+                    : isMaintCompleted
+                      ? `✓ Maintenance (${wo.maintCompletedCount || 0}/${wo.maintTotalCount || 0})`
+                      : `Maintenance (${wo.maintCompletedCount || 0}/${wo.maintTotalCount || 0})`;
+                  const materialsLabel = isCancelled
+                    ? (isRawMaterialsIssued ? 'Raw Materials (Issued)' : 'Raw Materials')
+                    : (isRawMaterialsIssued ? '✓ Issue Raw Materials' : 'Issue Raw Materials');
+                  const jobCardLabel = isCancelled
+                    ? `Job Cards (${wo.jobCards?.length || 0})`
+                    : isBothCompleted
+                      ? `Job Cards (${wo.jobCards?.length || 0})`
+                      : `🔒 Job Cards (${wo.jobCards?.length || 0})`;
+
                   const operationTabOptions = [
-                    ['materials', 'Issue Raw Materials', false, ''],
-                    ['maintenance', 'Maintenance', !isRawMaterialsIssued, 'Issue raw materials before maintenance.'],
-                    ['job-card', 'Job Cards', !isRawMaterialsIssued || !wo.maintAllCompleted, 'Complete raw material issue and maintenance before opening job cards.']
+                    ['materials', materialsLabel, false, ''],
+                    ['maintenance', maintLabel, false, ''],
+                    ['job-card', jobCardLabel, !isCancelled && !isBothCompleted, jobCardDisabledReason]
                   ];
                   const requestedTab = operationTabs[wo.id] || 'materials';
                   const activeTab = operationTabOptions.some(([tab, , disabled]) => tab === requestedTab && !disabled)
@@ -219,6 +250,95 @@ export default function WorkOrdersTab({
 
                       {isSelected && (
                         <div className="job-cards-section">
+                          {isCancelled ? (
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              flexWrap: 'wrap',
+                              gap: '12px',
+                              padding: '10px 14px',
+                              marginBottom: '14px',
+                              backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                              borderRadius: '8px',
+                              border: '1px solid rgba(239, 68, 68, 0.25)'
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--danger, #ef4444)' }}>
+                                  🚫 Work Order Cancelled
+                                </span>
+                                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                                  This work order is cancelled. No operations or maintenance checklists can be filled or executed.
+                                </span>
+                              </div>
+                              <div>
+                                <span style={{
+                                  fontSize: '11px',
+                                  padding: '3px 8px',
+                                  borderRadius: '4px',
+                                  fontWeight: 600,
+                                  backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                                  color: 'var(--danger, #ef4444)',
+                                  border: '1px solid rgba(239, 68, 68, 0.3)'
+                                }}>
+                                  Operations Disabled
+                                </span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              flexWrap: 'wrap',
+                              gap: '12px',
+                              padding: '10px 14px',
+                              marginBottom: '14px',
+                              backgroundColor: isBothCompleted ? 'rgba(16, 185, 129, 0.08)' : 'var(--bg-secondary, #f8fafc)',
+                              borderRadius: '8px',
+                              border: `1px solid ${isBothCompleted ? 'rgba(16, 185, 129, 0.3)' : 'var(--border-color, #e2e8f0)'}`
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                                  Parallel Prerequisites:
+                                </span>
+                                <span style={{
+                                  fontSize: '12px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '5px',
+                                  color: isRawMaterialsIssued ? 'var(--success, #10b981)' : 'var(--warning, #f59e0b)',
+                                  fontWeight: 600
+                                }}>
+                                  {isRawMaterialsIssued ? '✓' : '⏳'} Raw Materials: {isRawMaterialsIssued ? 'Issued' : 'Pending Issue'}
+                                </span>
+                                <span style={{
+                                  fontSize: '12px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '5px',
+                                  color: isMaintCompleted ? 'var(--success, #10b981)' : 'var(--warning, #f59e0b)',
+                                  fontWeight: 600
+                                }}>
+                                  {isMaintCompleted ? '✓' : '⏳'} Maintenance: {wo.maintCompletedCount || 0}/{wo.maintTotalCount || 0} {isMaintCompleted ? 'Cleared' : 'In Progress'}
+                                </span>
+                              </div>
+                              <div>
+                                <span style={{
+                                  fontSize: '11px',
+                                  padding: '3px 8px',
+                                  borderRadius: '4px',
+                                  fontWeight: 600,
+                                  backgroundColor: isBothCompleted ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.1)',
+                                  color: isBothCompleted ? 'var(--success, #10b981)' : 'var(--danger, #ef4444)',
+                                  border: `1px solid ${isBothCompleted ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.2)'}`
+                                }}>
+                                  {isBothCompleted ? '🔓 Job Cards Unlocked' : '🔒 Job Cards Locked (Both Prerequisites Required)'}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+
                           <div className="wo-operations-tabs" role="tablist" aria-label={`Operations for ${wo.id}`}>
                             {operationTabOptions.map(([tab, label, disabled, reason]) => (
                               <button
@@ -234,37 +354,33 @@ export default function WorkOrdersTab({
                                 className={`wo-operations-tab${activeTab === tab ? ' is-active' : ''}`}
                                 onClick={() => setOperationTabs(prev => ({ ...prev, [wo.id]: tab }))}
                                 onKeyDown={(event) => {
-                                  const tabs = operationTabOptions.filter(([, , unavailable]) => !unavailable);
-                                  const index = tabs.findIndex(([id]) => id === tab);
-                                  let nextIndex;
-                                  if (event.key === 'ArrowRight') nextIndex = (index + 1) % tabs.length;
-                                  else if (event.key === 'ArrowLeft') nextIndex = (index + tabs.length - 1) % tabs.length;
-                                  else if (event.key === 'Home') nextIndex = 0;
-                                  else if (event.key === 'End') nextIndex = tabs.length - 1;
-                                  else return;
-                                  event.preventDefault();
-                                  const nextTab = tabs[nextIndex][0];
-                                  setOperationTabs(prev => ({ ...prev, [wo.id]: nextTab }));
-                                  document.getElementById(`${wo.id}-${nextTab}-tab`)?.focus();
+                                   const tabs = operationTabOptions.filter(([, , unavailable]) => !unavailable);
+                                   const index = tabs.findIndex(([id]) => id === tab);
+                                   let nextIndex;
+                                   if (event.key === 'ArrowRight') nextIndex = (index + 1) % tabs.length;
+                                   else if (event.key === 'ArrowLeft') nextIndex = (index + tabs.length - 1) % tabs.length;
+                                   else if (event.key === 'Home') nextIndex = 0;
+                                   else if (event.key === 'End') nextIndex = tabs.length - 1;
+                                   else return;
+                                   event.preventDefault();
+                                   const nextTab = tabs[nextIndex][0];
+                                   setOperationTabs(prev => ({ ...prev, [wo.id]: nextTab }));
+                                   document.getElementById(`${wo.id}-${nextTab}-tab`)?.focus();
                                 }}
                               >
                                 {label}
                               </button>
                             ))}
                           </div>
-                          <div role="tabpanel" id={`${wo.id}-maintenance-panel`} aria-labelledby={`${wo.id}-maintenance-tab`} hidden={activeTab !== 'maintenance'} tabIndex={0}>
-                            {activeTab === 'maintenance' && (
-                              <WorkOrderMaintenancePanel
-                                wo={wo}
-                                isScheduledFuture={isScheduledFuture}
-                                revision={maintenanceRevision}
-                                onFillChecklist={onFillMaintenanceChecklist}
-                              />
-                            )}
-                          </div>
                           <div role="tabpanel" id={`${wo.id}-materials-panel`} aria-labelledby={`${wo.id}-materials-tab`} hidden={activeTab !== 'materials'} tabIndex={0}>
                             <h4 className="section-subtitle">Issue Raw Materials</h4>
-                          {!isRawMaterialsIssued ? (
+                          {isCancelled ? (
+                            <p className="text-muted" style={{ fontSize: '13px', padding: '6px 0', margin: 0 }}>
+                              {isRawMaterialsIssued
+                                ? 'Raw materials were issued prior to cancellation.'
+                                : 'This Work Order has been cancelled. Raw materials cannot be issued.'}
+                            </p>
+                          ) : !isRawMaterialsIssued ? (
                             <button
                               className="primary-btn"
                               style={{
@@ -308,12 +424,31 @@ export default function WorkOrdersTab({
                           )}
 
                           </div>
+                          <div role="tabpanel" id={`${wo.id}-maintenance-panel`} aria-labelledby={`${wo.id}-maintenance-tab`} hidden={activeTab !== 'maintenance'} tabIndex={0}>
+                            {activeTab === 'maintenance' && (
+                              <WorkOrderMaintenancePanel
+                                wo={wo}
+                                isScheduledFuture={isScheduledFuture}
+                                revision={maintenanceRevision}
+                                onFillChecklist={isCancelled ? null : onFillMaintenanceChecklist}
+                                isCancelled={isCancelled}
+                              />
+                            )}
+                          </div>
                           <div role="tabpanel" id={`${wo.id}-job-card-panel`} aria-labelledby={`${wo.id}-job-card-tab`} hidden={activeTab !== 'job-card'} tabIndex={0}>
                           <h4 className="section-subtitle">Operational Job Cards ({wo.jobCards ? wo.jobCards.length : 0})</h4>
 
+                          {isCancelled && (
+                            <p className="text-muted" style={{ fontSize: '13px', padding: '4px 0 10px', margin: 0 }}>
+                              This Work Order is cancelled. Job Cards cannot be executed.
+                            </p>
+                          )}
+
                           {(!wo.jobCards || wo.jobCards.length === 0) ? (
                             <p className="text-muted" style={{ fontSize: '13px', padding: '10px 0' }}>
-                              No Job Cards found for this Work Order. If this is a new WO, use the <strong>Issue Raw Materials</strong> tab to issue materials and auto-generate job cards from the BOM operations. If the BOM has no operations defined, no job cards will be created in ERPNext.
+                              {isCancelled
+                                ? 'No Job Cards were generated for this Work Order.'
+                                : 'No Job Cards found for this Work Order. If this is a new WO, use the Issue Raw Materials tab to issue materials and auto-generate job cards from the BOM operations. If the BOM has no operations defined, no job cards will be created in ERPNext.'}
                             </p>
                           ) : (
                             <div className="wo-job-card-list">
@@ -361,7 +496,7 @@ export default function WorkOrdersTab({
                                   <div className="jc-actions" style={{ gap: '4px' }}>
                                     {/* Action: Start */}
                                     {/* {jc.status === 'Not Started' && wo.status === 'In Progress' && ( */}
-                                    {JOB_CARD_STARTABLE_STATUSES.includes(jc.status) && (WORK_ORDER_ACTIVE_STATUSES.includes(wo.status) || wo.materialTransferred) && (
+                                    {!isCancelled && JOB_CARD_STARTABLE_STATUSES.includes(jc.status) && (WORK_ORDER_ACTIVE_STATUSES.includes(wo.status) || wo.materialTransferred) && (
                                       <button
                                         className="action-btn-small start"
                                         onClick={() => openJobCardAction(wo, jc, 'start')}
@@ -371,7 +506,7 @@ export default function WorkOrdersTab({
                                     )}
 
                                     {/* Actions: Pause, Finish */}
-                                    {JOB_CARD_RUNNING_STATUSES.includes(jc.status) && (WORK_ORDER_ACTIVE_STATUSES.includes(wo.status) || wo.materialTransferred) && (
+                                    {!isCancelled && JOB_CARD_RUNNING_STATUSES.includes(jc.status) && (WORK_ORDER_ACTIVE_STATUSES.includes(wo.status) || wo.materialTransferred) && (
                                       <>
                                         <button
                                           className="action-btn-small"
@@ -390,7 +525,7 @@ export default function WorkOrdersTab({
                                     )}
 
                                     {/* Action: Resume */}
-                                    {JOB_CARD_PAUSED_STATUSES.includes(jc.status) && (WORK_ORDER_ACTIVE_STATUSES.includes(wo.status) || wo.materialTransferred) && (
+                                    {!isCancelled && JOB_CARD_PAUSED_STATUSES.includes(jc.status) && (WORK_ORDER_ACTIVE_STATUSES.includes(wo.status) || wo.materialTransferred) && (
                                       <button
                                         className="action-btn-small start"
                                         onClick={() => openJobCardAction(wo, jc, 'resume')}

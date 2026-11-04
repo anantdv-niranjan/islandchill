@@ -1,3 +1,19 @@
+import {
+  Headphones,
+  AlertTriangle,
+  Clock,
+  CheckCircle2,
+  Search,
+  User,
+  Mail,
+  FileText,
+  Sparkles,
+  Bot,
+  X,
+  Plus,
+  RefreshCw,
+  ClipboardList
+} from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { frappe } from '../services/frappe';
 import { FormFootnote } from '../components/LaboratoryTab';
@@ -271,13 +287,13 @@ const SupportModule = ({
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
           {activeTab === 'registry' && (
             <button className="primary-btn" onClick={() => setIsDrawerOpen(true)}>
-              ➕ New Ticket
+              New Ticket
             </button>
           )}
 
           {activeTab === 'customer-tracking' && (
             <button className="primary-btn" onClick={() => setIsComplaintModalOpen(true)}>
-              ➕ Log Customer Complaint
+              Log Customer Complaint
             </button>
           )}
 
@@ -318,7 +334,7 @@ const SupportModule = ({
                 gap: '6px'
               }}
             >
-              📋 Customer Tracking Sheet
+              Customer Tracking Sheet
             </button>
             <button 
               onClick={() => setActiveTab('ai-chat')}
@@ -338,7 +354,7 @@ const SupportModule = ({
                 gap: '6px'
               }}
             >
-              ✨ AI Support Desk
+              AI Support Desk
             </button>
           </div>
         </div>
@@ -359,27 +375,27 @@ const SupportModule = ({
                 onClick={() => setIsComplaintModalOpen(true)}
                 style={{ fontSize: '12px', padding: '6px 14px' }}
               >
-                ➕ Log Customer Complaint
+                Log Customer Complaint
               </button>
               <button 
                 className="secondary-btn"
                 onClick={() => fetchCustomerComplaintData()}
                 style={{ fontSize: '12px', padding: '6px 12px' }}
               >
-                🔄 Refresh Data
+                Refresh Data
               </button>
             </div>
           </div>
 
           {loadingComplaintData ? (
             <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
-              ⏳ Fetching metadata and records for "Customer Complaint Report"...
+              Fetching metadata and records for "Customer Complaint Report"...
             </div>
           ) : (
             <>
               {complaintError && (
                 <div style={{ padding: '12px', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', borderRadius: '8px', fontSize: '12px' }}>
-                  ⚠️ {complaintError}
+                  {complaintError}
                 </div>
               )}
 
@@ -407,7 +423,7 @@ const SupportModule = ({
 
                 return complaintRecords.length === 0 ? (
                   <div style={{ padding: '40px', textAlign: 'center', border: '1px dashed var(--border-color)', borderRadius: '12px', color: 'var(--text-muted)', fontSize: '13px' }}>
-                    📦 No <strong>Customer Complaint Report</strong> records found in ERPNext backend.
+                    No <strong>Customer Complaint Report</strong> records found in ERPNext backend.
                   </div>
                 ) : (
                   <div style={{ overflowX: 'auto', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
@@ -448,7 +464,7 @@ const SupportModule = ({
             <div className="metric-widget">
               <div className="metric-widget-header">
                 <span>Total Tickets</span>
-                <span className="icon">🎧</span>
+                <span className="icon" style={{ display: "inline-flex", alignItems: "center" }}><Headphones size={20} /></span>
               </div>
               <div className="metric-value-container">
                 <span className="metric-val">{totalCount}</span>
@@ -458,7 +474,7 @@ const SupportModule = ({
             <div className="metric-widget">
               <div className="metric-widget-header">
                 <span>Open Tickets</span>
-                <span className="icon">⚠️</span>
+                <span className="icon" style={{ display: "inline-flex", alignItems: "center" }}><AlertTriangle size={20} color="var(--warning)" /></span>
               </div>
               <div className="metric-value-container">
                 <span className="metric-val" style={{ color: 'var(--warning)' }}>{openCount}</span>
@@ -468,7 +484,7 @@ const SupportModule = ({
             <div className="metric-widget">
               <div className="metric-widget-header">
                 <span>In Progress</span>
-                <span className="icon">⏳</span>
+                <span className="icon" style={{ display: "inline-flex", alignItems: "center" }}><Clock size={20} color="var(--info)" /></span>
               </div>
               <div className="metric-value-container">
                 <span className="metric-val" style={{ color: 'var(--info)' }}>{inProgressCount}</span>
@@ -478,7 +494,7 @@ const SupportModule = ({
             <div className="metric-widget">
               <div className="metric-widget-header">
                 <span>Resolved</span>
-                <span className="icon">✅</span>
+                <span className="icon" style={{ display: "inline-flex", alignItems: "center" }}><CheckCircle2 size={20} color="var(--success)" /></span>
               </div>
               <div className="metric-value-container">
                 <span className="metric-val" style={{ color: 'var(--success)' }}>{resolvedCount}</span>
@@ -509,7 +525,9 @@ const SupportModule = ({
                       }}
                       style={{ paddingLeft: '32px' }}
                     />
-                    <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>🔍</span>
+                    <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5, display: 'flex', alignItems: 'center' }}>
+                      <Search size={14} />
+                    </span>
                   </div>
 
                   <select 
@@ -692,19 +710,19 @@ const SupportModule = ({
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px' }}>
-                      <span>👤</span>
+                      <User size={14} style={{ color: 'var(--text-muted)' }} />
                       <strong>Customer:</strong>
                       <span style={{ color: 'var(--text-main)' }}>{currentTicket.customer}</span>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px' }}>
-                      <span>✉️</span>
+                      <Mail size={14} style={{ color: 'var(--text-muted)' }} />
                       <strong>Contact:</strong>
                       <span style={{ color: 'var(--text-main)', wordBreak: 'break-all' }}>{currentTicket.raised_by}</span>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px' }}>
-                      <span>📄</span>
+                      <FileText size={14} style={{ color: 'var(--text-muted)' }} />
                       <strong>Priority:</strong>
                       <span 
                         style={{
@@ -882,7 +900,7 @@ const SupportModule = ({
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: '10px', color: 'var(--text-muted)', textAlign: 'center', padding: '40px 20px' }}>
-                  <span style={{ fontSize: '36px' }}>🎧</span>
+                  <Headphones size={36} style={{ color: 'var(--text-muted)' }} />
                   <span>Select an active ticket from the registry to display operational diagnostics and details.</span>
                 </div>
               )}
@@ -895,7 +913,7 @@ const SupportModule = ({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: '550px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', borderBottom: '1px solid var(--border-color)', backgroundColor: '#fafafa' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '20px' }}>✨</span>
+              <Sparkles size={20} color="var(--accent)" />
               <div>
                 <strong style={{ color: 'var(--text-heading)' }}>Carpenters Operations AI Helpdesk</strong>
                 <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Simulated AI Diagnostic Agent synced with ERPNext Issues</div>
@@ -920,7 +938,7 @@ const SupportModule = ({
                   color: 'var(--text-muted)',
                   alignSelf: m.sender === 'ai' ? 'flex-start' : 'flex-end'
                 }}>
-                  {m.sender === 'ai' ? '🤖 operations.ai' : '👤 manager'}
+                  {m.sender === 'ai' ? 'operations.ai' : 'manager'}
                 </div>
                 <div style={{
                   padding: '12px 16px',
@@ -1282,14 +1300,14 @@ const CustomerComplaintModal = ({ isOpen, onClose, complaintMeta, onRecordCreate
               Log Customer Complaint / DocType: Customer Complaint Report
             </span>
           </div>
-          <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }} onClick={onClose}>✕</button>
+          <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-muted)' }} onClick={onClose}><X size={18} /></button>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="modal-content" style={{ maxHeight: '75vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '12px' }}>
             {submitError && (
               <div style={{ padding: '10px', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', borderRadius: '6px', fontSize: '12px' }}>
-                ⚠️ {submitError}
+                {submitError}
               </div>
             )}
 

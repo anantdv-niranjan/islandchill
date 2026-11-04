@@ -1,0 +1,115 @@
+{
+ "actions": [],
+ "allow_bulk_edit": 1,
+ "allow_rename": 1,
+ "autoname": "field:role",
+ "creation": "2026-10-29 20:24:28.665043",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "role",
+  "is_active",
+  "notes",
+  "sb_pages",
+  "pages",
+  "sb_forms",
+  "forms"
+ ],
+ "fields": [
+  {
+   "fieldname": "role",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Role",
+   "options": "Role",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Is Active"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes / Description"
+  },
+  {
+   "fieldname": "sb_pages",
+   "fieldtype": "Section Break",
+   "label": "Page & Tab Visibility"
+  },
+  {
+   "fieldname": "pages",
+   "fieldtype": "Table",
+   "label": "Allowed Pages",
+   "options": "IslandChill Role Page Item"
+  },
+  {
+   "fieldname": "sb_forms",
+   "fieldtype": "Section Break",
+   "label": "Form-Wise Workability & Actions"
+  },
+  {
+   "fieldname": "forms",
+   "fieldtype": "Table",
+   "label": "Allowed Forms & Actions",
+   "options": "IslandChill Role Form Item"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-10-29 20:24:28.665043",
+ "modified_by": "Administrator",
+ "module": "Islandchill",
+ "name": "IslandChill Role Permission",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "IslandChill Admin User",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Production Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

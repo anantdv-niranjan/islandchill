@@ -265,7 +265,10 @@ fixtures = [
 	{
 		"dt": "Custom Field",
 		"filters": [
-			["fieldname", "in", ["work_order", "custom_production_line", "custom_extra_goods_warehouse"]]
+			["fieldname", "in", [
+				"work_order", "custom_production_line", "custom_extra_goods_warehouse",
+				"incident_section", "is_incident", "incident_severity", "incident_note", "linked_incident"
+			]]
 		]
 	},
 	{
@@ -277,12 +280,208 @@ fixtures = [
 	{
 		"dt": "Role",
 		"filters": [
-			["role_name", "in", ["IslandChill MES User", "IslandChill Admin User"]]
+			["role_name", "in", [
+				"IslandChill MES User",
+				"IslandChill Admin User",
+				"Technical Production Coordinator",
+				"Production Manager",
+				"Lab Technicians",
+				"OHS Rep",
+				"Quality Checks",
+				"Supervisor",
+				"Warehouse Supervisor",
+				"Gardener"
+			]]
 		]
 	},
 	"Equipment List",
 	"Maintenance Checklist Master"
 ]
+
+# Document Events — Automated Incident Detection
+# -----------------------------------------------
+doc_events = {
+	"Chemical Test": {
+		"on_submit": "islandchill.api.incident_engine.process_chemical_test",
+		"on_update": "islandchill.api.incident_engine.process_chemical_test"
+	},
+	"Microbiological Analysis": {
+		"on_submit": "islandchill.api.incident_engine.process_micro_analysis"
+	},
+	"CIP Checklist": {
+		"on_submit": "islandchill.api.incident_engine.process_cip_checklist"
+	},
+	"CIP CHECKLIST": {
+		"on_submit": "islandchill.api.incident_engine.process_cip_checklist"
+	},
+	"Seam Checklist Form": {
+		"on_submit": "islandchill.api.incident_engine.process_seam_check"
+	},
+	"Cleaning of Toilets": {
+		"on_submit": "islandchill.api.incident_engine.process_cleaning_sanitation_incident",
+		"on_update": "islandchill.api.incident_engine.process_cleaning_sanitation_incident"
+	},
+	"Cleaning of Dining Room": {
+		"on_submit": "islandchill.api.incident_engine.process_cleaning_sanitation_incident",
+		"on_update": "islandchill.api.incident_engine.process_cleaning_sanitation_incident"
+	},
+	"Factory Floor": {
+		"on_submit": "islandchill.api.incident_engine.process_cleaning_sanitation_incident",
+		"on_update": "islandchill.api.incident_engine.process_cleaning_sanitation_incident"
+	},
+	"Cleaning of Lab and Office": {
+		"on_submit": "islandchill.api.incident_engine.process_cleaning_sanitation_incident",
+		"on_update": "islandchill.api.incident_engine.process_cleaning_sanitation_incident"
+	},
+	"Incubator Temperature Record": {
+		"on_submit": "islandchill.api.incident_engine.process_cleaning_sanitation_incident",
+		"on_update": "islandchill.api.incident_engine.process_cleaning_sanitation_incident"
+	},
+	"Balance Check or Callibration": {
+		"on_submit": "islandchill.api.incident_engine.process_cleaning_sanitation_incident",
+		"on_update": "islandchill.api.incident_engine.process_cleaning_sanitation_incident"
+	},
+	"equipment sanitation and cip": {
+		"on_submit": "islandchill.api.incident_engine.process_cleaning_sanitation_incident",
+		"on_update": "islandchill.api.incident_engine.process_cleaning_sanitation_incident"
+	},
+	"Outside Perimeter Cleaning": {
+		"on_submit": "islandchill.api.incident_engine.process_cleaning_sanitation_incident",
+		"on_update": "islandchill.api.incident_engine.process_cleaning_sanitation_incident"
+	},
+	"Sanitation Record": {
+		"on_submit": "islandchill.api.incident_engine.process_cleaning_sanitation_incident",
+		"on_update": "islandchill.api.incident_engine.process_cleaning_sanitation_incident"
+	},
+	"Microbiological Analysis of Primary Raw Materials": {
+		"on_submit": "islandchill.api.incident_engine.process_lab_incident",
+		"on_update": "islandchill.api.incident_engine.process_lab_incident"
+	},
+	"Microbiologiocal Analysis Raw and Product Water": {
+		"on_submit": "islandchill.api.incident_engine.process_lab_incident",
+		"on_update": "islandchill.api.incident_engine.process_lab_incident"
+	},
+	"Taste Test and Visual Inspection": {
+		"on_submit": "islandchill.api.incident_engine.process_lab_incident",
+		"on_update": "islandchill.api.incident_engine.process_lab_incident"
+	},
+	"Gold Stone Rum and Cola": {
+		"on_submit": "islandchill.api.incident_engine.process_lab_incident",
+		"on_update": "islandchill.api.incident_engine.process_lab_incident"
+	},
+	"Bourbon Whiskey And Cola Product Tank Record": {
+		"on_submit": "islandchill.api.incident_engine.process_lab_incident",
+		"on_update": "islandchill.api.incident_engine.process_lab_incident"
+	},
+	"Container Loading Inspection": {
+		"on_submit": "islandchill.api.incident_engine.process_lab_incident",
+		"on_update": "islandchill.api.incident_engine.process_lab_incident"
+	},
+	"CSD RTD Line Start Sensory Evaluation": {
+		"on_submit": "islandchill.api.incident_engine.process_lab_incident",
+		"on_update": "islandchill.api.incident_engine.process_lab_incident"
+	},
+	"Autoclave Record": {
+		"on_submit": "islandchill.api.incident_engine.process_lab_incident",
+		"on_update": "islandchill.api.incident_engine.process_lab_incident"
+	},
+	"Media Preparation Record": {
+		"on_submit": "islandchill.api.incident_engine.process_lab_incident",
+		"on_update": "islandchill.api.incident_engine.process_lab_incident"
+	},
+	"Rinse-Off Test for Raw Materials": {
+		"on_submit": "islandchill.api.incident_engine.process_lab_incident",
+		"on_update": "islandchill.api.incident_engine.process_lab_incident"
+	},
+	"Library Sample Record": {
+		"on_submit": "islandchill.api.incident_engine.process_lab_incident",
+		"on_update": "islandchill.api.incident_engine.process_lab_incident"
+	},
+	"Traceability of products": {
+		"on_submit": "islandchill.api.incident_engine.process_lab_incident",
+		"on_update": "islandchill.api.incident_engine.process_lab_incident"
+	},
+	"Induction": {
+		"on_submit": "islandchill.api.incident_engine.process_lab_incident",
+		"on_update": "islandchill.api.incident_engine.process_lab_incident"
+	},
+	"For Weight Check Checklist": {
+		"on_submit": "islandchill.api.incident_engine.process_lab_incident",
+		"on_update": "islandchill.api.incident_engine.process_lab_incident"
+	},
+	"Hourly Weight Check Form": {
+		"on_submit": "islandchill.api.incident_engine.process_lab_incident",
+		"on_update": "islandchill.api.incident_engine.process_lab_incident"
+	},
+	"Weight Check": {
+		"on_submit": "islandchill.api.incident_engine.process_lab_incident",
+		"on_update": "islandchill.api.incident_engine.process_lab_incident"
+	},
+	"Silver Photometer Log": {
+		"on_submit": "islandchill.api.incident_engine.process_lab_incident",
+		"on_update": "islandchill.api.incident_engine.process_lab_incident"
+	},
+	"Silver Photometer Log and Calibration": {
+		"on_submit": "islandchill.api.incident_engine.process_lab_incident",
+		"on_update": "islandchill.api.incident_engine.process_lab_incident"
+	},
+	"Monitoring": {
+		"on_submit": "islandchill.api.incident_engine.process_lab_incident",
+		"on_update": "islandchill.api.incident_engine.process_lab_incident"
+	},
+	"Production Record": {
+		"on_submit": "islandchill.api.incident_engine.process_lab_incident",
+		"on_update": "islandchill.api.incident_engine.process_lab_incident"
+	},
+	"Mock Product Recall": {
+		"on_submit": "islandchill.api.incident_engine.process_lab_incident",
+		"on_update": "islandchill.api.incident_engine.process_lab_incident"
+	},
+	"Recall Review": {
+		"on_submit": "islandchill.api.incident_engine.process_lab_incident",
+		"on_update": "islandchill.api.incident_engine.process_lab_incident"
+	},
+	"Accident and Disease Notification Report": {
+		"after_insert": "islandchill.api.incident_engine.process_accident_disease_report",
+		"on_submit": "islandchill.api.incident_engine.process_accident_disease_report",
+		"on_update": "islandchill.api.incident_engine.process_accident_disease_report"
+	},
+	"Standard Form 17 For First Aid": {
+		"after_insert": "islandchill.api.incident_engine.process_first_aid_record",
+		"on_submit": "islandchill.api.incident_engine.process_first_aid_record",
+		"on_update": "islandchill.api.incident_engine.process_first_aid_record"
+	},
+	"Enviromental Swab Test": {
+		"after_insert": "islandchill.api.incident_engine.process_swab_test",
+		"on_submit": "islandchill.api.incident_engine.process_swab_test",
+		"on_update": "islandchill.api.incident_engine.process_swab_test"
+	},
+	"Daily Preventative Maintenance Schedule": {
+		"after_insert": "islandchill.api.incident_engine.process_maintenance_incident",
+		"on_submit": "islandchill.api.incident_engine.process_maintenance_incident",
+		"on_update": "islandchill.api.incident_engine.process_maintenance_incident"
+	},
+	"Preventive Maintenance Request": {
+		"after_insert": "islandchill.api.incident_engine.process_maintenance_incident",
+		"on_submit": "islandchill.api.incident_engine.process_maintenance_incident",
+		"on_update": "islandchill.api.incident_engine.process_maintenance_incident"
+	},
+	"Machine Breakdown": {
+		"after_insert": "islandchill.api.incident_engine.process_maintenance_incident",
+		"on_submit": "islandchill.api.incident_engine.process_maintenance_incident",
+		"on_update": "islandchill.api.incident_engine.process_maintenance_incident"
+	},
+	"Weight Check": {
+		"after_insert": "islandchill.api.incident_engine.process_maintenance_incident",
+		"on_submit": "islandchill.api.incident_engine.process_maintenance_incident",
+		"on_update": "islandchill.api.incident_engine.process_maintenance_incident"
+	},
+	"Hourly Weight Check Form": {
+		"after_insert": "islandchill.api.incident_engine.process_maintenance_incident",
+		"on_submit": "islandchill.api.incident_engine.process_maintenance_incident",
+		"on_update": "islandchill.api.incident_engine.process_maintenance_incident"
+	}
+}
 
 scheduler_events = {
 	"cron": {

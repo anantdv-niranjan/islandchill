@@ -1,5 +1,32 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { frappe } from '../services/frappe';
+import { classifyRecordStage } from './StageAuditCard';
+import {
+  CheckCircle2,
+  AlertTriangle,
+  Info,
+  Calendar,
+  Trash2,
+  Clock,
+  Zap,
+  RefreshCw,
+  Globe,
+  Microscope,
+  BroomSparklesIcon,
+  ShieldAlert,
+  Wrench,
+  Search,
+  X,
+  FileText,
+  Clock3,
+  Check,
+  Eye,
+  Printer,
+  PenLine,
+  ArrowRight,
+  ShieldCheck,
+  FileCheck2
+} from 'lucide-react';
 
 /**
  * Robust Date Normalizer
@@ -37,13 +64,13 @@ const normalizeDateStr = (rawDate) => {
 
 /**
  * ApprovalsTab Component
- * Centralized Form Approvals Desk for Island Chill Bottling Operations.
+ * Dedicated 3-Stage Form Approvals Desk for Island Chill Bottling Operations (Option B).
  * 
- * Key Rules:
- *  1. Date Range Filtering: All KPI cards and module badges recalculate strictly based on the active Date Range.
- *  2. Lock Approved Forms: Once a form is Approved, it CANNOT be rejected (Workflow Integrity).
- *  3. Only Work Order Linked forms are tracked.
- *  4. Full Theme Alignment with Island Chill Design System.
+ * Workflow Stages:
+ *  Stage 1 (Create): Operator/Chemist creates form -> Saved in 'Pending Verification' (docstatus: 0).
+ *  Stage 2 (Verify): Verifier reviews form in Approvals Desk -> Advances to 'Pending Approval'.
+ *  Stage 3 (Approve): Approver / Manager signs & submits -> 'Approved' (docstatus: 1).
+ *  Rejection: Marks record as 'Rejected', with direct action to create a Plant Incident.
  */
 export default function ApprovalsTab({
   laboratoryRecords = [],
@@ -59,6 +86,8 @@ export default function ApprovalsTab({
   currentUser = 'Supervisor',
   currentUserRole = 'System Manager',
   isLoggedIn = false,
+  formPermissions = null,
+  isSuperAdmin = true,
   onRefreshAll
 }) {
   const getTodayStr = () => {
@@ -78,18 +107,18 @@ export default function ApprovalsTab({
     return `${year}-${month}-${day}`;
   };
 
-  // 1. DATE RANGE STATE (Defaults to Today)
-  const [fromDate, setFromDate] = useState(getTodayStr());
-  const [toDate, setToDate] = useState(getTodayStr());
-  const [activeDatePreset, setActiveDatePreset] = useState('today'); // 'today' | '7days' | '30days' | 'all'
+  // 1. DATE RANGE STATE (Defaults to All Records)
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [activeDatePreset, setActiveDatePreset] = useState('all'); // 'today' | '7days' | '30days' | 'all'
   const [liveCurrentTime, setLiveCurrentTime] = useState(new Date().toLocaleTimeString());
 
-  // 2. DEFAULT STATUS: 'Pending'
-  const [statusFilter, setStatusFilter] = useState('Pending');
+  // 2. WORKFLOW QUEUE FILTER (Defaults to 'Pending Verification')
+  const [statusFilter, setStatusFilter] = useState('Pending Verification');
   const [activeCategory, setActiveCategory] = useState('all'); // 'all' | 'laboratory' | 'cleaning' | 'safety' | 'maintenance'
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedWoFilter, setSelectedWoFilter] = useState('all');
-  const [requireWoOnly, setRequireWoOnly] = useState(true);
+  const [requireWoOnly, setRequireWoOnly] = useState(false);
 
   // Batch & Action State
   const [selectedItemIds, setSelectedItemIds] = useState([]);
@@ -98,6 +127,8 @@ export default function ApprovalsTab({
 
   // Modals
   const [inspectingItem, setInspectingItem] = useState(null);
+  const [verifyingItem, setVerifyingItem] = useState(null);
+  const [verificationNotes, setVerificationNotes] = useState('');
   const [rejectingItem, setRejectingItem] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [showBatchModal, setShowBatchModal] = useState(false);
@@ -155,6 +186,41 @@ export default function ApprovalsTab({
     return typeof val === 'string' ? val.trim() : String(val);
   };
 
+  // Permission Check Helpers (Configured via tabIslandChill Role Form Item - Zero Hardcoded Roles)
+  const canUserVerify = (item) => {
+    if (isSuperAdmin) return true;
+    if (formPermissions) {
+      const keys = [item.doctype, item.formType, item.rawRecord?.doctype, item.rawRecord?.type, item.raw?.doctype, item.type].filter(Boolean);
+      for (const k of keys) {
+        const perm = formPermissions[k];
+        if (perm && perm.can_verify !== undefined) return Boolean(perm.can_verify);
+      }
+      // If specific form is not explicitly defined in formPermissions, check if user has general verify permissions
+      const allPerms = Object.values(formPermissions);
+      if (allPerms.length > 0) {
+        return allPerms.some(p => p.can_verify);
+      }
+    }
+    return false;
+  };
+
+  const canUserApprove = (item) => {
+    if (isSuperAdmin) return true;
+    if (formPermissions) {
+      const keys = [item.doctype, item.formType, item.rawRecord?.doctype, item.rawRecord?.type, item.raw?.doctype, item.type].filter(Boolean);
+      for (const k of keys) {
+        const perm = formPermissions[k];
+        if (perm && perm.can_approve !== undefined) return Boolean(perm.can_approve);
+      }
+      // If specific form is not explicitly defined in formPermissions, check if user has general approve permissions
+      const allPerms = Object.values(formPermissions);
+      if (allPerms.length > 0) {
+        return allPerms.some(p => p.can_approve);
+      }
+    }
+    return false;
+  };
+
   // 3. UNIFIED RECORD NORMALIZATION (Strict Work Order Link)
   const allNormalizedRecords = useMemo(() => {
     const list = [];
@@ -164,12 +230,9 @@ export default function ApprovalsTab({
       const wo = extractWorkOrder(rec);
       if (requireWoOnly && !wo) return;
 
-      const rawStatus = (rec.status || '').toLowerCase();
-      const wfState = (rec.workflow_state || '').toLowerCase();
-      const isApproved = rawStatus === 'approved' || rec.isApproved === true || rec.docstatus === 1 || rawStatus === 'completed' || rawStatus === 'pass' || wfState.includes('approved') || Boolean(rec.approvalTimestamp);
-      const isRejected = rawStatus === 'rejected' || rawStatus === 'fail' || rec.isRejected === true || wfState.includes('rejected');
-      const status = isRejected ? 'Rejected' : isApproved ? 'Approved' : 'Pending';
-
+      const stage = classifyRecordStage(rec);
+      const isApproved = stage === 'Approved';
+      const isVerified = stage === 'Pending Approval' || isApproved;
       const dateStr = normalizeDateStr(rec.date || rec.date_of_analysis || (rec.timestamp ? rec.timestamp.split(' ')[0] : '') || rec.creation);
       const uniqueId = rec.id || rec.name || `LAB-${idx}-${dateStr}`;
 
@@ -178,18 +241,23 @@ export default function ApprovalsTab({
         doctype: rec.doctype || rec.type || 'Microbiological Analysis of Primary Raw Materials',
         module: 'laboratory',
         moduleLabel: 'Laboratory QA',
-        moduleIcon: '🔬',
+        moduleIcon: Microscope,
         moduleColor: '#8b5cf6',
         formType: rec.type || rec.formName || 'QA Laboratory Inspection',
         title: rec.type || 'Laboratory QA Test Record',
         workOrder: wo || 'N/A',
         date: dateStr,
         time: rec.time || (rec.timestamp ? rec.timestamp.split(' ')[1] : '') || '',
-        submitter: rec.operator || rec.chemist || rec.testedBy || rec.user || 'Lab Chemist',
-        approver: isApproved ? (rec.approved_by || rec.supervisor || rec.verified_by || 'Supervisor') : null,
+        submitter: rec.analyst || rec.operator || rec.chemist || rec.testedBy || rec.user || rec.created_by || 'Lab Chemist',
+        verified_by: isVerified ? (rec.verified_by || rec.verifyed_by || rec.verified_by_supervisor || 'Verifier') : null,
+        verification_date: rec.verification_date || (rec.verificationTimestamp ? rec.verificationTimestamp.split(' ')[0] : ''),
+        verification_time: rec.verification_time || (rec.verificationTimestamp ? rec.verificationTimestamp.split(' ')[1] : ''),
+        approver: isApproved ? (rec.approved_by || rec.supervisor || rec.approved_by_manager || 'Manager') : null,
         approvalTimestamp: rec.approvalTimestamp || (isApproved ? rec.timestamp : null),
-        status,
-        remarks: rec.remarks || rec.notes || rec.rejectionReason || '',
+        stage,
+        status: stage,
+        remarks: rec.remarks || rec.notes || rec.rejectionReason || rec.comments || '',
+        rejection_reason: rec.rejection_reason || rec.rejectionReason || '',
         referenceNo: wo || rec.batchNo || rec.sampleId || '',
         rawRecord: rec
       });
@@ -200,12 +268,9 @@ export default function ApprovalsTab({
       const wo = extractWorkOrder(rec);
       if (requireWoOnly && !wo) return;
 
-      const rawStatus = (rec.status || rec.sanitation_result || '').toLowerCase();
-      const wfState = (rec.workflow_state || '').toLowerCase();
-      const isApproved = rawStatus === 'approved' || rec.isApproved === true || rec.docstatus === 1 || rawStatus === 'pass' || rawStatus === 'completed' || wfState.includes('approved') || Boolean(rec.approvalTimestamp);
-      const isRejected = rawStatus === 'rejected' || rawStatus === 'fail' || rec.isRejected === true || wfState.includes('rejected');
-      const status = isRejected ? 'Rejected' : isApproved ? 'Approved' : 'Pending';
-
+      const stage = classifyRecordStage(rec);
+      const isApproved = stage === 'Approved';
+      const isVerified = stage === 'Pending Approval' || isApproved;
       const dateStr = normalizeDateStr(rec.posting_date || rec.date || (rec.timestamp ? rec.timestamp.split(' ')[0] : '') || rec.creation);
       const uniqueId = rec.id || rec.name || `CS-${idx}-${dateStr}`;
 
@@ -214,18 +279,23 @@ export default function ApprovalsTab({
         doctype: rec.doctype || rec.type || 'Cleaning of Toilets',
         module: 'cleaning',
         moduleLabel: 'Cleaning & Sanitation',
-        moduleIcon: '🧹',
+        moduleIcon: BroomSparklesIcon,
         moduleColor: '#06b6d4',
         formType: rec.type || 'Cleaning & Sanitation Form',
         title: rec.type || 'Facility Sanitation Log',
         workOrder: wo || 'N/A',
         date: dateStr,
         time: rec.posting_time || rec.time || (rec.timestamp ? rec.timestamp.split(' ')[1] : '') || '',
-        submitter: rec.cleaner || rec.operator_name || rec.duties_performed_by || rec.performed_by_operator || 'Sanitation Staff',
-        approver: isApproved ? (rec.supervisor || rec.supervisor_name || rec.verified_by || 'Supervisor') : null,
+        submitter: rec.cleaner || rec.operator_name || rec.duties_performed_by || rec.performed_by_operator || rec.created_by || 'Sanitation Staff',
+        verified_by: isVerified ? (rec.verified_by || rec.verified_by_supervisor || rec.supervisor_name || 'Supervisor') : null,
+        verification_date: rec.verification_date || (rec.verificationTimestamp ? rec.verificationTimestamp.split(' ')[0] : ''),
+        verification_time: rec.verification_time || (rec.verificationTimestamp ? rec.verificationTimestamp.split(' ')[1] : ''),
+        approver: isApproved ? (rec.approved_by || rec.supervisor || rec.supervisor_name || 'Facility Manager') : null,
         approvalTimestamp: rec.approvalTimestamp || (isApproved ? rec.timestamp : null),
-        status,
+        stage,
+        status: stage,
         remarks: rec.remarks || rec.comments || rec.details?.comments || '',
+        rejection_reason: rec.rejection_reason || rec.rejectionReason || '',
         referenceNo: wo || rec.area || '',
         rawRecord: rec
       });
@@ -236,12 +306,9 @@ export default function ApprovalsTab({
       const wo = extractWorkOrder(rec);
       if (requireWoOnly && !wo) return;
 
-      const rawStatus = (rec.status || '').toLowerCase();
-      const wfState = (rec.workflow_state || '').toLowerCase();
-      const isApproved = rawStatus === 'approved' || rec.isApproved === true || rawStatus === 'closed' || rawStatus === 'resolved' || rec.docstatus === 1 || wfState.includes('approved') || Boolean(rec.approvalTimestamp);
-      const isRejected = rawStatus === 'rejected' || rawStatus === 'fail' || rec.isRejected === true || wfState.includes('rejected');
-      const status = isRejected ? 'Rejected' : isApproved ? 'Approved' : 'Pending';
-
+      const stage = classifyRecordStage(rec);
+      const isApproved = stage === 'Approved';
+      const isVerified = stage === 'Pending Approval' || isApproved;
       const dateStr = normalizeDateStr(rec.date || (rec.timestamp ? rec.timestamp.split(' ')[0] : '') || rec.creation);
       const uniqueId = rec.id || rec.name || `SAF-${idx}-${dateStr}`;
 
@@ -250,18 +317,23 @@ export default function ApprovalsTab({
         doctype: rec.doctype || 'Incident Log',
         module: 'safety',
         moduleLabel: 'Health & Safety',
-        moduleIcon: '🦺',
+        moduleIcon: ShieldAlert,
         moduleColor: '#f59e0b',
         formType: rec.type || 'Safety Audit Record',
         title: rec.type || 'HSE Incident & Audit Log',
         workOrder: wo || 'N/A',
         date: dateStr,
         time: rec.time || (rec.timestamp ? rec.timestamp.split(' ')[1] : '') || '',
-        submitter: rec.reported_by || rec.inspector || rec.officer || rec.submittedBy || 'Safety Officer',
-        approver: isApproved ? (rec.supervisor || rec.approvedByName || 'HSE Manager') : null,
+        submitter: rec.reported_by || rec.inspector || rec.officer || rec.submittedBy || rec.created_by || 'Safety Officer',
+        verified_by: isVerified ? (rec.verified_by || rec.supervisor || 'HSE Verifier') : null,
+        verification_date: rec.verification_date || (rec.verificationTimestamp ? rec.verificationTimestamp.split(' ')[0] : ''),
+        verification_time: rec.verification_time || (rec.verificationTimestamp ? rec.verificationTimestamp.split(' ')[1] : ''),
+        approver: isApproved ? (rec.approved_by || rec.approvedByName || 'HSE Manager') : null,
         approvalTimestamp: rec.approvalTimestamp || (isApproved ? rec.timestamp : null),
-        status,
+        stage,
+        status: stage,
         remarks: rec.remarks || rec.description || rec.rejectionReason || '',
+        rejection_reason: rec.rejection_reason || rec.rejectionReason || '',
         referenceNo: wo || rec.location || '',
         rawRecord: rec
       });
@@ -272,12 +344,9 @@ export default function ApprovalsTab({
       const wo = extractWorkOrder(rec);
       if (requireWoOnly && !wo) return;
 
-      const rawStatus = (rec.status || '').toLowerCase();
-      const wfState = (rec.workflow_state || '').toLowerCase();
-      const isApproved = rawStatus === 'approved' || rec.isApproved === true || rec.docstatus === 1 || rawStatus === 'completed' || wfState.includes('approved') || Boolean(rec.approvalTimestamp);
-      const isRejected = rawStatus === 'rejected' || rawStatus === 'fail' || rec.isRejected === true || wfState.includes('rejected');
-      const status = isRejected ? 'Rejected' : isApproved ? 'Approved' : 'Pending';
-
+      const stage = classifyRecordStage(rec);
+      const isApproved = stage === 'Approved';
+      const isVerified = stage === 'Pending Approval' || isApproved;
       const dateStr = normalizeDateStr(rec.date || rec.fromDate || rec.breakdownDate || rec.creation);
       const uniqueId = rec.id || rec.name || `MNT-${idx}-${dateStr}`;
 
@@ -286,18 +355,23 @@ export default function ApprovalsTab({
         doctype: rec.doctype || 'Daily Preventative Maintenance Schedule',
         module: 'maintenance',
         moduleLabel: 'Maintenance & PM',
-        moduleIcon: '🔧',
+        moduleIcon: Wrench,
         moduleColor: '#3b82f6',
         formType: rec.type || rec.templateTitle || rec.title || 'Preventive Maintenance Form',
         title: `${rec.equipment ? `[${rec.equipment}] ` : ''}${rec.type || rec.templateTitle || 'Equipment Maintenance'}`,
         workOrder: wo || 'N/A',
         date: dateStr,
         time: rec.time || rec.breakdownTime || '',
-        submitter: rec.operator || rec.operatorDisplay || rec.technician || rec.requestorName || 'Maintenance Tech',
-        approver: isApproved ? (rec.supervisor || rec.approvedByFM || rec.approvedByMM || 'Factory Manager') : null,
+        submitter: rec.operator || rec.operatorDisplay || rec.technician || rec.requestorName || rec.created_by || 'Maintenance Tech',
+        verified_by: isVerified ? (rec.verified_by || rec.supervisor || 'Maintenance Supervisor') : null,
+        verification_date: rec.verification_date || (rec.verificationTimestamp ? rec.verificationTimestamp.split(' ')[0] : ''),
+        verification_time: rec.verification_time || (rec.verificationTimestamp ? rec.verificationTimestamp.split(' ')[1] : ''),
+        approver: isApproved ? (rec.approved_by || rec.approvedByFM || rec.approvedByMM || 'Plant Manager') : null,
         approvalTimestamp: rec.approvalTimestamp || (isApproved ? rec.timestamp : null),
-        status,
+        stage,
+        status: stage,
         remarks: rec.remarks || rec.breakdownDesc || rec.overallComments || '',
+        rejection_reason: rec.rejection_reason || rec.rejectionReason || '',
         referenceNo: wo || rec.equipment || '',
         rawRecord: rec
       });
@@ -310,15 +384,11 @@ export default function ApprovalsTab({
     });
   }, [laboratoryRecords, cleaningRecords, safetyRecords, maintenanceRecords, requireWoOnly]);
 
-  // 4. DATE-RANGE FILTERED RECORDS (Strict matching - records with empty dates are not leaked into date filters)
+  // 4. DATE-RANGE FILTERED RECORDS
   const dateScopedRecords = useMemo(() => {
     return allNormalizedRecords.filter(item => {
-      // If no date filters are set, include all
       if (!fromDate && !toDate) return true;
-
-      // If date range is active, but item has no date, exclude it
       if (!item.date) return false;
-
       const itemDate = item.date;
       if (fromDate && itemDate < fromDate) return false;
       if (toDate && itemDate > toDate) return false;
@@ -326,47 +396,52 @@ export default function ApprovalsTab({
     });
   }, [allNormalizedRecords, fromDate, toDate]);
 
-  // 5. DYNAMIC KPI CARDS (Calculated strictly on dateScopedRecords)
+  // 5. DYNAMIC 4-STAGE KPI STATS CARDS
   const metrics = useMemo(() => {
-    let pendingCount = 0;
+    let pendingVerificationCount = 0;
+    let pendingApprovalCount = 0;
     let approvedCount = 0;
     let rejectedCount = 0;
+
     const categoryCounts = {
-      laboratory: { pending: 0, total: 0 },
-      cleaning: { pending: 0, total: 0 },
-      safety: { pending: 0, total: 0 },
-      maintenance: { pending: 0, total: 0 }
+      laboratory: { pendingVerif: 0, pendingAppr: 0, total: 0 },
+      cleaning: { pendingVerif: 0, pendingAppr: 0, total: 0 },
+      safety: { pendingVerif: 0, pendingAppr: 0, total: 0 },
+      maintenance: { pendingVerif: 0, pendingAppr: 0, total: 0 }
     };
 
     dateScopedRecords.forEach(item => {
-      if (item.status === 'Pending') pendingCount++;
-      else if (item.status === 'Approved') approvedCount++;
-      else if (item.status === 'Rejected') rejectedCount++;
+      if (item.stage === 'Pending Verification') pendingVerificationCount++;
+      else if (item.stage === 'Pending Approval') pendingApprovalCount++;
+      else if (item.stage === 'Approved') approvedCount++;
+      else if (item.stage === 'Rejected') rejectedCount++;
 
       if (categoryCounts[item.module]) {
         categoryCounts[item.module].total++;
-        if (item.status === 'Pending') categoryCounts[item.module].pending++;
+        if (item.stage === 'Pending Verification') categoryCounts[item.module].pendingVerif++;
+        if (item.stage === 'Pending Approval') categoryCounts[item.module].pendingAppr++;
       }
     });
 
     return {
       total: dateScopedRecords.length,
-      pending: pendingCount,
+      pendingVerification: pendingVerificationCount,
+      pendingApproval: pendingApprovalCount,
       approved: approvedCount,
       rejected: rejectedCount,
       categoryCounts
     };
   }, [dateScopedRecords]);
 
-  // 6. Table Filtered Records (Category + Status + WO + Search)
+  // 6. Table Filtered Records
   const filteredRecords = useMemo(() => {
     return dateScopedRecords.filter(item => {
       if (activeCategory !== 'all' && item.module !== activeCategory) {
         return false;
       }
 
-      if (statusFilter !== 'all' && item.status !== statusFilter) {
-        return false;
+      if (statusFilter !== 'all') {
+        if (item.stage !== statusFilter) return false;
       }
 
       if (selectedWoFilter !== 'all' && item.workOrder !== selectedWoFilter) {
@@ -380,8 +455,9 @@ export default function ApprovalsTab({
         const matchType = (item.formType || '').toLowerCase().includes(q);
         const matchSubmitter = (item.submitter || '').toLowerCase().includes(q);
         const matchApprover = (item.approver || '').toLowerCase().includes(q);
+        const matchVerifier = (item.verified_by || '').toLowerCase().includes(q);
         const matchWo = (item.workOrder || '').toLowerCase().includes(q);
-        return matchId || matchTitle || matchType || matchSubmitter || matchApprover || matchWo;
+        return matchId || matchTitle || matchType || matchSubmitter || matchApprover || matchVerifier || matchWo;
       }
 
       return true;
@@ -401,192 +477,209 @@ export default function ApprovalsTab({
     return Array.from(set).sort();
   }, [dateScopedRecords, workOrders]);
 
-  // 7. PERMANENT CLEANUP: Purge all forms without a linked Work Order
-  const handlePurgeUnlinkedForms = () => {
-    let purgedCount = 0;
+  // Canonical DocType and Document Name resolver
+  const getRecordDocTypeAndName = (item) => {
+    if (!item) return { doctype: '', name: '' };
+    const raw = item.rawRecord || {};
+    let name = raw.name || item.id || item.name || '';
+    let doctype = raw.doctype || item.doctype || item.formType || '';
 
-    if (setLaboratoryRecords) {
-      setLaboratoryRecords(prev => {
-        const kept = prev.filter(r => Boolean(extractWorkOrder(r)));
-        purgedCount += prev.length - kept.length;
-        localStorage.setItem('fiji_laboratory_records', JSON.stringify(kept));
-        return kept;
-      });
+    // ID prefix detection for 100% accurate Frappe DocType resolution
+    if (name.startsWith('CT-') || name.startsWith('CHEM-')) {
+      doctype = 'Chemical Test';
+    } else if (name.startsWith('DPMS-') || name.startsWith('MNT-')) {
+      doctype = 'Daily Preventative Maintenance Schedule';
+    } else if (name.startsWith('MON-')) {
+      doctype = 'Monitoring';
+    } else if (name.startsWith('COT-') || name.startsWith('TOIL-')) {
+      doctype = 'Cleaning of Toilets';
+    } else if (name.startsWith('CDR-') || name.startsWith('DIN-')) {
+      doctype = 'Cleaning of Dining Room';
+    } else if (name.startsWith('CLO-') || name.startsWith('OFF-')) {
+      doctype = 'Cleaning of Lab and Office';
+    } else if (name.startsWith('FF-') || name.startsWith('FLR-')) {
+      doctype = 'Factory Floor';
+    } else if (name.startsWith('OPCT-') || name.startsWith('PER-')) {
+      doctype = 'Outside Perimeter Cleaning Table';
+    } else if (name.startsWith('MARPW-')) {
+      doctype = 'Microbiologiocal Analysis Raw and Product Water';
+    } else if (name.startsWith('MARPM-') || name.startsWith('MAPRM-')) {
+      doctype = 'Microbiological Analysis of Primary Raw Materials';
+    } else if (name.startsWith('SPL-') || name.startsWith('SILV-')) {
+      doctype = 'Silver Photometer Log';
+    } else if (name.startsWith('SCF-') || name.startsWith('SEAM-')) {
+      doctype = 'Seam Checklist Form';
+    } else if (name.startsWith('CIP-')) {
+      doctype = 'CIP CHECKLIST';
+    } else if (name.startsWith('WMF-')) {
+      doctype = 'Water Monitoring Form';
+    } else if (name.startsWith('MB-') || name.startsWith('BRK-')) {
+      doctype = 'Machine Breakdown';
+    } else if (name.startsWith('INC-')) {
+      doctype = 'Plant Incident';
+    } else {
+      const lower = String(doctype || item.title || '').toLowerCase();
+      if (lower.includes('chemical')) doctype = 'Chemical Test';
+      else if (lower.includes('preventative') || lower.includes('preventive') || lower.includes('maintenance')) doctype = 'Daily Preventative Maintenance Schedule';
+      else if (lower.includes('monitoring')) doctype = 'Monitoring';
+      else if (lower.includes('toilet')) doctype = 'Cleaning of Toilets';
+      else if (lower.includes('dining')) doctype = 'Cleaning of Dining Room';
+      else if (lower.includes('lab and office') || lower.includes('lab & office')) doctype = 'Cleaning of Lab and Office';
+      else if (lower.includes('factory floor')) doctype = 'Factory Floor';
+      else if (lower.includes('perimeter')) doctype = 'Outside Perimeter Cleaning Table';
+      else if (lower.includes('raw and product water')) doctype = 'Microbiologiocal Analysis Raw and Product Water';
+      else if (lower.includes('primary raw')) doctype = 'Microbiological Analysis of Primary Raw Materials';
+      else if (lower.includes('breakdown')) doctype = 'Machine Breakdown';
     }
 
-    if (setCleaningRecords) {
-      setCleaningRecords(prev => {
-        const kept = prev.filter(r => Boolean(extractWorkOrder(r)));
-        purgedCount += prev.length - kept.length;
-        return kept;
-      });
-    }
-
-    if (setSafetyRecords) {
-      setSafetyRecords(prev => {
-        const kept = prev.filter(r => Boolean(extractWorkOrder(r)));
-        purgedCount += prev.length - kept.length;
-        localStorage.setItem('fiji_safety_records', JSON.stringify(kept));
-        return kept;
-      });
-    }
-
-    if (setMaintenanceRecords) {
-      setMaintenanceRecords(prev => {
-        const kept = prev.filter(r => Boolean(extractWorkOrder(r)));
-        purgedCount += prev.length - kept.length;
-        localStorage.setItem('fiji_maintenance_records', JSON.stringify(kept));
-        return kept;
-      });
-    }
-
-    showToast(`Successfully purged unlinked forms from the system!`, 'success');
-    setShowPurgeModal(false);
+    return { doctype, name };
   };
 
-  // 8. UNIFIED APPROVE ACTION (Instant UI feedback + ERPNext DB sync)
-  const handleApprove = async (item, notes = '') => {
+  // Helper to update specific record across React state and LocalStorage
+  const updateRecordState = (item, updates, lsKey) => {
+    const setterMap = {
+      laboratory: setLaboratoryRecords,
+      cleaning: setCleaningRecords,
+      safety: setSafetyRecords,
+      maintenance: setMaintenanceRecords
+    };
+    const setter = setterMap[item.module];
+    if (setter) {
+      setter(prev => {
+        const updated = prev.map(r => {
+          if (
+            r === item.rawRecord ||
+            (r.id && (r.id === item.id || r.id === item.name)) ||
+            (r.name && (r.name === item.id || r.name === item.name)) ||
+            (item.rawRecord?.name && (r.name === item.rawRecord.name || r.id === item.rawRecord.name))
+          ) {
+            return {
+              ...r,
+              ...updates
+            };
+          }
+          return r;
+        });
+        if (lsKey) {
+          try {
+            localStorage.setItem(lsKey, JSON.stringify(updated));
+          } catch (e) {
+            console.warn('LocalStorage save failed:', e);
+          }
+        }
+        return updated;
+      });
+    }
+  };
+
+  // STAGE 2: VERIFY ACTION (Moves from Pending Verification -> Pending Approval)
+  const handleVerify = async (item, notes = '') => {
+    if (!canUserVerify(item)) {
+      showToast('You do not have permission to verify this form.', 'error');
+      return;
+    }
+
     setIsProcessing(true);
-    const approverName = electronicSign || currentUser || 'Supervisor';
+    const verifierName = electronicSign || currentUser || 'Verifier';
     const nowTimestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
     const todayDate = nowTimestamp.split(' ')[0];
     const nowTime = nowTimestamp.split(' ')[1];
 
+    const { doctype, name } = getRecordDocTypeAndName(item);
+
     try {
-      const conn = frappe.getConnectionSettings();
-      const isLive = conn.isLive && conn.connected;
+      await frappe.verifyForm(doctype, name, notes);
 
-      // 1. ERPNext DB Sync
-      if (isLive) {
+      const updates = {
+        workflow_state: 'Pending Approval',
+        status: 'Pending Approval',
+        verified_by: verifierName,
+        verification_date: todayDate,
+        verification_time: nowTime,
+        verificationTimestamp: nowTimestamp,
+        verificationNotes: notes
+      };
+
+      const lsKeyMap = {
+        laboratory: 'fiji_laboratory_records',
+        safety: 'fiji_safety_records',
+        maintenance: 'fiji_maintenance_records',
+        cleaning: 'fiji_cleaning_records'
+      };
+
+      updateRecordState(item, updates, lsKeyMap[item.module]);
+
+      if (onRefreshAll) {
         try {
-          if (item.module === 'cleaning') {
-            await frappe.updateCleaningSanitationRecord(item.formType || item.doctype, item.id, {
-              docstatus: 1,
-              sanitation_result: 'Pass',
-              status: 'Approved',
-              supervisor_name: approverName,
-              verified_by_supervisor: approverName,
-              approval_date: todayDate,
-              approval_time: nowTime
-            });
-          } else {
-            // Attempt Frappe Workflow transition if document uses a Frappe Workflow
-            let wfSuccess = false;
-            try {
-              const wfRes = await frappe.makeRequest('POST', 'frappe.model.workflow.apply_workflow', null, {
-                doc: JSON.stringify({ doctype: item.doctype || item.formType, name: item.id }),
-                action: 'Approve'
-              });
-              if (wfRes) wfSuccess = true;
-            } catch (wfErr) {
-              console.log('apply_workflow transition skipped/failed, using direct doc update:', wfErr);
-            }
-
-            if (!wfSuccess) {
-              await frappe.makeRequest('PUT', item.doctype || item.formType, item.id, {
-                docstatus: 1,
-                workflow_state: 'Approved',
-                status: 'Approved',
-                approved_by: approverName,
-                supervisor: approverName,
-                verified_by: approverName,
-                approval_date: todayDate,
-                approval_time: nowTime,
-                approval_notes: notes
-              });
-            }
-          }
-        } catch (erpErr) {
-          console.warn('ERPNext live sync warning:', erpErr);
+          await onRefreshAll();
+        } catch (e) {
+          console.warn('onRefreshAll failed after verify:', e);
         }
       }
 
-      // 2. Immediate React State & LocalStorage Updates
-      if (item.module === 'laboratory' && setLaboratoryRecords) {
-        setLaboratoryRecords(prev => {
-          const updated = prev.map(r => {
-            if (r === item.rawRecord || (r.id && r.id === item.id) || (r.name && r.name === item.id) || (r.timestamp && r.timestamp === item.rawRecord.timestamp)) {
-              return {
-                ...r,
-                status: 'Approved',
-                isApproved: true,
-                docstatus: 1,
-                workflow_state: 'Approved',
-                supervisor: approverName,
-                approved_by: approverName,
-                approvalTimestamp: nowTimestamp,
-                approvalNotes: notes
-              };
-            }
-            return r;
-          });
-          localStorage.setItem('fiji_laboratory_records', JSON.stringify(updated));
-          return updated;
-        });
-      } else if (item.module === 'cleaning' && setCleaningRecords) {
-        setCleaningRecords(prev =>
-          prev.map(r => {
-            if (r === item.rawRecord || (r.id && r.id === item.id) || (r.name && r.name === item.id) || (r.timestamp && r.timestamp === item.rawRecord.timestamp)) {
-              return {
-                ...r,
-                status: 'Approved',
-                isApproved: true,
-                sanitation_result: 'Pass',
-                docstatus: 1,
-                supervisor: approverName,
-                supervisor_name: approverName,
-                approvalTimestamp: nowTimestamp,
-                approvalNotes: notes
-              };
-            }
-            return r;
-          })
-        );
-      } else if (item.module === 'safety' && setSafetyRecords) {
-        setSafetyRecords(prev => {
-          const updated = prev.map(r => {
-            if (r === item.rawRecord || (r.id && r.id === item.id) || (r.name && r.name === item.id) || (r.timestamp && r.timestamp === item.rawRecord.timestamp)) {
-              return {
-                ...r,
-                status: 'Approved',
-                isApproved: true,
-                workflow_state: 'Approved',
-                supervisor: approverName,
-                approvedByName: approverName,
-                approvalTimestamp: nowTimestamp,
-                approvalNotes: notes
-              };
-            }
-            return r;
-          });
-          localStorage.setItem('fiji_safety_records', JSON.stringify(updated));
-          return updated;
-        });
-      } else if (item.module === 'maintenance' && setMaintenanceRecords) {
-        setMaintenanceRecords(prev => {
-          const updated = prev.map(r => {
-            if (r === item.rawRecord || (r.id && r.id === item.id) || (r.name && r.name === item.id) || (r.timestamp && r.timestamp === item.rawRecord.timestamp)) {
-              return {
-                ...r,
-                status: 'Approved',
-                isApproved: true,
-                docstatus: 1,
-                workflow_state: 'Approved',
-                supervisor: approverName,
-                approvedByFM: approverName,
-                approvalTimestamp: nowTimestamp,
-                approvalNotes: notes
-              };
-            }
-            return r;
-          });
-          localStorage.setItem('fiji_maintenance_records', JSON.stringify(updated));
-          return updated;
-        });
+      showToast(`Form "${name}" verified! Advanced to Pending Approval.`, 'success');
+      setInspectingItem(null);
+      setVerifyingItem(null);
+      setVerificationNotes('');
+    } catch (err) {
+      console.error('Error verifying record:', err);
+      showToast(`Failed to verify form: ${err.message || err}`, 'error');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // STAGE 3: APPROVE & SUBMIT ACTION (Submits document to docstatus: 1)
+  const handleApprove = async (item, notes = '') => {
+    if (!canUserApprove(item)) {
+      showToast('You do not have permission to approve this form.', 'error');
+      return;
+    }
+
+    setIsProcessing(true);
+    const approverName = electronicSign || currentUser || 'Approver';
+    const nowTimestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    const todayDate = nowTimestamp.split(' ')[0];
+    const nowTime = nowTimestamp.split(' ')[1];
+
+    const { doctype, name } = getRecordDocTypeAndName(item);
+
+    try {
+      await frappe.approveForm(doctype, name, notes);
+
+      const updates = {
+        docstatus: 1,
+        status: 'Approved',
+        isApproved: true,
+        isRejected: false,
+        workflow_state: 'Approved',
+        approved_by: approverName,
+        approval_date: todayDate,
+        approval_time: nowTime,
+        approvalTimestamp: nowTimestamp,
+        approvalNotes: notes
+      };
+
+      const lsKeyMap = {
+        laboratory: 'fiji_laboratory_records',
+        safety: 'fiji_safety_records',
+        maintenance: 'fiji_maintenance_records',
+        cleaning: 'fiji_cleaning_records'
+      };
+
+      updateRecordState(item, updates, lsKeyMap[item.module]);
+
+      if (onRefreshAll) {
+        try {
+          await onRefreshAll();
+        } catch (e) {
+          console.warn('onRefreshAll failed after approve:', e);
+        }
       }
 
-      showToast(`Form "${item.id}" successfully Approved & Signed!`, 'success');
+      showToast(`Form "${name}" Approved & Submitted (docstatus: 1)!`, 'success');
       setInspectingItem(null);
+      setApprovalNotes('');
     } catch (err) {
       console.error('Error approving record:', err);
       showToast(`Failed to approve form: ${err.message || err}`, 'error');
@@ -595,63 +688,55 @@ export default function ApprovalsTab({
     }
   };
 
-  // 9. UNIFIED REJECT ACTION (ONLY FOR PENDING FORMS)
+  // REJECT ACTION
   const handleReject = async (item, reason = '') => {
-    if (item.status === 'Approved') {
+    if (item.stage === 'Approved') {
       showToast('Approved forms are finalized and cannot be rejected.', 'error');
       return;
     }
 
-    if (!reason.trim()) {
-      showToast('Please specify reason for rejection.', 'error');
-      return;
-    }
+    const finalReason = reason.trim() || 'Non-conformance detected during review';
+
     setIsProcessing(true);
     const rejectorName = electronicSign || currentUser || 'Supervisor';
     const nowTimestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
-    try {
-      const conn = frappe.getConnectionSettings();
-      const isLive = conn.isLive && conn.connected;
+    const { doctype, name } = getRecordDocTypeAndName(item);
 
-      if (isLive) {
+    try {
+      await frappe.rejectForm(doctype, name, finalReason);
+
+      const updates = {
+        workflow_state: 'Rejected',
+        status: 'Rejected',
+        sanitation_result: 'Fail',
+        isRejected: true,
+        isApproved: false,
+        rejection_reason: finalReason,
+        rejectionReason: finalReason,
+        rejected_by: rejectorName,
+        approvalTimestamp: null,
+        rejectionTimestamp: nowTimestamp
+      };
+
+      const lsKeyMap = {
+        laboratory: 'fiji_laboratory_records',
+        safety: 'fiji_safety_records',
+        maintenance: 'fiji_maintenance_records',
+        cleaning: 'fiji_cleaning_records'
+      };
+
+      updateRecordState(item, updates, lsKeyMap[item.module]);
+
+      if (onRefreshAll) {
         try {
-          await frappe.makeRequest('PUT', item.doctype || item.formType, item.id, {
-            workflow_state: 'Rejected',
-            status: 'Rejected',
-            rejection_reason: reason,
-            remarks: `[REJECTED: ${reason}]`
-          });
-        } catch (erpErr) {
-          console.warn('ERPNext rejection sync warning:', erpErr);
+          await onRefreshAll();
+        } catch (e) {
+          console.warn('onRefreshAll failed after reject:', e);
         }
       }
 
-      if (item.module === 'laboratory' && setLaboratoryRecords) {
-        setLaboratoryRecords(prev => {
-          const updated = prev.map(r => (r === item.rawRecord || r.id === item.id || r.name === item.id ? { ...r, status: 'Rejected', isRejected: true, isApproved: false, supervisor: rejectorName, rejectionReason: reason, approvalTimestamp: nowTimestamp } : r));
-          localStorage.setItem('fiji_laboratory_records', JSON.stringify(updated));
-          return updated;
-        });
-      } else if (item.module === 'cleaning' && setCleaningRecords) {
-        setCleaningRecords(prev =>
-          prev.map(r => (r === item.rawRecord || r.id === item.id || r.name === item.id ? { ...r, status: 'Rejected', isRejected: true, isApproved: false, sanitation_result: 'Fail', supervisor: rejectorName, remarks: `[REJECTED: ${reason}]`, approvalTimestamp: nowTimestamp } : r))
-        );
-      } else if (item.module === 'safety' && setSafetyRecords) {
-        setSafetyRecords(prev => {
-          const updated = prev.map(r => (r === item.rawRecord || r.id === item.id || r.name === item.id ? { ...r, status: 'Rejected', isRejected: true, isApproved: false, supervisor: rejectorName, rejectionReason: reason, approvalTimestamp: nowTimestamp } : r));
-          localStorage.setItem('fiji_safety_records', JSON.stringify(updated));
-          return updated;
-        });
-      } else if (item.module === 'maintenance' && setMaintenanceRecords) {
-        setMaintenanceRecords(prev => {
-          const updated = prev.map(r => (r === item.rawRecord || r.id === item.id || r.name === item.id ? { ...r, status: 'Rejected', isRejected: true, isApproved: false, supervisor: rejectorName, rejectionReason: reason, approvalTimestamp: nowTimestamp } : r));
-          localStorage.setItem('fiji_maintenance_records', JSON.stringify(updated));
-          return updated;
-        });
-      }
-
-      showToast(`Form "${item.id}" marked as Rejected / Action Required.`, 'info');
+      showToast(`Form "${name}" marked as Rejected.`, 'info');
       setRejectingItem(null);
       setRejectionReason('');
       setInspectingItem(null);
@@ -663,82 +748,129 @@ export default function ApprovalsTab({
     }
   };
 
+  // MARK AS PLANT INCIDENT (Links rejected form directly to Plant Incident)
+  const handleMarkAsIncident = async (item) => {
+    setIsProcessing(true);
+    const { doctype, name } = getRecordDocTypeAndName(item);
+
+    try {
+      const title = `Quality / Form Rejection: ${item.title || doctype} (${name})`;
+      const desc = `Operational record ${name} (${doctype}) was rejected during quality review.\nReason: ${item.rejection_reason || item.remarks || 'Non-conformance detected'}\nWork Order: ${item.workOrder}\nSubmitted By: ${item.submitter}`;
+      
+      const res = await frappe.markFormIncident(doctype, name, title, desc);
+      const incId = res?.incident_name || 'INC-NEW';
+      showToast(`Plant Incident ${incId} created and linked to ${name}!`, 'success');
+      setInspectingItem(null);
+    } catch (err) {
+      console.error('Failed to create Plant Incident:', err);
+      showToast(`Failed to mark incident: ${err.message || err}`, 'error');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   // Batch Select Handlers
   const handleSelectAll = e => {
     if (e.target.checked) {
-      const pendingIds = filteredRecords
-        .filter(r => r.status === 'Pending')
+      const ids = filteredRecords
+        .filter(r => r.stage === statusFilter)
         .map(r => r.id);
-      setSelectedItemIds(pendingIds);
+      setSelectedItemIds(ids);
     } else {
       setSelectedItemIds([]);
     }
   };
 
   const handleToggleSelect = id => {
-    setSelectedItemIds(prev =>
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    );
+    setSelectedItemIds(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
   };
 
-  // Batch Approve Action
-  const handleBatchApprove = async () => {
+  // Unified Batch Action (Batch Verify or Batch Approve based on active tab)
+  const handleBatchAction = async () => {
     if (selectedItemIds.length === 0) return;
     setIsProcessing(true);
-    const count = selectedItemIds.length;
-    const approverName = electronicSign || currentUser || 'Supervisor';
-    const nowTimestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
 
-    try {
-      const selectedSet = new Set(selectedItemIds);
+    const itemsToProcess = filteredRecords.filter(r => selectedItemIds.includes(r.id));
+    let successCount = 0;
 
-      if (setLaboratoryRecords) {
-        setLaboratoryRecords(prev => {
-          const updated = prev.map(r => selectedSet.has(r.id) || selectedSet.has(r.name) ? { ...r, status: 'Approved', isApproved: true, docstatus: 1, supervisor: approverName, approvalTimestamp: nowTimestamp } : r);
-          localStorage.setItem('fiji_laboratory_records', JSON.stringify(updated));
-          return updated;
-        });
+    for (const item of itemsToProcess) {
+      const { doctype, name } = getRecordDocTypeAndName(item);
+      try {
+        if (statusFilter === 'Pending Verification') {
+          if (canUserVerify(item)) {
+            await frappe.verifyForm(doctype, name, 'Batch Verified');
+            updateRecordState(item, { workflow_state: 'Pending Approval', status: 'Pending Approval', verified_by: electronicSign }, null);
+            successCount++;
+          }
+        } else if (statusFilter === 'Pending Approval') {
+          if (canUserApprove(item)) {
+            await frappe.approveForm(doctype, name, 'Batch Approved');
+            updateRecordState(item, { docstatus: 1, workflow_state: 'Approved', status: 'Approved', approved_by: electronicSign }, null);
+            successCount++;
+          }
+        }
+      } catch (e) {
+        console.warn(`Failed batch action on ${name || item.id}:`, e);
       }
-      if (setCleaningRecords) {
-        setCleaningRecords(prev =>
-          prev.map(r => selectedSet.has(r.id) || selectedSet.has(r.name) ? { ...r, status: 'Approved', isApproved: true, sanitation_result: 'Pass', docstatus: 1, supervisor: approverName, approvalTimestamp: nowTimestamp } : r)
-        );
-      }
-      if (setSafetyRecords) {
-        setSafetyRecords(prev => {
-          const updated = prev.map(r => selectedSet.has(r.id) || selectedSet.has(r.name) ? { ...r, status: 'Approved', isApproved: true, supervisor: approverName, approvalTimestamp: nowTimestamp } : r);
-          localStorage.setItem('fiji_safety_records', JSON.stringify(updated));
-          return updated;
-        });
-      }
-      if (setMaintenanceRecords) {
-        setMaintenanceRecords(prev => {
-          const updated = prev.map(r => selectedSet.has(r.id) || selectedSet.has(r.name) ? { ...r, status: 'Approved', isApproved: true, docstatus: 1, supervisor: approverName, approvalTimestamp: nowTimestamp } : r);
-          localStorage.setItem('fiji_maintenance_records', JSON.stringify(updated));
-          return updated;
-        });
-      }
-      if (setWorkOrders) {
-        setWorkOrders(prev => {
-          const updated = prev.map(wo => selectedSet.has(wo.id) || selectedSet.has(wo.name) ? { ...wo, status: 'Completed', docstatus: 1, modified: nowTimestamp, modified_by: approverName } : wo);
-          localStorage.setItem('fiji_work_orders', JSON.stringify(updated));
-          return updated;
-        });
-      }
-
-      showToast(`Batch approved ${count} Work Order forms!`, 'success');
-      setSelectedItemIds([]);
-      setShowBatchModal(false);
-    } catch (err) {
-      console.error('Batch approval error:', err);
-      showToast(`Error batch approving: ${err.message || err}`, 'error');
-    } finally {
-      setIsProcessing(false);
     }
+
+    if (onRefreshAll) {
+      try {
+        await onRefreshAll();
+      } catch (e) {
+        console.warn('onRefreshAll failed after batch action:', e);
+      }
+    }
+
+    setIsProcessing(false);
+    setShowBatchModal(false);
+    setSelectedItemIds([]);
+    showToast(`Batch completed for ${successCount} forms!`, 'success');
+  };
+
+  // Purge Unlinked Forms
+  const handlePurgeUnlinkedForms = () => {
+    let purgedCount = 0;
+    const filterFn = r => Boolean(extractWorkOrder(r));
+
+    if (setLaboratoryRecords) {
+      setLaboratoryRecords(prev => {
+        const kept = prev.filter(filterFn);
+        purgedCount += prev.length - kept.length;
+        localStorage.setItem('fiji_laboratory_records', JSON.stringify(kept));
+        return kept;
+      });
+    }
+    if (setCleaningRecords) {
+      setCleaningRecords(prev => {
+        const kept = prev.filter(filterFn);
+        purgedCount += prev.length - kept.length;
+        return kept;
+      });
+    }
+    if (setSafetyRecords) {
+      setSafetyRecords(prev => {
+        const kept = prev.filter(filterFn);
+        purgedCount += prev.length - kept.length;
+        localStorage.setItem('fiji_safety_records', JSON.stringify(kept));
+        return kept;
+      });
+    }
+    if (setMaintenanceRecords) {
+      setMaintenanceRecords(prev => {
+        const kept = prev.filter(filterFn);
+        purgedCount += prev.length - kept.length;
+        localStorage.setItem('fiji_maintenance_records', JSON.stringify(kept));
+        return kept;
+      });
+    }
+
+    showToast(`Successfully purged ${purgedCount} unlinked forms!`, 'success');
+    setShowPurgeModal(false);
   };
 
   return (
-    <div className="tab-content" style={{ padding: '20px 24px' }}>
+    <div className="approvals-desk" style={{ padding: '20px', maxWidth: '1440px', margin: '0 auto' }}>
       {/* Toast Notification */}
       {notification && (
         <div
@@ -746,32 +878,30 @@ export default function ApprovalsTab({
             position: 'fixed',
             top: '20px',
             right: '20px',
-            zIndex: 9999,
-            backgroundColor: notification.type === 'success' ? '#10b981' : notification.type === 'error' ? '#ef4444' : '#3b82f6',
-            color: '#ffffff',
-            padding: '12px 18px',
+            padding: '12px 20px',
             borderRadius: '8px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            backgroundColor: notification.type === 'error' ? '#ef4444' : notification.type === 'info' ? '#3b82f6' : '#10b981',
+            color: '#ffffff',
+            fontWeight: '600',
+            fontSize: '13px',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+            zIndex: 9999,
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
-            fontSize: '13px',
-            fontWeight: '600'
+            gap: '8px'
           }}
         >
-          <span>{notification.type === 'success' ? '✅' : notification.type === 'error' ? '⚠️' : 'ℹ️'}</span>
+          {notification.type === 'error' ? <AlertTriangle size={16} /> : <Check size={16} />}
           <span>{notification.message}</span>
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* 1. DATE RANGE TOP BAR (CONTROLS ALL CARDS & TABLE DYNAMICALLY) */}
-      {/* ========================================================================= */}
+      {/* Date Filter & Control Bar */}
       <div
         className="card"
         style={{
-          padding: '14px 18px',
-          marginBottom: '20px',
+          padding: '12px 16px',
+          marginBottom: '16px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -780,10 +910,9 @@ export default function ApprovalsTab({
           borderLeft: '4px solid var(--accent, #f59e0b)'
         }}
       >
-        {/* Date Range Selector */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '18px' }}>📅</span>
+            <Calendar size={18} style={{ color: 'var(--text-muted)' }} />
             <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-heading)', textTransform: 'uppercase' }}>
               Date Range:
             </label>
@@ -813,7 +942,6 @@ export default function ApprovalsTab({
             />
           </div>
 
-          {/* Quick Date Presets */}
           <div style={{ display: 'flex', gap: '4px' }}>
             {[
               { id: 'today', label: 'Today' },
@@ -833,7 +961,6 @@ export default function ApprovalsTab({
             ))}
           </div>
 
-          {/* WO Only Toggle */}
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: '600', color: 'var(--text-main)', cursor: 'pointer', marginLeft: '8px' }}>
             <input
               type="checkbox"
@@ -845,20 +972,20 @@ export default function ApprovalsTab({
           </label>
         </div>
 
-        {/* Live Clock, Purge Button & Signer */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button
             type="button"
             className="secondary-btn"
-            style={{ fontSize: '11px', padding: '4px 10px', height: '32px', color: '#b91c1c', borderColor: '#fca5a5' }}
+            style={{ fontSize: '11px', padding: '4px 10px', height: '32px', color: '#b91c1c', borderColor: '#fca5a5', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
             onClick={() => setShowPurgeModal(true)}
-            title="Clean all legacy dummy forms without a Work Order"
+            title="Clean legacy mock forms without a Work Order"
           >
-            🧹 Purge Unlinked Forms
+            <Trash2 size={13} />
+            <span>Purge Unlinked</span>
           </button>
 
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span>⏱️</span>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Clock size={14} />
             <strong style={{ color: 'var(--text-heading)', fontFamily: 'var(--mono)' }}>{liveCurrentTime}</strong>
           </div>
 
@@ -869,7 +996,7 @@ export default function ApprovalsTab({
               value={electronicSign}
               onChange={e => setElectronicSign(e.target.value)}
               className="form-input"
-              style={{ width: '120px', padding: '4px 8px', fontSize: '12px', height: '32px', margin: 0, fontWeight: '700' }}
+              style={{ width: '130px', padding: '4px 8px', fontSize: '12px', height: '32px', margin: 0, fontWeight: '700' }}
             />
           </div>
         </div>
@@ -878,9 +1005,12 @@ export default function ApprovalsTab({
       {/* Header Section */}
       <div className="wo-tab-header" style={{ marginBottom: '20px' }}>
         <div className="tab-title-desc">
-          <h2>Central Form Approvals & Quality Sign-off</h2>
-          <p>
-            Review, inspect and sign operational records linked to Work Orders across Laboratory QA, Cleaning, Safety & Maintenance.
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <ShieldCheck size={24} style={{ color: 'var(--primary, #2563eb)' }} />
+            <span>Form Approvals Desk (3-Stage Workflow)</span>
+          </h2>
+          <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
+            Stage 1: Creation & Auto-Capture → Stage 2: Quality Verification → Stage 3: Manager Approval & Submit.
           </p>
         </div>
 
@@ -889,60 +1019,95 @@ export default function ApprovalsTab({
             <button
               className="primary-btn"
               onClick={() => setShowBatchModal(true)}
-              style={{ backgroundColor: '#10b981', borderColor: '#10b981' }}
+              style={{
+                backgroundColor: statusFilter === 'Pending Verification' ? '#f59e0b' : '#10b981',
+                borderColor: statusFilter === 'Pending Verification' ? '#f59e0b' : '#10b981',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
             >
-              ⚡ Batch Approve ({selectedItemIds.length})
+              <Zap size={14} />
+              <span>
+                {statusFilter === 'Pending Verification' ? 'Batch Verify' : 'Batch Approve'} ({selectedItemIds.length})
+              </span>
             </button>
           )}
 
           {onRefreshAll && (
-            <button className="secondary-btn" onClick={onRefreshAll}>
-              🔄 Refresh
+            <button className="secondary-btn" onClick={onRefreshAll} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <RefreshCw size={14} />
+              <span>Refresh</span>
             </button>
           )}
         </div>
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. DYNAMIC KPI STATS CARDS (RECALCULATED STRICTLY BASED ON DATE RANGE) */}
+      {/* 4-STAGE KPI STATS CARDS */}
       {/* ========================================================================= */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
           gap: '14px',
           marginBottom: '20px'
         }}
       >
-        {/* Pending Card (Default highlighted) */}
+        {/* Stage 1 -> 2: Pending Verification Card */}
         <div
           className="card"
-          onClick={() => setStatusFilter(statusFilter === 'Pending' ? 'all' : 'Pending')}
+          onClick={() => setStatusFilter('Pending Verification')}
           style={{
             padding: '16px',
             cursor: 'pointer',
-            border: statusFilter === 'Pending' ? '2px solid #f59e0b' : '1px solid var(--border-color)',
-            backgroundColor: statusFilter === 'Pending' ? '#fffbeb' : 'var(--bg-card)'
+            border: statusFilter === 'Pending Verification' ? '2px solid #f59e0b' : '1px solid var(--border-color)',
+            backgroundColor: statusFilter === 'Pending Verification' ? '#fffbeb' : 'var(--bg-card)'
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
             <span style={{ fontSize: '12px', fontWeight: '700', color: '#b45309', textTransform: 'uppercase' }}>
-              Pending Review
+              ⏳ Pending Verification
             </span>
-            <span className="badge badge-progress" style={{ fontSize: '10px' }}>Action Required</span>
+            <span className="badge badge-progress" style={{ fontSize: '10px' }}>Stage 2</span>
           </div>
           <div style={{ fontSize: '28px', fontWeight: '800', color: '#b45309', lineHeight: 1.1 }}>
-            {metrics.pending}
+            {metrics.pendingVerification}
           </div>
           <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Forms awaiting approval
+            Requires Verifier review
           </div>
         </div>
 
-        {/* Approved Card */}
+        {/* Stage 2 -> 3: Pending Approval Card */}
         <div
           className="card"
-          onClick={() => setStatusFilter(statusFilter === 'Approved' ? 'all' : 'Approved')}
+          onClick={() => setStatusFilter('Pending Approval')}
+          style={{
+            padding: '16px',
+            cursor: 'pointer',
+            border: statusFilter === 'Pending Approval' ? '2px solid #3b82f6' : '1px solid var(--border-color)',
+            backgroundColor: statusFilter === 'Pending Approval' ? '#eff6ff' : 'var(--bg-card)'
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+            <span style={{ fontSize: '12px', fontWeight: '700', color: '#1d4ed8', textTransform: 'uppercase' }}>
+              ⚖️ Pending Approval
+            </span>
+            <span className="badge badge-qc" style={{ fontSize: '10px' }}>Stage 3</span>
+          </div>
+          <div style={{ fontSize: '28px', fontWeight: '800', color: '#1d4ed8', lineHeight: 1.1 }}>
+            {metrics.pendingApproval}
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+            Verified, awaiting manager sign-off
+          </div>
+        </div>
+
+        {/* Stage 3: Approved / Submitted Card */}
+        <div
+          className="card"
+          onClick={() => setStatusFilter('Approved')}
           style={{
             padding: '16px',
             cursor: 'pointer',
@@ -952,22 +1117,22 @@ export default function ApprovalsTab({
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
             <span style={{ fontSize: '12px', fontWeight: '700', color: '#047857', textTransform: 'uppercase' }}>
-              Approved Forms
+              ✅ Approved & Submitted
             </span>
-            <span className="badge badge-completed" style={{ fontSize: '10px' }}>Signed</span>
+            <span className="badge badge-completed" style={{ fontSize: '10px' }}>docstatus: 1</span>
           </div>
           <div style={{ fontSize: '28px', fontWeight: '800', color: '#047857', lineHeight: 1.1 }}>
             {metrics.approved}
           </div>
           <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Verified in date range
+            Finalized in ERPNext
           </div>
         </div>
 
         {/* Rejected Card */}
         <div
           className="card"
-          onClick={() => setStatusFilter(statusFilter === 'Rejected' ? 'all' : 'Rejected')}
+          onClick={() => setStatusFilter('Rejected')}
           style={{
             padding: '16px',
             cursor: 'pointer',
@@ -977,7 +1142,7 @@ export default function ApprovalsTab({
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
             <span style={{ fontSize: '12px', fontWeight: '700', color: '#b91c1c', textTransform: 'uppercase' }}>
-              Rejected / Revision
+              ❌ Rejected
             </span>
             <span className="badge badge-danger" style={{ fontSize: '10px' }}>Flagged</span>
           </div>
@@ -985,7 +1150,7 @@ export default function ApprovalsTab({
             {metrics.rejected}
           </div>
           <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Non-conformance forms
+            Actionable / Mark as Incident
           </div>
         </div>
 
@@ -1002,7 +1167,7 @@ export default function ApprovalsTab({
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
             <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-heading)', textTransform: 'uppercase' }}>
-              Total WO Forms
+              Total Forms
             </span>
             <span className="badge badge-qc" style={{ fontSize: '10px' }}>All</span>
           </div>
@@ -1010,7 +1175,7 @@ export default function ApprovalsTab({
             {metrics.total}
           </div>
           <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            All forms in selected date range
+            Total forms in active scope
           </div>
         </div>
       </div>
@@ -1018,37 +1183,40 @@ export default function ApprovalsTab({
       {/* Module Category Filters */}
       <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px', marginBottom: '16px' }}>
         {[
-          { id: 'all', label: 'All Modules', icon: '🌐', count: metrics.total, pending: metrics.pending },
-          { id: 'laboratory', label: 'Laboratory QA', icon: '🔬', count: metrics.categoryCounts.laboratory?.total || 0, pending: metrics.categoryCounts.laboratory?.pending || 0 },
-          { id: 'cleaning', label: 'Cleaning & Sanitation', icon: '🧹', count: metrics.categoryCounts.cleaning?.total || 0, pending: metrics.categoryCounts.cleaning?.pending || 0 },
-          { id: 'safety', label: 'Health & Safety', icon: '🦺', count: metrics.categoryCounts.safety?.total || 0, pending: metrics.categoryCounts.safety?.pending || 0 },
-          { id: 'maintenance', label: 'Maintenance & PM', icon: '🔧', count: metrics.categoryCounts.maintenance?.total || 0, pending: metrics.categoryCounts.maintenance?.pending || 0 }
-        ].map(cat => (
-          <button
-            key={cat.id}
-            onClick={() => setActiveCategory(cat.id)}
-            className={activeCategory === cat.id ? 'primary-btn' : 'secondary-btn'}
-            style={{
-              padding: '6px 14px',
-              fontSize: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            <span>{cat.icon}</span>
-            <span>{cat.label}</span>
-            <span style={{ backgroundColor: 'rgba(0,0,0,0.08)', padding: '1px 6px', borderRadius: '10px', fontSize: '11px', fontWeight: '700' }}>
-              {cat.count}
-            </span>
-            {cat.pending > 0 && (
-              <span style={{ backgroundColor: '#f59e0b', color: '#ffffff', padding: '1px 5px', borderRadius: '8px', fontSize: '10px', fontWeight: '800' }}>
-                {cat.pending}
+          { id: 'all', label: 'All Modules', icon: Globe, count: metrics.total, pending: metrics.pendingVerification + metrics.pendingApproval },
+          { id: 'laboratory', label: 'Laboratory QA', icon: Microscope, count: metrics.categoryCounts.laboratory?.total || 0, pending: (metrics.categoryCounts.laboratory?.pendingVerif || 0) + (metrics.categoryCounts.laboratory?.pendingAppr || 0) },
+          { id: 'cleaning', label: 'Cleaning & Sanitation', icon: BroomSparklesIcon, count: metrics.categoryCounts.cleaning?.total || 0, pending: (metrics.categoryCounts.cleaning?.pendingVerif || 0) + (metrics.categoryCounts.cleaning?.pendingAppr || 0) },
+          { id: 'safety', label: 'Health & Safety', icon: ShieldAlert, count: metrics.categoryCounts.safety?.total || 0, pending: (metrics.categoryCounts.safety?.pendingVerif || 0) + (metrics.categoryCounts.safety?.pendingAppr || 0) },
+          { id: 'maintenance', label: 'Maintenance & PM', icon: Wrench, count: metrics.categoryCounts.maintenance?.total || 0, pending: (metrics.categoryCounts.maintenance?.pendingVerif || 0) + (metrics.categoryCounts.maintenance?.pendingAppr || 0) }
+        ].map(cat => {
+          const IconComp = cat.icon;
+          return (
+            <button
+              key={cat.id}
+              onClick={() => setActiveCategory(cat.id)}
+              className={activeCategory === cat.id ? 'primary-btn' : 'secondary-btn'}
+              style={{
+                padding: '6px 14px',
+                fontSize: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {IconComp && <IconComp size={15} />}
+              <span>{cat.label}</span>
+              <span style={{ backgroundColor: 'rgba(0,0,0,0.08)', padding: '1px 6px', borderRadius: '10px', fontSize: '11px', fontWeight: '700' }}>
+                {cat.count}
               </span>
-            )}
-          </button>
-        ))}
+              {cat.pending > 0 && (
+                <span style={{ backgroundColor: '#f59e0b', color: '#ffffff', padding: '1px 5px', borderRadius: '8px', fontSize: '10px', fontWeight: '800' }}>
+                  {cat.pending}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Secondary Search & Dropdown Toolbar */}
@@ -1062,7 +1230,6 @@ export default function ApprovalsTab({
           flexWrap: 'wrap'
         }}
       >
-        {/* Search Input */}
         <div style={{ flex: 1, minWidth: '240px', position: 'relative' }}>
           <input
             type="text"
@@ -1072,20 +1239,19 @@ export default function ApprovalsTab({
             className="form-input"
             style={{ width: '100%', paddingLeft: '32px', margin: 0, height: '36px' }}
           />
-          <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
-            🔍
+          <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', display: 'inline-flex' }}>
+            <Search size={15} />
           </span>
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+              style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center' }}
             >
-              ✕
+              <X size={15} />
             </button>
           )}
         </div>
 
-        {/* Work Order Filter */}
         {availableWorkOrders.length > 0 && (
           <select
             value={selectedWoFilter}
@@ -1095,35 +1261,37 @@ export default function ApprovalsTab({
           >
             <option value="all">All Work Orders ({availableWorkOrders.length})</option>
             {availableWorkOrders.map(wo => (
-              <option key={wo} value={wo}>📋 {wo}</option>
+              <option key={wo} value={wo}>{wo}</option>
             ))}
           </select>
         )}
 
-        {/* Status Filter Dropdown */}
         <select
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
           className="form-input"
-          style={{ width: '160px', margin: 0, height: '36px', fontSize: '12px', fontWeight: '600' }}
+          style={{ width: '200px', margin: 0, height: '36px', fontSize: '12px', fontWeight: '600' }}
         >
-          <option value="all">All Statuses</option>
-          <option value="Pending">⏳ Pending Approval</option>
-          <option value="Approved">✅ Approved</option>
+          <option value="all">All Queue Stages</option>
+          <option value="Pending Verification">⏳ Pending Verification</option>
+          <option value="Pending Approval">⚖️ Pending Approval</option>
+          <option value="Approved">✅ Approved (Submitted)</option>
           <option value="Rejected">❌ Rejected</option>
         </select>
       </div>
 
-      {/* Main Approvals Table */}
+      {/* Main Table */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         {filteredRecords.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-muted)' }}>
-            <div style={{ fontSize: '36px', marginBottom: '8px' }}>📋</div>
+            <div style={{ marginBottom: '8px', display: 'flex', justifyContent: 'center' }}>
+              <FileCheck2 size={40} style={{ strokeWidth: 1.5, opacity: 0.6 }} />
+            </div>
             <h3 style={{ fontSize: '15px', color: 'var(--text-heading)', margin: '0 0 4px 0' }}>
-              No forms matching selected filters
+              No forms found in "{statusFilter}"
             </h3>
             <p style={{ fontSize: '12px', margin: 0 }}>
-              Try adjusting the date range or status filter.
+              Adjust date range, module tabs or status filter to view other records.
             </p>
           </div>
         ) : (
@@ -1136,7 +1304,7 @@ export default function ApprovalsTab({
                       type="checkbox"
                       checked={
                         selectedItemIds.length > 0 &&
-                        selectedItemIds.length === filteredRecords.filter(r => r.status === 'Pending').length
+                        selectedItemIds.length === filteredRecords.filter(r => r.stage === statusFilter).length
                       }
                       onChange={handleSelectAll}
                       style={{ cursor: 'pointer' }}
@@ -1146,17 +1314,18 @@ export default function ApprovalsTab({
                   <th style={{ padding: '10px 12px', color: 'var(--text-muted)', fontWeight: '700' }}>WORK ORDER</th>
                   <th style={{ padding: '10px 12px', color: 'var(--text-muted)', fontWeight: '700' }}>TITLE / SPECIFICATION</th>
                   <th style={{ padding: '10px 12px', color: 'var(--text-muted)', fontWeight: '700' }}>SUBMITTED BY</th>
-                  <th style={{ padding: '10px 12px', color: 'var(--text-muted)', fontWeight: '700' }}>DATE & TIME</th>
-                  <th style={{ padding: '10px 12px', color: 'var(--text-muted)', fontWeight: '700' }}>STATUS</th>
-                  <th style={{ padding: '10px 12px', color: 'var(--text-muted)', fontWeight: '700' }}>APPROVAL SIGN</th>
+                  <th style={{ padding: '10px 12px', color: 'var(--text-muted)', fontWeight: '700' }}>WORKFLOW STAGE</th>
+                  <th style={{ padding: '10px 12px', color: 'var(--text-muted)', fontWeight: '700' }}>AUDIT TRAIL</th>
                   <th style={{ padding: '10px 12px', color: 'var(--text-muted)', fontWeight: '700', textAlign: 'right' }}>ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredRecords.map((item, idx) => {
                   const isSelected = selectedItemIds.includes(item.id);
-                  const isApproved = item.status === 'Approved';
-                  const isPending = item.status === 'Pending';
+                  const isPendingVerif = item.stage === 'Pending Verification';
+                  const isPendingAppr = item.stage === 'Pending Approval';
+                  const isApproved = item.stage === 'Approved';
+                  const isRejected = item.stage === 'Rejected';
 
                   return (
                     <tr
@@ -1168,7 +1337,7 @@ export default function ApprovalsTab({
                     >
                       {/* Checkbox */}
                       <td style={{ padding: '10px 12px' }}>
-                        {isPending ? (
+                        {(isPendingVerif || isPendingAppr) ? (
                           <input
                             type="checkbox"
                             checked={isSelected}
@@ -1183,7 +1352,13 @@ export default function ApprovalsTab({
                       {/* Module & Form ID */}
                       <td style={{ padding: '10px 12px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '16px' }}>{item.moduleIcon}</span>
+                          <span style={{ display: 'inline-flex', color: item.moduleColor }}>
+                            {item.moduleIcon && typeof item.moduleIcon !== 'string' ? (
+                              <item.moduleIcon size={16} />
+                            ) : (
+                              item.moduleIcon
+                            )}
+                          </span>
                           <div>
                             <strong style={{ color: 'var(--text-heading)' }}>{item.id}</strong>
                             <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{item.moduleLabel}</div>
@@ -1200,44 +1375,60 @@ export default function ApprovalsTab({
 
                       {/* Title */}
                       <td style={{ padding: '10px 12px' }}>
-                        <div style={{ fontWeight: '600', color: 'var(--text-main)', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <div style={{ fontWeight: '600', color: 'var(--text-main)', maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {item.title}
                         </div>
+                        <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{item.date} {item.time}</div>
                       </td>
 
-                      {/* Submitter */}
+                      {/* Submitter (Stage 1 Creator) */}
                       <td style={{ padding: '10px 12px' }}>
-                        <span style={{ color: 'var(--text-main)' }}>{item.submitter}</span>
+                        <span style={{ color: 'var(--text-main)', fontWeight: '500' }}>{item.submitter}</span>
                       </td>
 
-                      {/* Date & Time */}
+                      {/* Workflow Stage Badge */}
                       <td style={{ padding: '10px 12px' }}>
-                        <div>{item.date || 'N/A'}</div>
-                        {item.time && <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{item.time}</div>}
-                      </td>
-
-                      {/* Status Badge */}
-                      <td style={{ padding: '10px 12px' }}>
-                        {isPending ? (
-                          <span className="badge badge-progress" style={{ fontSize: '11px' }}>⏳ Pending</span>
+                        {isPendingVerif ? (
+                          <span className="badge badge-progress" style={{ fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <Clock3 size={11} />
+                            <span>Pending Verification</span>
+                          </span>
+                        ) : isPendingAppr ? (
+                          <span className="badge badge-qc" style={{ fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', backgroundColor: '#dbeafe', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+                            <ShieldCheck size={11} />
+                            <span>Pending Approval</span>
+                          </span>
                         ) : isApproved ? (
-                          <span className="badge badge-completed" style={{ fontSize: '11px' }}>✓ Approved</span>
+                          <span className="badge badge-completed" style={{ fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <Check size={11} />
+                            <span>Approved (docstatus: 1)</span>
+                          </span>
                         ) : (
-                          <span className="badge badge-danger" style={{ fontSize: '11px' }}>✕ Rejected</span>
+                          <span className="badge badge-danger" style={{ fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <X size={11} />
+                            <span>Rejected</span>
+                          </span>
                         )}
                       </td>
 
-                      {/* Approver info */}
-                      <td style={{ padding: '10px 12px' }}>
-                        {item.approver ? (
+                      {/* Audit Trail Details */}
+                      <td style={{ padding: '10px 12px', fontSize: '11px' }}>
+                        {isApproved && item.approver ? (
                           <div>
-                            <strong style={{ color: 'var(--text-heading)', fontSize: '11px' }}>✍️ {item.approver}</strong>
-                            {item.approvalTimestamp && (
-                              <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{item.approvalTimestamp}</div>
-                            )}
+                            <strong style={{ color: 'var(--text-heading)' }}>Approved by: {item.approver}</strong>
+                            <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{item.approvalTimestamp || 'Submitted'}</div>
+                          </div>
+                        ) : isPendingAppr && item.verified_by ? (
+                          <div>
+                            <span style={{ color: '#1d4ed8', fontWeight: '600' }}>Verified by: {item.verified_by}</span>
+                            <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{item.verification_date} {item.verification_time}</div>
+                          </div>
+                        ) : isRejected ? (
+                          <div style={{ color: '#b91c1c' }}>
+                            <strong>Reason:</strong> {item.rejection_reason || 'Non-conformance'}
                           </div>
                         ) : (
-                          <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '11px' }}>Unsigned</span>
+                          <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Created, awaiting verification</span>
                         )}
                       </td>
 
@@ -1247,38 +1438,74 @@ export default function ApprovalsTab({
                           <button
                             type="button"
                             className="secondary-btn"
-                            style={{ padding: '4px 8px', fontSize: '11px' }}
+                            style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                             onClick={() => setInspectingItem(item)}
                           >
-                            👁️ View
+                            <Eye size={12} />
+                            <span>Inspect</span>
                           </button>
 
-                          {/* Approve Button - Only for Pending/Rejected */}
-                          {!isApproved && (
+                          {/* Stage 2 Action: Verify */}
+                          {isPendingVerif && (
                             <button
                               type="button"
                               className="primary-btn"
-                              style={{ padding: '4px 10px', fontSize: '11px', backgroundColor: '#10b981', borderColor: '#10b981' }}
-                              disabled={isProcessing}
-                              onClick={() => handleApprove(item)}
+                              style={{ padding: '4px 10px', fontSize: '11px', backgroundColor: '#f59e0b', borderColor: '#f59e0b', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                              disabled={isProcessing || !canUserVerify(item)}
+                              title={!canUserVerify(item) ? 'Verification restricted to designated verifier' : 'Verify and advance form'}
+                              onClick={() => {
+                                setVerifyingItem(item);
+                                setVerificationNotes('');
+                              }}
                             >
-                              ✓ Approve
+                              <ShieldCheck size={12} />
+                              <span>Verify</span>
                             </button>
                           )}
 
-                          {/* Reject Button - STRICTLY ONLY FOR PENDING FORMS (Approved forms are locked) */}
-                          {isPending && (
+                          {/* Stage 3 Action: Approve & Submit */}
+                          {isPendingAppr && (
+                            <button
+                              type="button"
+                              className="primary-btn"
+                              style={{ padding: '4px 10px', fontSize: '11px', backgroundColor: '#10b981', borderColor: '#10b981', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                              disabled={isProcessing || !canUserApprove(item)}
+                              title={!canUserApprove(item) ? 'Approval restricted to manager' : 'Approve and submit document'}
+                              onClick={() => handleApprove(item)}
+                            >
+                              <Check size={12} />
+                              <span>Approve</span>
+                            </button>
+                          )}
+
+                          {/* Reject Button (Only for Pending records) */}
+                          {(isPendingVerif || isPendingAppr) && (
                             <button
                               type="button"
                               className="danger-btn"
-                              style={{ padding: '4px 8px', fontSize: '11px' }}
+                              style={{ padding: '4px 8px', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                               disabled={isProcessing}
                               onClick={() => {
                                 setRejectingItem(item);
                                 setRejectionReason('');
                               }}
                             >
-                              ✕ Reject
+                              <X size={12} />
+                              <span>Reject</span>
+                            </button>
+                          )}
+
+                          {/* Rejected Action: Mark as Incident */}
+                          {isRejected && (
+                            <button
+                              type="button"
+                              className="secondary-btn"
+                              style={{ padding: '4px 8px', fontSize: '11px', color: '#b91c1c', borderColor: '#fca5a5', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                              disabled={isProcessing}
+                              onClick={() => handleMarkAsIncident(item)}
+                            >
+                              <AlertTriangle size={12} />
+                              <span>Mark Incident</span>
                             </button>
                           )}
                         </div>
@@ -1292,41 +1519,118 @@ export default function ApprovalsTab({
         )}
       </div>
 
-      {/* INSPECTION MODAL */}
+      {/* ========================================================================= */}
+      {/* INSPECTION & AUDIT TRAIL MODAL */}
+      {/* ========================================================================= */}
       {inspectingItem && (
         <div className="modal-backdrop" onClick={() => setInspectingItem(null)}>
-          <div className="modal-panel" style={{ width: '760px', maxWidth: '95%' }} onClick={e => e.stopPropagation()}>
+          <div className="modal-panel" style={{ width: '800px', maxWidth: '95%' }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '20px' }}>{inspectingItem.moduleIcon}</span>
+                <span style={{ display: 'inline-flex', color: inspectingItem.moduleColor }}>
+                  {inspectingItem.moduleIcon && typeof inspectingItem.moduleIcon !== 'string' ? (
+                    <inspectingItem.moduleIcon size={22} />
+                  ) : (
+                    inspectingItem.moduleIcon
+                  )}
+                </span>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '15px', color: 'var(--text-heading)' }}>
-                    {inspectingItem.title}
+                    {inspectingItem.title} ({inspectingItem.id})
                   </h3>
                   <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                     {inspectingItem.moduleLabel} • Work Order: <strong style={{ color: 'var(--info)' }}>{inspectingItem.workOrder}</strong>
                   </div>
                 </div>
               </div>
-              <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px' }} onClick={() => setInspectingItem(null)}>✕</button>
+              <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }} onClick={() => setInspectingItem(null)}>
+                <X size={18} />
+              </button>
             </div>
 
-            <div className="modal-content" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', padding: '10px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '14px' }}>
-                <div><span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>Work Order:</span><br /><strong>{inspectingItem.workOrder}</strong></div>
-                <div><span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>Submitted By:</span><br /><strong>{inspectingItem.submitter}</strong></div>
-                <div><span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>Submission Date:</span><br /><strong>{inspectingItem.date} {inspectingItem.time}</strong></div>
+            <div className="modal-content" style={{ maxHeight: '72vh', overflowY: 'auto' }}>
+              {/* 3-Stage Visual Workflow Card */}
+              <div style={{ backgroundColor: '#f8fafc', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '14px', marginBottom: '16px' }}>
+                <h4 style={{ margin: '0 0 10px 0', fontSize: '12px', fontWeight: '700', color: 'var(--text-heading)', textTransform: 'uppercase' }}>
+                  3-Stage Workflow Status & Audit Trail
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', position: 'relative' }}>
+                  {/* Stage 1: Creation */}
+                  <div style={{ borderLeft: '3px solid #10b981', paddingLeft: '8px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: '700', color: '#047857' }}>STAGE 1: CREATION</div>
+                    <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-heading)' }}>{inspectingItem.submitter}</div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{inspectingItem.date} {inspectingItem.time}</div>
+                    <span className="badge badge-completed" style={{ fontSize: '9px', marginTop: '4px' }}>Logged</span>
+                  </div>
+
+                  {/* Stage 2: Verification */}
+                  <div style={{ borderLeft: inspectingItem.verified_by ? '3px solid #10b981' : inspectingItem.stage === 'Pending Verification' ? '3px solid #f59e0b' : '3px solid var(--border-color)', paddingLeft: '8px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: '700', color: inspectingItem.verified_by ? '#047857' : '#b45309' }}>STAGE 2: VERIFICATION</div>
+                    <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-heading)' }}>
+                      {inspectingItem.verified_by || 'Awaiting Verifier'}
+                    </div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                      {inspectingItem.verification_date ? `${inspectingItem.verification_date} ${inspectingItem.verification_time}` : 'Pending review'}
+                    </div>
+                    {inspectingItem.verified_by ? (
+                      <span className="badge badge-completed" style={{ fontSize: '9px', marginTop: '4px' }}>Verified</span>
+                    ) : (
+                      <span className="badge badge-progress" style={{ fontSize: '9px', marginTop: '4px' }}>Action Required</span>
+                    )}
+                  </div>
+
+                  {/* Stage 3: Approval */}
+                  <div style={{ borderLeft: inspectingItem.stage === 'Approved' ? '3px solid #10b981' : '3px solid var(--border-color)', paddingLeft: '8px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: '700', color: inspectingItem.stage === 'Approved' ? '#047857' : 'var(--text-muted)' }}>STAGE 3: APPROVAL</div>
+                    <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-heading)' }}>
+                      {inspectingItem.approver || 'Awaiting Approval'}
+                    </div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                      {inspectingItem.approvalTimestamp || 'Pending final sign'}
+                    </div>
+                    {inspectingItem.stage === 'Approved' ? (
+                      <span className="badge badge-completed" style={{ fontSize: '9px', marginTop: '4px' }}>Submitted (docstatus: 1)</span>
+                    ) : (
+                      <span className="badge badge-progress" style={{ fontSize: '9px', marginTop: '4px' }}>Queued</span>
+                    )}
+                  </div>
+                </div>
               </div>
 
-              <div style={{ marginBottom: '14px' }}>
-                <h4 style={{ fontSize: '13px', margin: '0 0 8px 0', color: 'var(--text-heading)' }}>Parameters & Submitted Data</h4>
-                <div style={{ padding: '10px', border: '1px solid var(--border-color)', borderRadius: '6px', maxHeight: '240px', overflowY: 'auto', fontSize: '12px' }}>
+              {/* Rejection Alert if Rejected */}
+              {inspectingItem.stage === 'Rejected' && (
+                <div style={{ backgroundColor: '#fef2f2', border: '1.5px solid #ef4444', borderRadius: '8px', padding: '12px 14px', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#b91c1c', fontWeight: '700', fontSize: '13px', marginBottom: '4px' }}>
+                    <AlertTriangle size={16} />
+                    <span>Quality / Verification Non-Conformance Flag</span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-main)' }}>
+                    <strong>Rejection Reason:</strong> {inspectingItem.rejection_reason || inspectingItem.remarks || 'No detailed reason provided.'}
+                  </div>
+                  <div style={{ marginTop: '10px' }}>
+                    <button
+                      type="button"
+                      className="primary-btn"
+                      style={{ backgroundColor: '#b91c1c', borderColor: '#b91c1c', fontSize: '11px', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                      onClick={() => handleMarkAsIncident(inspectingItem)}
+                    >
+                      <AlertTriangle size={13} />
+                      <span>Convert to Plant Incident Ticket</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Parameters & Submitted Data */}
+              <div style={{ marginBottom: '16px' }}>
+                <h4 style={{ fontSize: '13px', margin: '0 0 8px 0', color: 'var(--text-heading)' }}>Operational Parameters & Test Data</h4>
+                <div style={{ padding: '10px', border: '1px solid var(--border-color)', borderRadius: '6px', maxHeight: '280px', overflowY: 'auto', fontSize: '12px' }}>
                   {Object.entries(inspectingItem.rawRecord || {})
                     .filter(([k]) => !['rawRecord', 'details'].includes(k))
                     .map(([key, value]) => (
-                      <div key={key} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid #f3f4f6' }}>
+                      <div key={key} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid #f3f4f6' }}>
                         <span style={{ color: 'var(--text-muted)', textTransform: 'capitalize' }}>{key.replace(/_/g, ' ')}:</span>
-                        <strong style={{ color: 'var(--text-main)', textAlign: 'right', maxWidth: '60%', wordBreak: 'break-all' }}>
+                        <strong style={{ color: 'var(--text-main)', textAlign: 'right', maxWidth: '65%', wordBreak: 'break-all' }}>
                           {typeof value === 'object' ? JSON.stringify(value) : String(value ?? '—')}
                         </strong>
                       </div>
@@ -1334,16 +1638,17 @@ export default function ApprovalsTab({
                 </div>
               </div>
 
-              {inspectingItem.status !== 'Approved' && (
+              {/* Verification / Approval Notes input when pending */}
+              {inspectingItem.stage !== 'Approved' && inspectingItem.stage !== 'Rejected' && (
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '4px' }}>
-                    Supervisor Verification Remarks:
+                    Quality Remarks / Review Comments:
                   </label>
                   <textarea
                     rows={2}
                     value={approvalNotes}
                     onChange={e => setApprovalNotes(e.target.value)}
-                    placeholder="Add verification notes..."
+                    placeholder="Enter review remarks or sign-off notes..."
                     className="form-input"
                     style={{ width: '100%', margin: 0 }}
                   />
@@ -1351,33 +1656,107 @@ export default function ApprovalsTab({
               )}
             </div>
 
-            <div className="modal-footer">
-              <button type="button" className="secondary-btn" onClick={() => window.print()}>
-                🖨️ Print
+            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button type="button" className="secondary-btn" onClick={() => window.print()} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <Printer size={14} />
+                <span>Print Report</span>
               </button>
 
-              {/* Reject only available if NOT already Approved */}
-              {inspectingItem.status === 'Pending' && (
-                <button
-                  type="button"
-                  className="danger-btn"
-                  onClick={() => setRejectingItem(inspectingItem)}
-                >
-                  ✕ Reject
-                </button>
-              )}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {/* Reject action if pending */}
+                {(inspectingItem.stage === 'Pending Verification' || inspectingItem.stage === 'Pending Approval') && (
+                  <button
+                    type="button"
+                    className="danger-btn"
+                    onClick={() => {
+                      setRejectingItem(inspectingItem);
+                      setRejectionReason('');
+                    }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <X size={14} />
+                    <span>Reject</span>
+                  </button>
+                )}
 
-              {inspectingItem.status !== 'Approved' && (
-                <button
-                  type="button"
-                  className="primary-btn"
-                  style={{ backgroundColor: '#10b981', borderColor: '#10b981' }}
-                  disabled={isProcessing}
-                  onClick={() => handleApprove(inspectingItem, approvalNotes)}
-                >
-                  ✓ Approve & Sync ERP
+                {/* Stage 2: Verify Button */}
+                {inspectingItem.stage === 'Pending Verification' && (
+                  <button
+                    type="button"
+                    className="primary-btn"
+                    style={{ backgroundColor: '#f59e0b', borderColor: '#f59e0b', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    disabled={isProcessing || !canUserVerify(inspectingItem)}
+                    onClick={() => handleVerify(inspectingItem, approvalNotes)}
+                  >
+                    <ShieldCheck size={14} />
+                    <span>Confirm Verification</span>
+                  </button>
+                )}
+
+                {/* Stage 3: Approve Button */}
+                {inspectingItem.stage === 'Pending Approval' && (
+                  <button
+                    type="button"
+                    className="primary-btn"
+                    style={{ backgroundColor: '#10b981', borderColor: '#10b981', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    disabled={isProcessing || !canUserApprove(inspectingItem)}
+                    onClick={() => handleApprove(inspectingItem, approvalNotes)}
+                  >
+                    <Check size={14} />
+                    <span>Approve & Submit (docstatus: 1)</span>
+                  </button>
+                )}
+
+                <button type="button" className="secondary-btn" onClick={() => setInspectingItem(null)}>
+                  Close
                 </button>
-              )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VERIFY CONFIRMATION MODAL */}
+      {verifyingItem && (
+        <div className="modal-backdrop" onClick={() => setVerifyingItem(null)}>
+          <div className="modal-panel" style={{ width: '480px' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 style={{ margin: 0, fontSize: '14px', color: '#b45309', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <ShieldCheck size={16} />
+                <span>Verify Form: {verifyingItem.id}</span>
+              </h3>
+              <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }} onClick={() => setVerifyingItem(null)}>
+                <X size={16} />
+              </button>
+            </div>
+            <div className="modal-content">
+              <p style={{ fontSize: '12px', color: 'var(--text-main)', marginTop: 0 }}>
+                You are verifying operational document <strong>{verifyingItem.id}</strong> ({verifyingItem.title}).
+                This will advance the record to <strong>Pending Approval</strong>.
+              </p>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '4px' }}>Verifier Remarks (Optional):</label>
+                <textarea
+                  rows={3}
+                  value={verificationNotes}
+                  onChange={e => setVerificationNotes(e.target.value)}
+                  placeholder="Verification checklist passed, ready for manager sign-off..."
+                  className="form-input"
+                  style={{ width: '100%', margin: 0 }}
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="secondary-btn" onClick={() => setVerifyingItem(null)}>Cancel</button>
+              <button
+                type="button"
+                className="primary-btn"
+                style={{ backgroundColor: '#f59e0b', borderColor: '#f59e0b' }}
+                disabled={isProcessing}
+                onClick={() => handleVerify(verifyingItem, verificationNotes)}
+              >
+                Confirm Verification
+              </button>
             </div>
           </div>
         </div>
@@ -1388,8 +1767,13 @@ export default function ApprovalsTab({
         <div className="modal-backdrop" onClick={() => setRejectingItem(null)}>
           <div className="modal-panel" style={{ width: '480px' }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 style={{ margin: 0, fontSize: '14px', color: '#b91c1c' }}>⚠️ Reject Form: {rejectingItem.id}</h3>
-              <button style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setRejectingItem(null)}>✕</button>
+              <h3 style={{ margin: 0, fontSize: '14px', color: '#b91c1c', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <AlertTriangle size={16} />
+                <span>Reject Form: {rejectingItem.id}</span>
+              </h3>
+              <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }} onClick={() => setRejectingItem(null)}>
+                <X size={16} />
+              </button>
             </div>
             <div className="modal-content">
               <p style={{ fontSize: '12px', color: 'var(--text-main)', marginTop: 0 }}>
@@ -1419,20 +1803,27 @@ export default function ApprovalsTab({
         </div>
       )}
 
-      {/* BATCH APPROVAL MODAL */}
+      {/* BATCH ACTION MODAL */}
       {showBatchModal && (
         <div className="modal-backdrop" onClick={() => setShowBatchModal(false)}>
           <div className="modal-panel" style={{ width: '480px' }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 style={{ margin: 0, fontSize: '14px', color: '#047857' }}>⚡ Batch Approval ({selectedItemIds.length} Forms)</h3>
-              <button style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setShowBatchModal(false)}>✕</button>
+              <h3 style={{ margin: 0, fontSize: '14px', color: statusFilter === 'Pending Verification' ? '#b45309' : '#047857', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <Zap size={16} />
+                <span>
+                  {statusFilter === 'Pending Verification' ? 'Batch Verify' : 'Batch Approve'} ({selectedItemIds.length} Forms)
+                </span>
+              </h3>
+              <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }} onClick={() => setShowBatchModal(false)}>
+                <X size={16} />
+              </button>
             </div>
             <div className="modal-content">
               <p style={{ fontSize: '12px', color: 'var(--text-main)', marginTop: 0 }}>
-                You are about to electronically approve <strong>{selectedItemIds.length}</strong> Work Order forms.
+                You are about to electronically {statusFilter === 'Pending Verification' ? 'verify' : 'approve & submit'} <strong>{selectedItemIds.length}</strong> Work Order forms.
               </p>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '4px' }}>Supervisor Sign:</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '4px' }}>Signer Identity:</label>
                 <input
                   type="text"
                   value={electronicSign}
@@ -1447,11 +1838,14 @@ export default function ApprovalsTab({
               <button
                 type="button"
                 className="primary-btn"
-                style={{ backgroundColor: '#10b981', borderColor: '#10b981' }}
+                style={{
+                  backgroundColor: statusFilter === 'Pending Verification' ? '#f59e0b' : '#10b981',
+                  borderColor: statusFilter === 'Pending Verification' ? '#f59e0b' : '#10b981'
+                }}
                 disabled={isProcessing}
-                onClick={handleBatchApprove}
+                onClick={handleBatchAction}
               >
-                Confirm Batch Sign-off
+                Confirm Batch Action
               </button>
             </div>
           </div>
@@ -1463,15 +1857,20 @@ export default function ApprovalsTab({
         <div className="modal-backdrop" onClick={() => setShowPurgeModal(false)}>
           <div className="modal-panel" style={{ width: '480px' }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 style={{ margin: 0, fontSize: '14px', color: '#b91c1c' }}>🧹 Purge Unlinked Forms</h3>
-              <button style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setShowPurgeModal(false)}>✕</button>
+              <h3 style={{ margin: 0, fontSize: '14px', color: '#b91c1c', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <Trash2 size={16} />
+                <span>Purge Unlinked Forms</span>
+              </h3>
+              <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }} onClick={() => setShowPurgeModal(false)}>
+                <X size={16} />
+              </button>
             </div>
             <div className="modal-content">
               <p style={{ fontSize: '13px', color: 'var(--text-main)', marginTop: 0 }}>
-                Apni ki shob unlinked forms (jei forms e kono Work Order nei) permanently delete korte chan?
+                Are you sure you want to permanently delete all unlinked forms (forms without an associated Work Order)?
               </p>
               <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                Eta shudhumatro valid Work Order linked forms gulo ke rakhbe ebong baki mock/dummy forms gulo ke shoriye debe.
+                This will retain valid Work Order linked forms only and remove legacy mock/dummy records.
               </p>
             </div>
             <div className="modal-footer">

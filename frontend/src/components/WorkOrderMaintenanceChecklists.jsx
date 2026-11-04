@@ -1,10 +1,12 @@
-export default function WorkOrderMaintenanceChecklists({ validation, onFillChecklist }) {
+import { AlertTriangle, Check, Clock } from 'lucide-react';
+
+export default function WorkOrderMaintenanceChecklists({ validation, onFillChecklist, isCancelled = false }) {
   return (
             <div className="modal-body" style={{ padding: '20px 0' }}>
               <div style={{ marginBottom: '20px', backgroundColor: 'var(--card-bg)', padding: '14px 18px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <span style={{ fontSize: '14px', fontWeight: 600 }}>Daily Preventive Maintenance Progress</span>
-                  <span style={{ fontSize: '14px', fontWeight: 700, color: validation.allCompleted ? 'var(--success)' : 'var(--warning)' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 700, color: isCancelled ? 'var(--text-muted)' : validation.allCompleted ? 'var(--success)' : 'var(--warning)' }}>
                     {validation.completedCount} / {validation.totalCount} Checklists Submitted
                   </span>
                 </div>
@@ -12,13 +14,19 @@ export default function WorkOrderMaintenanceChecklists({ validation, onFillCheck
                   <div style={{
                     height: '100%',
                     width: `${(validation.totalCount ? validation.completedCount / validation.totalCount : 0) * 100}%`,
-                    backgroundColor: validation.allCompleted ? 'var(--success)' : 'var(--warning)',
+                    backgroundColor: isCancelled ? 'var(--text-muted)' : validation.allCompleted ? 'var(--success)' : 'var(--warning)',
                     transition: 'width 0.3s ease'
                   }} />
                 </div>
-                {!validation.allCompleted && (
-                  <p style={{ margin: '8px 0 0', fontSize: '12px', color: 'var(--warning)', fontStyle: 'italic' }}>
-                    ⚠️ All {validation.totalCount || 'required'} Daily Preventive Checklists must be submitted before starting this Work Order.
+                {!validation.allCompleted && !isCancelled && (
+                  <p style={{ margin: '8px 0 0', fontSize: '12px', color: 'var(--warning)', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+                    <span>All {validation.totalCount || 'required'} Daily Preventive Checklists must be submitted before starting this Work Order.</span>
+                  </p>
+                )}
+                {isCancelled && (
+                  <p style={{ margin: '8px 0 0', fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>Work Order is cancelled. Maintenance checklists are not required and cannot be filled.</span>
                   </p>
                 )}
               </div>
@@ -40,12 +48,14 @@ export default function WorkOrderMaintenanceChecklists({ validation, onFillCheck
                         <span className="badge" style={{ fontSize: '10px', padding: '2px 6px' }}>{chk.area}</span>
                       </div>
                       {chk.completed ? (
-                        <span style={{ fontSize: '11px', color: 'var(--success)', display: 'block', marginTop: '2px' }}>
-                          ✓ Submitted ID: {chk.schedule_name}
+                        <span style={{ fontSize: '11px', color: 'var(--success)', display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                          <Check size={12} />
+                          <span>Submitted ID: {chk.schedule_name}</span>
                         </span>
                       ) : (
-                        <span style={{ fontSize: '11px', color: 'var(--warning)', display: 'block', marginTop: '2px' }}>
-                          ⏳ Unsubmitted / Pending Check
+                        <span style={{ fontSize: '11px', color: isCancelled ? 'var(--text-muted)' : 'var(--warning)', display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                          <Clock size={12} />
+                          <span>{isCancelled ? 'Checklist not submitted' : 'Unsubmitted / Pending Check'}</span>
                         </span>
                       )}
                     </div>
@@ -54,6 +64,10 @@ export default function WorkOrderMaintenanceChecklists({ validation, onFillCheck
                       {chk.completed ? (
                         <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--success)', backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: '4px 8px', borderRadius: '4px' }}>
                           Completed
+                        </span>
+                      ) : isCancelled || !onFillChecklist ? (
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)', padding: '4px 8px', borderRadius: '4px', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+                          Not Required (Cancelled)
                         </span>
                       ) : (
                         <button

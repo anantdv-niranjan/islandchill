@@ -5,13 +5,69 @@
   --bg-app: #f9fafb;
   --bg-card: #ffffff;
   --bg-sidebar: #111111;
+  --border-color: #e5e7eb;
+
+  /* Primary / Brand Accent (Gold/Amber) */
   --accent: #f59e0b; /* Gold/Amber */
   --accent-hover: #d97706;
-  --border-color: #e5e7eb;
+  --accent-light: rgba(245, 158, 11, 0.12);
+  --accent-text: #b45309;
+  --accent-border: rgba(245, 158, 11, 0.28);
+  --primary: var(--accent);
+  --primary-hover: var(--accent-hover);
+  --primary-light: var(--accent-light);
+  --primary-text: var(--accent-text);
+  --primary-border: var(--accent-border);
+
+  /* Secondary (Grey Shades) */
+  --secondary: #6b7280;
+  --secondary-hover: #4b5563;
+  --secondary-light: #f1f5f9;
+  --secondary-text: #475569;
+  --secondary-border: #e2e8f0;
+
+  /* Status Colors */
   --success: #10b981;
+  --success-hover: #059669;
+  --success-light: rgba(16, 185, 129, 0.12);
+  --success-text: #047857;
+  --success-border: rgba(16, 185, 129, 0.28);
+
   --warning: #f59e0b;
+  --warning-hover: #d97706;
+  --warning-light: rgba(245, 158, 11, 0.12);
+  --warning-text: #b45309;
+  --warning-border: rgba(245, 158, 11, 0.28);
+
   --danger: #ef4444;
+  --danger-hover: #dc2626;
+  --danger-light: rgba(239, 68, 68, 0.12);
+  --danger-text: #b91c1c;
+  --danger-border: rgba(239, 68, 68, 0.28);
+
+  --error: #ef4444;
+  --error-hover: #dc2626;
+  --error-light: rgba(239, 68, 68, 0.12);
+  --error-text: #b91c1c;
+  --error-border: rgba(239, 68, 68, 0.28);
+
   --info: #3b82f6;
+  --info-hover: #2563eb;
+  --info-light: rgba(59, 130, 246, 0.12);
+  --info-text: #1d4ed8;
+  --info-border: rgba(59, 130, 246, 0.28);
+
+  /* Supplemental App Colors */
+  --purple: #8b5cf6;
+  --purple-hover: #7c3aed;
+  --purple-light: rgba(139, 92, 246, 0.12);
+  --purple-text: #6d28d9;
+  --purple-border: rgba(139, 92, 246, 0.28);
+
+  --teal: #0d9488;
+  --teal-light: rgba(13, 148, 136, 0.1);
+  --teal-text: #0f766e;
+  --teal-border: rgba(13, 148, 136, 0.25);
 
   --sans: 'Inter', system-ui, -apple-system, sans-serif;
   --heading: 'Outfit', 'Inter', system-ui, sans-serif;
@@ -54,4 +110,710 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-heading);
   margin-top: 0;
 }
+
+/* ==========================================================================
+   UI Badge Component Styles
+   ========================================================================== */
+
+.badge-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--sans);
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+  vertical-align: middle;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+  text-decoration: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Badge Sizes */
+.badge-size-sm {
+  font-size: 10px;
+  padding: 1.5px 6px;
+  border-radius: 4px;
+  gap: 3.5px;
+}
+
+.badge-size-md {
+  font-size: 11px;
+  padding: 2.5px 8px;
+  border-radius: 6px;
+  gap: 4.5px;
+}
+
+.badge-size-lg {
+  font-size: 12.5px;
+  padding: 4px 11px;
+  border-radius: 7px;
+  gap: 6px;
+}
+
+/* Badge Shapes */
+.badge-shape-pill {
+  border-radius: 9999px !important;
+}
+
+.badge-shape-square {
+  border-radius: 3px !important;
+}
+
+/* Dot Indicator */
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.badge-size-sm .badge-dot {
+  width: 5px;
+  height: 5px;
+}
+
+.badge-size-lg .badge-dot {
+  width: 7px;
+  height: 7px;
+}
+
+.badge-dot-pulse {
+  animation: badgeDotPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes badgeDotPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.85);
+  }
+}
+
+/* Icon Container */
+.badge-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+/* Remove / Close Button */
+.badge-remove-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin-left: 2px;
+  margin-right: -2px;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.65;
+  border-radius: 50%;
+  line-height: 1;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.badge-remove-btn:hover {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+.badge-remove-btn:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+}
+
+/* --- Subtle / Soft Appearance (Default) --- */
+.badge-subtle-primary {
+  background-color: var(--accent-light);
+  color: var(--accent-text);
+  border-color: var(--accent-border);
+}
+.badge-subtle-primary .badge-dot {
+  background-color: var(--accent);
+}
+
+.badge-subtle-secondary {
+  background-color: var(--secondary-light);
+  color: var(--secondary-text);
+  border-color: var(--secondary-border);
+}
+.badge-subtle-secondary .badge-dot {
+  background-color: var(--secondary);
+}
+
+.badge-subtle-success {
+  background-color: var(--success-light);
+  color: var(--success-text);
+  border-color: var(--success-border);
+}
+.badge-subtle-success .badge-dot {
+  background-color: var(--success);
+}
+
+.badge-subtle-warning {
+  background-color: var(--warning-light);
+  color: var(--warning-text);
+  border-color: var(--warning-border);
+}
+.badge-subtle-warning .badge-dot {
+  background-color: var(--warning);
+}
+
+.badge-subtle-error {
+  background-color: var(--error-light);
+  color: var(--error-text);
+  border-color: var(--error-border);
+}
+.badge-subtle-error .badge-dot {
+  background-color: var(--error);
+}
+
+.badge-subtle-info {
+  background-color: var(--info-light);
+  color: var(--info-text);
+  border-color: var(--info-border);
+}
+.badge-subtle-info .badge-dot {
+  background-color: var(--info);
+}
+
+.badge-subtle-purple {
+  background-color: var(--purple-light);
+  color: var(--purple-text);
+  border-color: var(--purple-border);
+}
+.badge-subtle-purple .badge-dot {
+  background-color: var(--purple);
+}
+
+/* --- Solid Appearance --- */
+.badge-solid-primary {
+  background-color: var(--accent);
+  color: #111827;
+  border-color: var(--accent);
+}
+.badge-solid-primary .badge-dot {
+  background-color: #111827;
+}
+
+.badge-solid-secondary {
+  background-color: var(--secondary);
+  color: #ffffff;
+  border-color: var(--secondary);
+}
+.badge-solid-secondary .badge-dot {
+  background-color: #ffffff;
+}
+
+.badge-solid-success {
+  background-color: var(--success);
+  color: #ffffff;
+  border-color: var(--success);
+}
+.badge-solid-success .badge-dot {
+  background-color: #ffffff;
+}
+
+.badge-solid-warning {
+  background-color: var(--warning);
+  color: #111827;
+  border-color: var(--warning);
+}
+.badge-solid-warning .badge-dot {
+  background-color: #111827;
+}
+
+.badge-solid-error {
+  background-color: var(--error);
+  color: #ffffff;
+  border-color: var(--error);
+}
+.badge-solid-error .badge-dot {
+  background-color: #ffffff;
+}
+
+.badge-solid-info {
+  background-color: var(--info);
+  color: #ffffff;
+  border-color: var(--info);
+}
+.badge-solid-info .badge-dot {
+  background-color: #ffffff;
+}
+
+.badge-solid-purple {
+  background-color: var(--purple);
+  color: #ffffff;
+  border-color: var(--purple);
+}
+.badge-solid-purple .badge-dot {
+  background-color: #ffffff;
+}
+
+/* --- Outline Appearance --- */
+.badge-outline-primary {
+  background-color: transparent;
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+.badge-outline-primary .badge-dot {
+  background-color: var(--accent);
+}
+
+.badge-outline-secondary {
+  background-color: transparent;
+  color: var(--secondary-text);
+  border-color: var(--secondary);
+}
+.badge-outline-secondary .badge-dot {
+  background-color: var(--secondary);
+}
+
+.badge-outline-success {
+  background-color: transparent;
+  color: var(--success-text);
+  border-color: var(--success);
+}
+.badge-outline-success .badge-dot {
+  background-color: var(--success);
+}
+
+.badge-outline-warning {
+  background-color: transparent;
+  color: var(--warning-text);
+  border-color: var(--warning);
+}
+.badge-outline-warning .badge-dot {
+  background-color: var(--warning);
+}
+
+.badge-outline-error {
+  background-color: transparent;
+  color: var(--error-text);
+  border-color: var(--error);
+}
+.badge-outline-error .badge-dot {
+  background-color: var(--error);
+}
+
+.badge-outline-info {
+  background-color: transparent;
+  color: var(--info-text);
+  border-color: var(--info);
+}
+.badge-outline-info .badge-dot {
+  background-color: var(--info);
+}
+
+.badge-outline-purple {
+  background-color: transparent;
+  color: var(--purple-text);
+  border-color: var(--purple);
+}
+.badge-outline-purple .badge-dot {
+  background-color: var(--purple);
+}
+
+/* Legacy & Utility Helper Classes */
+.badge-primary {
+  background-color: var(--accent-light);
+  color: var(--accent-text);
+  border-color: var(--accent-border);
+}
+.badge-secondary {
+  background-color: var(--secondary-light);
+  color: var(--secondary-text);
+  border-color: var(--secondary-border);
+}
+.badge-success {
+  background-color: var(--success-light);
+  color: var(--success-text);
+  border-color: var(--success-border);
+}
+.badge-warning {
+  background-color: var(--warning-light);
+  color: var(--warning-text);
+  border-color: var(--warning-border);
+}
+.badge-error {
+  background-color: var(--error-light);
+  color: var(--error-text);
+  border-color: var(--error-border);
+}
+.badge-info {
+  background-color: var(--info-light);
+  color: var(--info-text);
+  border-color: var(--info-border);
+}
+
+/* ==========================================================================
+   UI Button Component Styles
+   ========================================================================== */
+
+.btn-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--sans);
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+  vertical-align: middle;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease, transform 0.05s ease;
+}
+
+.btn-base:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn-base:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.btn-base:disabled,
+.btn-base.btn-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Button Sizes */
+.btn-size-sm {
+  font-size: 11px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  gap: 5px;
+}
+
+.btn-size-md {
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  gap: 7px;
+}
+
+.btn-size-lg {
+  font-size: 14px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  gap: 8px;
+}
+
+/* Icon-only size overrides */
+.btn-icon-only.btn-size-sm {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+}
+
+.btn-icon-only.btn-size-md {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+}
+
+.btn-icon-only.btn-size-lg {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+}
+
+/* Shapes */
+.btn-shape-pill {
+  border-radius: 9999px !important;
+}
+
+.btn-shape-square {
+  border-radius: 3px !important;
+}
+
+/* Spinner */
+.btn-spinner {
+  animation: btnSpin 1s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes btnSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Icon Container */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+/* --- Solid Appearance (Default for Buttons) --- */
+.btn-solid-primary {
+  background-color: var(--accent);
+  color: #111111;
+  border-color: var(--accent);
+}
+.btn-solid-primary:hover:not(:disabled) {
+  background-color: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn-solid-secondary {
+  background-color: var(--secondary-light);
+  color: var(--secondary-text);
+  border-color: var(--secondary-border);
+}
+.btn-solid-secondary:hover:not(:disabled) {
+  background-color: #e2e8f0;
+  border-color: #cbd5e1;
+  color: var(--text-heading);
+}
+
+.btn-solid-success {
+  background-color: var(--success);
+  color: #ffffff;
+  border-color: var(--success);
+}
+.btn-solid-success:hover:not(:disabled) {
+  background-color: var(--success-hover);
+  border-color: var(--success-hover);
+}
+
+.btn-solid-warning {
+  background-color: var(--warning);
+  color: #111111;
+  border-color: var(--warning);
+}
+.btn-solid-warning:hover:not(:disabled) {
+  background-color: var(--warning-hover);
+  border-color: var(--warning-hover);
+}
+
+.btn-solid-error {
+  background-color: var(--error);
+  color: #ffffff;
+  border-color: var(--error);
+}
+.btn-solid-error:hover:not(:disabled) {
+  background-color: var(--error-hover);
+  border-color: var(--error-hover);
+}
+
+.btn-solid-info {
+  background-color: var(--info);
+  color: #ffffff;
+  border-color: var(--info);
+}
+.btn-solid-info:hover:not(:disabled) {
+  background-color: var(--info-hover);
+  border-color: var(--info-hover);
+}
+
+.btn-solid-purple {
+  background-color: var(--purple);
+  color: #ffffff;
+  border-color: var(--purple);
+}
+.btn-solid-purple:hover:not(:disabled) {
+  background-color: var(--purple-hover);
+  border-color: var(--purple-hover);
+}
+
+/* --- Transparent / Link / Ghost Variant --- */
+.btn-transparent,
+.btn-solid-transparent,
+.btn-subtle-transparent,
+.btn-outline-transparent {
+  background-color: transparent;
+  color: var(--accent-text);
+  border-color: transparent;
+  box-shadow: none;
+}
+.btn-transparent:hover:not(:disabled),
+.btn-solid-transparent:hover:not(:disabled),
+.btn-subtle-transparent:hover:not(:disabled),
+.btn-outline-transparent:hover:not(:disabled) {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: var(--accent-hover);
+}
+
+/* Link specific styling (clean inline link) */
+.btn-link {
+  background-color: transparent;
+  border-color: transparent;
+  color: var(--accent);
+  padding: 0;
+  height: auto;
+  min-height: 0;
+  display: inline-flex;
+  font-weight: 600;
+  text-decoration: none;
+}
+.btn-link:hover:not(:disabled) {
+  text-decoration: underline;
+  color: var(--accent-hover);
+  background-color: transparent;
+}
+
+/* --- Subtle / Soft Appearance --- */
+.btn-subtle-primary {
+  background-color: var(--accent-light);
+  color: var(--accent-text);
+  border-color: var(--accent-border);
+}
+.btn-subtle-primary:hover:not(:disabled) {
+  background-color: rgba(245, 158, 11, 0.2);
+  border-color: var(--accent);
+}
+
+.btn-subtle-secondary {
+  background-color: var(--secondary-light);
+  color: var(--secondary-text);
+  border-color: var(--secondary-border);
+}
+.btn-subtle-secondary:hover:not(:disabled) {
+  background-color: #e2e8f0;
+  color: var(--text-heading);
+}
+
+.btn-subtle-success {
+  background-color: var(--success-light);
+  color: var(--success-text);
+  border-color: var(--success-border);
+}
+.btn-subtle-success:hover:not(:disabled) {
+  background-color: rgba(16, 185, 129, 0.2);
+  border-color: var(--success);
+}
+
+.btn-subtle-warning {
+  background-color: var(--warning-light);
+  color: var(--warning-text);
+  border-color: var(--warning-border);
+}
+.btn-subtle-warning:hover:not(:disabled) {
+  background-color: rgba(245, 158, 11, 0.2);
+  border-color: var(--warning);
+}
+
+.btn-subtle-error {
+  background-color: var(--error-light);
+  color: var(--error-text);
+  border-color: var(--error-border);
+}
+.btn-subtle-error:hover:not(:disabled) {
+  background-color: rgba(239, 68, 68, 0.2);
+  border-color: var(--error);
+}
+
+.btn-subtle-info {
+  background-color: var(--info-light);
+  color: var(--info-text);
+  border-color: var(--info-border);
+}
+.btn-subtle-info:hover:not(:disabled) {
+  background-color: rgba(59, 130, 246, 0.2);
+  border-color: var(--info);
+}
+
+.btn-subtle-purple {
+  background-color: var(--purple-light);
+  color: var(--purple-text);
+  border-color: var(--purple-border);
+}
+.btn-subtle-purple:hover:not(:disabled) {
+  background-color: rgba(139, 92, 246, 0.2);
+  border-color: var(--purple);
+}
+
+/* --- Outline Appearance --- */
+.btn-outline-primary {
+  background-color: transparent;
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+.btn-outline-primary:hover:not(:disabled) {
+  background-color: var(--accent-light);
+}
+
+.btn-outline-secondary {
+  background-color: transparent;
+  color: var(--text-main);
+  border-color: var(--border-color);
+}
+.btn-outline-secondary:hover:not(:disabled) {
+  background-color: var(--secondary-light);
+  border-color: #cbd5e1;
+}
+
+.btn-outline-success {
+  background-color: transparent;
+  color: var(--success-text);
+  border-color: var(--success);
+}
+.btn-outline-success:hover:not(:disabled) {
+  background-color: var(--success-light);
+}
+
+.btn-outline-warning {
+  background-color: transparent;
+  color: var(--warning-text);
+  border-color: var(--warning);
+}
+.btn-outline-warning:hover:not(:disabled) {
+  background-color: var(--warning-light);
+}
+
+.btn-outline-error {
+  background-color: transparent;
+  color: var(--error-text);
+  border-color: var(--error);
+}
+.btn-outline-error:hover:not(:disabled) {
+  background-color: var(--error-light);
+}
+
+.btn-outline-info {
+  background-color: transparent;
+  color: var(--info-text);
+  border-color: var(--info);
+}
+.btn-outline-info:hover:not(:disabled) {
+  background-color: var(--info-light);
+}
+
+.btn-outline-purple {
+  background-color: transparent;
+  color: var(--purple-text);
+  border-color: var(--purple);
+}
+.btn-outline-purple:hover:not(:disabled) {
+  background-color: var(--purple-light);
+}
+
+.btn-full-width {
+  width: 100%;
+}
+
+
 

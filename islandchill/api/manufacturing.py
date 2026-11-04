@@ -1,6 +1,41 @@
 import frappe
 from frappe import _
 
+
+@frappe.whitelist()
+def get_incidents(status=None, line=None, limit=100, **kwargs):
+    from islandchill.api import incident_engine
+    return incident_engine.get_incidents(status=status, line=line, limit=limit, **kwargs)
+
+
+@frappe.whitelist()
+def create_incident(data=None, **kwargs):
+    from islandchill.api import incident_engine
+    payload = data if data is not None else kwargs
+    return incident_engine.create_incident(data=payload)
+
+
+@frappe.whitelist()
+def update_incident_investigation(incident_id=None, status=None, investigation_status=None,
+                                   root_cause=None, corrective_action=None,
+                                   downtime_minutes=None, units_rejected=None,
+                                   resolved_by=None, resolution_date=None, **kwargs):
+    from islandchill.api import incident_engine
+    target_id = incident_id or kwargs.get("name") or kwargs.get("id")
+    return incident_engine.update_incident_investigation(
+        incident_id=target_id,
+        status=status,
+        investigation_status=investigation_status,
+        root_cause=root_cause,
+        corrective_action=corrective_action,
+        downtime_minutes=downtime_minutes,
+        units_rejected=units_rejected,
+        resolved_by=resolved_by,
+        resolution_date=resolution_date,
+        **kwargs
+    )
+
+
 WORK_ORDER_FINAL_STATUSES = {"Completed", "Closed", "Stopped", "Cancelled"}
 
 
@@ -757,16 +792,8 @@ def finish_work_order(work_order, qty=None, process_loss_qty=None, scrap_items=N
 
 @frappe.whitelist()
 def get_all_cleaning_records():
-    doctypes = [
-        'Cleaning of Toilets',
-        'Cleaning of Dining Room',
-        'Factory Floor',
-        'Cleaning of Lab and Office',
-        'Incubator Temperature Record',
-        'Balance Check or Callibration',
-        'equipment sanitation and cip',
-        'Outside Perimeter Cleaning'
-    ]
+    from islandchill.api.permissions import get_configured_form_doctypes
+    doctypes = get_configured_form_doctypes(category="cleaning") or []
     all_records = []
     for dt in doctypes:
         if frappe.db.exists("DocType", dt):
@@ -816,6 +843,8 @@ def _sanitize_employee_link_val(val):
     if not val or not isinstance(val, str):
         return val
     val = val.strip()
+    if not val:
+        return ""
     import re
     match = re.search(r'\((HR-EMP-\d+|EMP-\d+)\)', val, re.IGNORECASE)
     if match:
@@ -831,6 +860,21 @@ def _sanitize_employee_link_val(val):
     if frappe.db.exists("Employee", val):
         return val
 
+    # Lookup by Employee.user_id
+    emp_by_user = frappe.db.get_value("Employee", {"user_id": val}, "name")
+    if emp_by_user:
+        return emp_by_user
+
+    # Lookup by User table email, username, or full_name
+    matched_user = frappe.db.get_value("User", [["username", "=", val]], "name") or \
+                   frappe.db.get_value("User", [["full_name", "=", val]], "name") or \
+                   frappe.db.get_value("User", [["first_name", "=", val]], "name") or \
+                   frappe.db.get_value("User", [["email", "=", val]], "name")
+    if matched_user:
+        emp_by_user = frappe.db.get_value("Employee", {"user_id": matched_user}, "name")
+        if emp_by_user:
+            return emp_by_user
+
     emp = frappe.db.get_value("Employee", {"employee_name": val}, "name")
     if emp:
         return emp
@@ -838,6 +882,25 @@ def _sanitize_employee_link_val(val):
     emp_like = frappe.db.get_value("Employee", [["employee_name", "like", f"%{val}%"]], "name")
     if emp_like:
         return emp_like
+
+    if val.lower() in ("administrator", "admin", "system administrator"):
+        admin_emp = frappe.db.get_value("Employee", {"user_id": "Administrator"}, "name")
+        if admin_emp:
+            return admin_emp
+
+    # If val is a placeholder role or unknown label, try to resolve to current user's employee or an active employee
+    session_user = getattr(frappe.session, "user", None)
+    if session_user and session_user != "Guest":
+        sess_emp = frappe.db.get_value("Employee", {"user_id": session_user}, "name")
+        if sess_emp:
+            return sess_emp
+
+    # Fallback to first active employee if value cannot be linked to prevent LinkValidationError
+    placeholder_terms = ("analyst", "supervisor", "operator", "staff", "technician", "checker", "verifier", "approved by", "checked by")
+    if val.lower() in placeholder_terms or not frappe.db.exists("Employee", val):
+        first_emp = frappe.db.get_value("Employee", {"status": "Active"}, "name") or frappe.db.get_value("Employee", {}, "name")
+        if first_emp:
+            return first_emp
 
     return val
 
@@ -907,33 +970,54 @@ def _clean_doc_payload_links(doctype, payload_dict):
     try:
         meta = frappe.get_meta(doctype)
         link_fields = {df.fieldname: df.options for df in meta.fields if df.fieldtype == "Link"}
+        table_fields = {df.fieldname: df.options for df in meta.fields if df.fieldtype in ("Table", "Table MultiSelect")}
     except Exception:
         link_fields = {}
+        table_fields = {}
 
     cleaned = {}
     for k, v in payload_dict.items():
-        if k in link_fields and link_fields[k] == "Employee":
-            cleaned[k] = _sanitize_employee_link_val(v)
-        elif k in link_fields:
-            cleaned_val = _sanitize_employee_link_val(v) if isinstance(v, str) else v
-            target_dt = link_fields[k]
-            if isinstance(cleaned_val, str) and cleaned_val:
-                cleaned_val = _resolve_target_link_doc(target_dt, cleaned_val)
-            cleaned[k] = cleaned_val
-        elif isinstance(v, list):
+        if k in table_fields:
+            # Frappe expects an iterable of dicts for Table fields; floats/ints/strings cause TypeError: 'float' object is not iterable
+            child_dt = table_fields[k]
+            if not isinstance(v, list):
+                if v is None or v == "":
+                    cleaned[k] = []
+                    continue
+                # If a primitive value was passed under a Table field name (e.g. gas_level: 2.8)
+                child_meta = frappe.get_meta(child_dt) if child_dt and frappe.db.exists("DocType", child_dt) else None
+                row_dict = {}
+                if child_meta:
+                    if child_meta.has_field(k):
+                        row_dict[k] = v
+                    elif child_meta.has_field("reading"):
+                        row_dict["reading"] = v
+                    elif child_meta.has_field("value"):
+                        row_dict["value"] = v
+                    else:
+                        for f in child_meta.fields:
+                            if f.fieldtype in ("Float", "Int", "Data", "Currency", "Percent"):
+                                row_dict[f.fieldname] = v
+                                break
+                if not row_dict:
+                    row_dict[k] = v
+                cleaned[k] = [row_dict]
+                continue
+
+            # v is already a list, clean child links and validate Select options
             try:
-                table_field_df = meta.get_field(k) if 'meta' in locals() else None
-                child_dt = table_field_df.options if table_field_df and table_field_df.fieldtype == "Table" else None
                 child_meta = frappe.get_meta(child_dt) if child_dt and frappe.db.exists("DocType", child_dt) else None
                 child_links = {df.fieldname: df.options for df in child_meta.fields if df.fieldtype == "Link"} if child_meta else {}
+                child_selects = {df.fieldname: [op.strip() for op in (df.options or "").split("\n") if op.strip()] for df in child_meta.fields if df.fieldtype == "Select"} if child_meta else {}
             except Exception:
                 child_links = {}
+                child_selects = {}
 
             cleaned_rows = []
             for row in v:
                 if isinstance(row, dict):
                     row_copy = dict(row)
-                    for cf_name, cf_val in row_copy.items():
+                    for cf_name, cf_val in list(row_copy.items()):
                         if isinstance(cf_val, str) and ("(HR-EMP-" in cf_val or "(EMP-" in cf_val):
                             cf_val = _sanitize_employee_link_val(cf_val)
                             row_copy[cf_name] = cf_val
@@ -942,10 +1026,46 @@ def _clean_doc_payload_links(doctype, payload_dict):
                         if isinstance(cf_val, str) and cf_val and target_dt and target_dt != "Employee":
                             row_copy[cf_name] = _resolve_target_link_doc(target_dt, cf_val)
 
+                        # Validate and sanitize Select fields to prevent ValidationError
+                        if cf_name in child_selects:
+                            valid_opts = child_selects[cf_name]
+                            if valid_opts and cf_val not in valid_opts and cf_val != "":
+                                # Map common status words like Pass/Fail to appropriate Select code if applicable
+                                str_val = str(cf_val).strip()
+                                if str_val in valid_opts:
+                                    row_copy[cf_name] = str_val
+                                elif str_val.lower() in ("pass", "ok", "acceptable", "good", "normal", "yes"):
+                                    if "WI" in valid_opts:
+                                        row_copy[cf_name] = "WI"
+                                    elif "Pass" in valid_opts:
+                                        row_copy[cf_name] = "Pass"
+                                    else:
+                                        row_copy[cf_name] = valid_opts[0]
+                                elif str_val.lower() in ("fail", "defect", "rejected", "no"):
+                                    if "WO" in valid_opts:
+                                        row_copy[cf_name] = "WO"
+                                    elif "Fail" in valid_opts:
+                                        row_copy[cf_name] = "Fail"
+                                    else:
+                                        row_copy[cf_name] = valid_opts[-1]
+                                else:
+                                    # Fallback: leave blank or use first valid option
+                                    row_copy[cf_name] = "" if "" in (child_meta.get_field(cf_name).options or "").split("\n") else (valid_opts[0] if valid_opts else "")
+
                     cleaned_rows.append(row_copy)
                 else:
                     cleaned_rows.append(row)
             cleaned[k] = cleaned_rows
+        elif k in link_fields and link_fields[k] == "Employee":
+            cleaned[k] = _sanitize_employee_link_val(v)
+        elif k in link_fields:
+            cleaned_val = _sanitize_employee_link_val(v) if isinstance(v, str) else v
+            target_dt = link_fields[k]
+            if isinstance(cleaned_val, str) and cleaned_val:
+                cleaned_val = _resolve_target_link_doc(target_dt, cleaned_val)
+            cleaned[k] = cleaned_val
+        elif isinstance(v, list):
+            cleaned[k] = v
         else:
             cleaned[k] = _sanitize_employee_link_val(v) if isinstance(v, str) and ("(HR-EMP-" in v or "(EMP-" in v) else v
 
@@ -1000,7 +1120,14 @@ def create_cleaning_sanitation_log(doctype, payload=None):
         'Traceability of products',
         'Induction',
         'Customer Complaint Report',
-        'Preventive Maintenance Request'
+        'Preventive Maintenance Request',
+        'Machine Breakdown',
+        'Container Loading Inspection',
+        'CSD RTD Line Start Sensory Evaluation',
+        'Standard Form 17 For First Aid',
+        'Enviromental Swab Test',
+        'Injury Report',
+        'Accident and Disease Notification Report'
     }
 
     if doctype not in allowed_doctypes:
@@ -1060,7 +1187,13 @@ def create_cleaning_sanitation_log(doctype, payload=None):
         if not curr_app or curr_app in ["Draft", "Pending"]:
             doc.approval_status = "Approved"
 
-    if doc.meta.has_field("workflow_state"):
+    # If governed by an active Workflow, new records must initialize at the workflow's starting state
+    # (e.g. 'Draft'). Forcing 'Approved' on unsaved docs triggers WorkflowPermissionError during insert.
+    wf_name = frappe.model.workflow.get_workflow_name(doctype) if frappe.db.exists("DocType", doctype) else None
+    if wf_name:
+        wf = frappe.get_cached_doc("Workflow", wf_name)
+        doc.set(wf.workflow_state_field, wf.states[0].state)
+    elif doc.meta.has_field("workflow_state"):
         curr_wf = doc.get("workflow_state")
         if not curr_wf or curr_wf in ["Draft", "Pending"]:
             doc.workflow_state = "Approved"
@@ -1074,10 +1207,54 @@ def create_cleaning_sanitation_log(doctype, payload=None):
             doc.submit()
         except Exception as se:
             frappe.log_error(f"Auto-submit for {doctype} {doc.name} failed: {str(se)}")
-            
     frappe.db.commit()
 
-    return {"success": True, "name": doc.name, "status": doc.get("status") or doc.get("approval_status") or ("Submitted" if doc.docstatus == 1 else "Approved"), "doc": doc.as_dict()}
+    # Auto-create Plant Incident if flagged or failed
+    incident_name = None
+    is_inc = doc.get("is_incident") or payload_copy.get("is_incident")
+    if is_inc and str(is_inc) not in ("0", "false", "False", "None"):
+        try:
+            from islandchill.api.incident_engine import create_incident_from_doc
+            equip_doctypes = {
+                "Balance Check or Callibration", "Autoclave Record", "Silver Photometer Log",
+                "Silver Photometer Log and Calibration", "Machine Breakdown",
+                "Preventive Maintenance Request", "Daily Preventative Maintenance Schedule"
+            }
+            cleaning_doctypes = {
+                "Cleaning of Toilets", "Cleaning of Dining Room", "Factory Floor", "Cleaning of Lab and Office",
+                "Toilet Cleaning purpose", "Dining Room Cleaning Purpose", "Factory Floor Cleaning Purpose",
+                "Lab and Office Cleaning Purpose", "equipment sanitation and cip", "Outside Perimeter Cleaning"
+            }
+            if doctype in equip_doctypes:
+                cat = "Equipment Fault"
+            elif doctype in cleaning_doctypes:
+                cat = "Cleaning Required"
+            else:
+                cat = "Quality Alert"
+            raw_sev = doc.get("incident_severity") or payload_copy.get("incident_severity") or "Medium"
+            sev = raw_sev.capitalize() if raw_sev else "Medium"
+            note = doc.get("incident_note") or payload_copy.get("incident_note") or f"Operational deviation logged on {doctype} {doc.name}"
+            incident_name = create_incident_from_doc(
+                doc,
+                category=cat,
+                severity=sev,
+                description=note,
+                detection_type="Manual Flag"
+            )
+            if incident_name:
+                doc.linked_incident = incident_name
+        except Exception as ie:
+            frappe.log_error(f"Auto-create incident for {doctype} {doc.name} failed: {str(ie)}")
+
+    frappe.db.commit()
+
+    return {
+        "success": True,
+        "name": doc.name,
+        "status": doc.get("status") or doc.get("approval_status") or ("Submitted" if doc.docstatus == 1 else "Approved"),
+        "incident_name": incident_name or doc.get("linked_incident"),
+        "doc": doc.as_dict()
+    }
 
 
 @frappe.whitelist()
@@ -1168,7 +1345,7 @@ def get_work_order_dashboard(limit=20, start=0, company=None, status=None, searc
         )
         maint_schedules = frappe.get_all(
             "Daily Preventative Maintenance Schedule",
-            filters=[["work_order", "in", wo_names], ["docstatus", "=", 1]],
+            filters=[["work_order", "in", wo_names], ["docstatus", "!=", 2], ["workflow_state", "not in", ["Rejected"]]],
             fields=["work_order", "equipment"],
             ignore_permissions=True
         )
@@ -1473,11 +1650,13 @@ def get_work_order_maintenance_checklists(work_order):
     # Query submitted Daily Preventative Maintenance Schedule records linked to this work order
     submitted_schedules = frappe.get_all(
         "Daily Preventative Maintenance Schedule",
-        filters={
-            "work_order": work_order,
-            "docstatus": 1
-        },
+        filters=[
+            ["work_order", "=", work_order],
+            ["docstatus", "!=", 2],
+            ["workflow_state", "not in", ["Rejected"]]
+        ],
         fields=["name", "equipment", "area", "creation", "workflow_state"],
+        order_by="creation desc",
         ignore_permissions=True
     )
 
@@ -1902,7 +2081,8 @@ def get_all_warehouses():
 @frappe.whitelist(allow_guest=True)
 def create_daily_pm_schedule(equipment, area, work_order, operator, supervisor,
                               overall_remarks, maintenance_details, week_no=None,
-                              from_date=None, to_date=None):
+                              from_date=None, to_date=None, is_incident=0,
+                              incident_severity=None, incident_note=None, **kwargs):
     """Create a Daily Preventative Maintenance Schedule and submit it."""
     import json
     if isinstance(maintenance_details, str):
@@ -1912,12 +2092,27 @@ def create_daily_pm_schedule(equipment, area, work_order, operator, supervisor,
         _validate_work_order_not_future(work_order, "submit Maintenance Checklist")
 
     doc = frappe.new_doc("Daily Preventative Maintenance Schedule")
-    doc.equipment = equipment
-    doc.area = area
+    doc.equipment = _resolve_target_link_doc("Equipment List", equipment) if equipment else ""
+    doc.area = _resolve_target_link_doc("Area List", area) if area else ""
     doc.work_order = work_order or ""
-    doc.sign_of_the_operator = operator or "Administrator"
-    doc.sign_of_supervisor = supervisor or "Administrator"
+
+    sanitized_op = _sanitize_employee_link_val(operator) if operator else None
+    if sanitized_op and not frappe.db.exists("Employee", sanitized_op):
+        sanitized_op = frappe.db.get_value("Employee", {}, "name")
+    doc.sign_of_the_operator = sanitized_op or frappe.db.get_value("Employee", {}, "name") or ""
+
+    sanitized_sv = _sanitize_employee_link_val(supervisor) if supervisor else None
+    if sanitized_sv and not frappe.db.exists("Employee", sanitized_sv):
+        sanitized_sv = ""
+    doc.sign_of_supervisor = sanitized_sv or ""
     doc.overall_remarks = overall_remarks or ""
+
+    if is_incident and str(is_incident) not in ("0", "false", "False", "None"):
+        doc.is_incident = 1
+        if incident_severity:
+            doc.incident_severity = incident_severity
+        if incident_note:
+            doc.incident_note = incident_note
 
     if week_no:
         try:
@@ -1941,19 +2136,37 @@ def create_daily_pm_schedule(equipment, area, work_order, operator, supervisor,
         else:
             row.date = frappe.utils.nowdate()
 
+    doc.workflow_state = "Draft"
     doc.insert(ignore_permissions=True)
-    doc.submit()
+
+    linked_incident = None
+    if getattr(doc, "is_incident", 0):
+        try:
+            from islandchill.api.incident_engine import process_maintenance_incident
+            linked_incident = process_maintenance_incident(doc)
+            if linked_incident:
+                doc.linked_incident = linked_incident
+        except Exception as ie:
+            frappe.log_error(f"Error processing maintenance incident: {ie}")
+
     frappe.db.commit()
 
-    return {"success": True, "name": doc.name, "equipment": doc.equipment}
+    return {
+        "success": True,
+        "name": doc.name,
+        "equipment": doc.equipment,
+        "workflow_state": "Draft",
+        "docstatus": 0,
+        "linked_incident": linked_incident or getattr(doc, "linked_incident", None)
+    }
 
 
 @frappe.whitelist(allow_guest=True)
 def get_maintenance_dashboard_stats(work_order=None):
     """Return dashboard statistics for the Maintenance tab, optionally filtered by work order."""
-    filters = {"docstatus": 1}
+    filters = [["docstatus", "!=", 2], ["workflow_state", "not in", ["Rejected"]]]
     if work_order:
-        filters["work_order"] = work_order
+        filters.append(["work_order", "=", work_order])
 
     records = frappe.get_all(
         "Daily Preventative Maintenance Schedule",
@@ -1990,10 +2203,10 @@ def get_maintenance_dashboard_stats(work_order=None):
 
 @frappe.whitelist(allow_guest=True)
 def get_maintenance_log_history(work_order=None, limit=50, start=0):
-    """Return submitted Daily PM Schedule records for the Checklist Log History table."""
+    """Return Daily PM Schedule records for the Checklist Log History table."""
     limit = frappe.utils.cint(limit) or 50
     start = frappe.utils.cint(start) or 0
-    filters = {"docstatus": 1}
+    filters = {}
     if work_order and work_order != "all":
         filters["work_order"] = work_order
 
@@ -2002,7 +2215,8 @@ def get_maintenance_log_history(work_order=None, limit=50, start=0):
         filters=filters,
         fields=["name", "equipment", "area", "work_order",
                 "sign_of_the_operator", "sign_of_supervisor",
-                "overall_remarks", "creation", "modified"],
+                "overall_remarks", "creation", "modified", "docstatus", "workflow_state",
+                "is_incident", "incident_severity", "incident_note", "linked_incident"],
         order_by="creation desc",
         limit_page_length=limit,
         limit_start=start,
@@ -2238,6 +2452,8 @@ def check_raw_materials_availability(bom_no, quantity=1, source_warehouse=None):
 
     items_status = []
     has_shortage = False
+    max_manifestable_qty = None
+    bottleneck_item = None
 
     for item in bom_doc.items:
         required_qty = frappe.utils.flt(item.qty or 0) * multiplier
@@ -2248,6 +2464,22 @@ def check_raw_materials_availability(bom_no, quantity=1, source_warehouse=None):
         if not is_sufficient:
             has_shortage = True
 
+        qty_per_fg = (frappe.utils.flt(item.qty or 0) / bom_base_qty) if bom_base_qty else 0.0
+        max_possible_fg = int(available_qty // qty_per_fg) if qty_per_fg > 0 else int(target_qty)
+        max_possible_fg = max(0, max_possible_fg)
+
+        if max_manifestable_qty is None or max_possible_fg < max_manifestable_qty:
+            max_manifestable_qty = max_possible_fg
+            bottleneck_item = {
+                "item_code": item.item_code,
+                "item_name": item.item_name or item.item_code,
+                "available_qty": round(available_qty, 4),
+                "required_qty": round(required_qty, 4),
+                "shortage_qty": round(shortage_qty, 4),
+                "uom": item.uom or item.stock_uom or "Nos",
+                "max_possible_fg": max_possible_fg
+            }
+
         items_status.append({
             "item_code": item.item_code,
             "item_name": item.item_name or item.item_code,
@@ -2255,8 +2487,13 @@ def check_raw_materials_availability(bom_no, quantity=1, source_warehouse=None):
             "required_qty": round(required_qty, 4),
             "available_qty": round(available_qty, 4),
             "shortage_qty": round(shortage_qty, 4),
-            "is_sufficient": is_sufficient
+            "is_sufficient": is_sufficient,
+            "qty_per_fg": round(qty_per_fg, 6),
+            "max_possible_fg": max_possible_fg
         })
+
+    if max_manifestable_qty is None:
+        max_manifestable_qty = int(target_qty)
 
     return {
         "success": True,
@@ -2266,6 +2503,8 @@ def check_raw_materials_availability(bom_no, quantity=1, source_warehouse=None):
         "source_warehouse": wh,
         "all_available": not has_shortage,
         "has_shortage": has_shortage,
+        "max_manifestable_qty": max_manifestable_qty,
+        "bottleneck_item": bottleneck_item,
         "items": items_status
     }
 
@@ -2411,3 +2650,19 @@ def check_mes_access():
         "user":     user,
         "full_name": full_name,
     }
+
+
+@frappe.whitelist()
+def get_doctype_meta(doctype):
+    """
+    Return complete DocType metadata including all custom fields and child table definitions.
+    Standard /api/resource/DocType/{name} only returns DocFields, omitting Custom Fields.
+    This RPC guarantees custom fields like incident reporting appear on forms.
+    """
+    if not doctype or not frappe.db.exists("DocType", doctype):
+        frappe.throw(_("DocType {0} not found").format(doctype))
+
+    meta = frappe.get_meta(doctype)
+    doc_dict = meta.as_dict()
+    doc_dict["fields"] = [f.as_dict() for f in meta.fields]
+    return doc_dict

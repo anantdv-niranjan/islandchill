@@ -1,6 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { isLabValueField, getLabFieldDefault } from './labFieldMetadata';
 import LabSignatureField from './LabSignatureField';
+import IncidentMarkerSection from './IncidentMarkerSection';
 
 const flag = value => value === true || value === 1 || value === '1';
 
@@ -83,7 +85,81 @@ export function LabFieldControl({ field, value, onChange, doc = {}, parentDoc = 
   return <input {...props} type={type === 'Password' ? 'password' : type === 'Color' ? 'color' : field.options === 'Email' ? 'email' : field.options === 'URL' ? 'url' : 'text'} />;
 }
 
-export function LabMetadataFields({ fields = [], formData = {}, onChange, renderTable, linkOptionsMap, employeeList, loadLinkOptions }) {
+export function evalDependsOn(dependsOn, doc) {
+  if (!dependsOn) return true;
+  if (typeof dependsOn === 'string' && dependsOn.startsWith('eval:')) {
+    try {
+      const code = dependsOn.slice(5);
+      const fn = new Function('doc', `return Boolean(${code});`);
+      return fn(doc || {});
+    } catch {
+      return true;
+    }
+  }
+  return Boolean(doc?.[dependsOn]);
+}
+
+export function isCreateOmittedField(field) {
+  if (!field) return false;
+  if (field.fieldtype === 'Signature') return true;
+  const name = (field.fieldname || '').toLowerCase();
+  const label = (field.label || '').toLowerCase();
+  if ([
+    'signature', 'operator_signature', 'analyst_signature', 'supervisor_signature',
+    'sign', 'signed', 'sign_of_supervisor', 'sign_of_the_operator',
+    'verified_by', 'verified_by_supervisor', 'verifyed_by',
+    'approved_by', 'approved_by_manager', 'supervisor_name',
+    'approval_date', 'approval_time', 'verified_date', 'verified_time',
+    'approval_notes', 'rejection_reason', 'linked_incident'
+  ].includes(name)) return true;
+  if (label.includes('signature') || label.includes('sign of supervisor') || label.includes('sign. of supervisor') || label.includes('sign. of the supervisor') || label.includes('verified by (supervisor)')) return true;
+  return false;
+}
+
+const INCIDENT_FIELDNAMES = new Set(['is_incident', 'incident_severity', 'incident_note', 'linked_incident']);
+
+export function ensureIncidentFields(fields = []) {
+  if (!fields || !Array.isArray(fields) || fields.length === 0) return [];
+
+  // Remove existing incident fields from wherever they are positioned so we can cleanly place them in an incident section
+  const regularFields = fields.filter(f => !INCIDENT_FIELDNAMES.has(f.fieldname) && f.fieldname !== 'incident_section');
+
+  return [
+    ...regularFields,
+    {
+      idx: regularFields.length + 1,
+      fieldname: 'incident_section',
+      label: 'Operational Incident & Deviation',
+      fieldtype: 'Section Break'
+    },
+    {
+      idx: regularFields.length + 2,
+      fieldname: 'is_incident',
+      label: 'Flag as Operational Incident / Deviation',
+      fieldtype: 'Check',
+      default: 0
+    },
+    {
+      idx: regularFields.length + 3,
+      fieldname: 'incident_severity',
+      label: 'Incident Severity',
+      fieldtype: 'Select',
+      options: 'Critical\nHigh\nMedium\nLow',
+      default: 'Medium',
+      depends_on: 'eval:doc.is_incident == 1'
+    },
+    {
+      idx: regularFields.length + 4,
+      fieldname: 'incident_note',
+      label: 'Incident / Deviation Note',
+      fieldtype: 'Small Text',
+      depends_on: 'eval:doc.is_incident == 1'
+    }
+  ];
+}
+
+export function LabMetadataFields({ fields = [], formData = {}, onChange, renderTable, linkOptionsMap, employeeList, loadLinkOptions, isCreateMode = false }) {
+  const effectiveFields = isCreateMode ? ensureIncidentFields(fields) : fields;
   const sections = [];
   let section;
   let column;
@@ -94,26 +170,120 @@ export function LabMetadataFields({ fields = [], formData = {}, onChange, render
     sections.push(section);
   };
   startSection(null);
-  for (const field of fields) {
+  for (const field of effectiveFields) {
+    if (isCreateMode && isCreateOmittedField(field)) continue;
     if (field.fieldtype === 'Tab Break') { hiddenTab = flag(field.hidden); startSection(field); }
     else if (field.fieldtype === 'Section Break' || field.fieldtype === 'Fold') startSection(field);
     else if (field.fieldtype === 'Column Break') { column = []; section.columns.push(column); }
     else if (isLabValueField(field)) column.push(field);
   }
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-    {sections.filter(section => !section.hidden && (section.field?.fieldtype === 'Tab Break' || section.columns.some(column => column.length))).map((section, index) => <section key={section.field?.fieldname || index} style={{ border: '1px solid var(--border-color)', borderRadius: 8, padding: 14 }}>
-      {section.field?.label && <h4 style={{ color: 'var(--accent)', margin: '0 0 12px' }}>{section.field.label}</h4>}
-      {section.field?.description && <p>{section.field.description}</p>}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 14 }}>
-        {section.columns.map((column, columnIndex) => <div className="lab-field-column" key={columnIndex} style={{ minWidth: 0, display: 'grid', alignContent: 'start', gridTemplateColumns: section.columns.length === 1 ? 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))' : '1fr', gap: 14 }}>
-          {column.map(field => ['Table', 'Table MultiSelect'].includes(field.fieldtype) ? <div key={field.fieldname} style={{ gridColumn: '1 / -1', minWidth: 0 }}>{renderTable(field)}</div> : <div key={field.fieldname} style={{ gridColumn: ['Text', 'Small Text', 'Long Text', 'Text Editor', 'Markdown Editor', 'Code', 'JSON', 'HTML'].includes(field.fieldtype) ? '1 / -1' : undefined }}>
-            {!['HTML', 'Heading'].includes(field.fieldtype) && <label style={{ display: 'block', fontWeight: 600, marginBottom: 4 }}>{field.label || field.fieldname}{flag(field.reqd) && ' *'}</label>}
-            <LabFieldControl {...{ field, linkOptionsMap, employeeList, loadLinkOptions }} doc={formData} value={formData[field.fieldname]} onChange={value => onChange(field.fieldname, value)} />
-            {field.description && <small style={{ color: 'var(--text-muted)' }}>{field.description}</small>}
-          </div>)}
-        </div>)}
-      </div>
-    </section>)}
+    {sections.filter(section => !section.hidden && (
+      section.field?.fieldtype === 'Tab Break' ||
+      section.field?.fieldname === 'incident_section' ||
+      (section.field?.label || '').toLowerCase().includes('incident') ||
+      section.columns.some(column => column.length)
+    )).map((section, index) => {
+      const isIncidentSec = section.field?.fieldname === 'incident_section' || (section.field?.label || '').toLowerCase().includes('incident');
+      const isIncidentActive = Boolean(formData.is_incident);
+
+      if (isIncidentSec) {
+        return (
+          <div key={section.field?.fieldname || index} style={{ width: '100%', boxSizing: 'border-box' }}>
+            <IncidentMarkerSection
+              isIncident={isIncidentActive}
+              severity={formData.incident_severity || 'Medium'}
+              note={formData.incident_note || ''}
+              linkedIncident={formData.linked_incident || ''}
+              onChange={(field, val) => {
+                onChange(field, val);
+              }}
+            />
+          </div>
+        );
+      }
+
+      return (
+        <section
+          key={section.field?.fieldname || index}
+          style={{
+            border: '1px solid var(--border-color)',
+            borderRadius: 8,
+            padding: 14,
+            transition: 'all 0.2s ease'
+          }}
+        >
+          {section.field?.label && (
+            <h4 style={{
+              color: 'var(--accent)',
+              margin: '0 0 12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              {section.field.label}
+            </h4>
+          )}
+          {section.field?.description && <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 10px' }}>{section.field.description}</p>}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: 14 }}>
+            {section.columns.map((column, columnIndex) => (
+              <div
+                className="lab-field-column"
+                key={columnIndex}
+                style={{
+                  minWidth: 0,
+                  display: 'grid',
+                  alignContent: 'start',
+                  gridTemplateColumns: section.columns.length === 1 ? 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))' : '1fr',
+                  gap: 14
+                }}
+              >
+                {column
+                  .filter(field => !field.depends_on || evalDependsOn(field.depends_on, formData))
+                  .map(field => ['Table', 'Table MultiSelect'].includes(field.fieldtype) ? (
+                    <div key={field.fieldname} style={{ gridColumn: '1 / -1', minWidth: 0 }}>
+                      {renderTable(field)}
+                    </div>
+                  ) : (
+                    <div
+                      key={field.fieldname}
+                      style={{
+                        minWidth: 0,
+                        gridColumn: ['Text', 'Small Text', 'Long Text', 'Text Editor', 'Markdown Editor', 'Code', 'JSON', 'HTML'].includes(field.fieldtype) ? '1 / -1' : undefined
+                      }}
+                    >
+                      {!['HTML', 'Heading', 'Check'].includes(field.fieldtype) && (
+                        <label style={{ display: 'block', fontWeight: 600, marginBottom: 4 }}>
+                          {field.label || field.fieldname}{flag(field.reqd) && ' *'}
+                        </label>
+                      )}
+                      {field.fieldtype === 'Check' ? (
+                        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontWeight: 600, color: 'var(--text-main, #374151)' }}>
+                          <LabFieldControl
+                            {...{ field, linkOptionsMap, employeeList, loadLinkOptions }}
+                            doc={formData}
+                            value={formData[field.fieldname]}
+                            onChange={value => onChange(field.fieldname, value)}
+                          />
+                          <span>{field.label || field.fieldname}{flag(field.reqd) && ' *'}</span>
+                        </label>
+                      ) : (
+                        <LabFieldControl
+                          {...{ field, linkOptionsMap, employeeList, loadLinkOptions }}
+                          doc={formData}
+                          value={formData[field.fieldname]}
+                          onChange={value => onChange(field.fieldname, value)}
+                        />
+                      )}
+                      {field.description && <small style={{ color: 'var(--text-muted)' }}>{field.description}</small>}
+                    </div>
+                  ))}
+              </div>
+            ))}
+          </div>
+        </section>
+      );
+    })}
   </div>;
 }
 

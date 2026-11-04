@@ -68,7 +68,7 @@
   "ldpe_usage_section",
   "size",
   "mm",
-  "\u03bcm_used",
+  "μm_used",
   "column_break_gixq",
   "wastage",
   "issued",
@@ -402,9 +402,9 @@
    "label": "mm"
   },
   {
-   "fieldname": "\u03bcm_used",
+   "fieldname": "μm_used",
    "fieldtype": "Data",
-   "label": "\u03bcm Used"
+   "label": "μm Used"
   },
   {
    "fieldname": "column_break_gixq",
@@ -546,5 +546,6 @@
  "rows_threshold_for_grid_search": 20,
  "sort_field": "creation",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "autoname": "PR100-.YYYY.-.#####"
 }

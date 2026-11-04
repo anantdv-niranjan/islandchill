@@ -1,5 +1,14 @@
 import React from 'react';
 import { frappe } from '../services/frappe';
+import {
+  Bell,
+  Settings,
+  Calendar,
+  AlertTriangle,
+  CheckCircle2,
+  Headphones,
+  X
+} from 'lucide-react';
 
 /**
  * AppHeader Component
@@ -62,22 +71,31 @@ export default function AppHeader({
           <button
             className="notification-bell"
             onClick={() => setShowNotifications(!showNotifications)}
+            title="Notifications"
+            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
           >
-            🔔
+            <Bell size={18} />
             {lowStockCount > 0 && <span className="bell-badge">{lowStockCount}</span>}
           </button>
           {showNotifications && (
             <div className="notification-dropdown">
               <div className="notification-header">
                 <h3>Alerts & Messages</h3>
-                <button onClick={() => setShowNotifications(false)}>✕</button>
+                <button
+                  onClick={() => setShowNotifications(false)}
+                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                >
+                  <X size={16} />
+                </button>
               </div>
               <div className="notification-body">
                 {/* Low Stock Items */}
                 {Object.keys(inventory).filter(key => inventory[key].qty < inventory[key].minLevel).length > 0 ? (
                   Object.keys(inventory).filter(key => inventory[key].qty < inventory[key].minLevel).map(key => (
                     <div key={key} className="notification-item warning" onClick={() => { setCurrentTab('inventory'); setShowNotifications(false); }}>
-                      <span className="notification-icon">⚠️</span>
+                      <span className="notification-icon" style={{ display: 'inline-flex', color: 'var(--warning, #f59e0b)' }}>
+                        <AlertTriangle size={18} />
+                      </span>
                       <div className="notification-info">
                         <div className="notification-title">Low Stock: {inventory[key].name}</div>
                         <div className="notification-text">Current qty is {inventory[key].qty} {inventory[key].unit} (Threshold: {inventory[key].minLevel})</div>
@@ -86,7 +104,9 @@ export default function AppHeader({
                   ))
                 ) : (
                   <div className="notification-item success">
-                    <span className="notification-icon">✅</span>
+                    <span className="notification-icon" style={{ display: 'inline-flex', color: 'var(--success, #10b981)' }}>
+                      <CheckCircle2 size={18} />
+                    </span>
                     <div className="notification-info">
                       <div className="notification-title">Stock Levels Normal</div>
                       <div className="notification-text">No items are running below reorder levels.</div>
@@ -96,7 +116,9 @@ export default function AppHeader({
                 {/* Recent Support Tickets */}
                 {tickets && tickets.slice(0, 2).map(tkt => (
                   <div key={tkt.name} className="notification-item info" onClick={() => { setCurrentTab('support'); setShowNotifications(false); }}>
-                    <span className="notification-icon">🎧</span>
+                    <span className="notification-icon" style={{ display: 'inline-flex', color: 'var(--info, #3b82f6)' }}>
+                      <Headphones size={18} />
+                    </span>
                     <div className="notification-info">
                       <div className="notification-title">Support Desk: {tkt.name}</div>
                       <div className="notification-text">{tkt.subject} (Customer: {tkt.customer})</div>
@@ -113,14 +135,14 @@ export default function AppHeader({
           className="notification-bell"
           onClick={handleOpenSettings}
           title="ERPNext Connection Settings"
-          style={{ fontSize: '16px' }}
+          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
         >
-          ⚙️
+          <Settings size={18} />
         </button>
 
         {/* Date/Time Display */}
         <div className="date-selector" title={`Time zone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`}>
-          <span>📅</span>
+          <Calendar size={15} />
           <span>
             {currentTime.toLocaleDateString(undefined, {
               year: 'numeric',
