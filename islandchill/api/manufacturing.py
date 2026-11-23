@@ -65,6 +65,101 @@ def get_stock_entry_for_work_order(work_order):
 
 
 @frappe.whitelist()
+def get_work_order_stock_transactions(work_order=None, status=None, stock_entry_type=None, limit=None):
+    if not work_order:
+        work_order = frappe.form_dict.get("work_order")
+
+    if not work_order:
+        frappe.throw(_("Work Order is required"))
+
+    filters = {"work_order": work_order}
+
+    if status is not None:
+        if isinstance(status, int) or (isinstance(status, str) and str(status).isdigit()):
+            filters["docstatus"] = int(status)
+        elif status == "Draft":
+            filters["docstatus"] = 0
+        elif status == "Submitted":
+            filters["docstatus"] = 1
+        elif status == "Cancelled":
+            filters["docstatus"] = 2
+
+    if stock_entry_type:
+        filters["stock_entry_type"] = stock_entry_type
+
+    fields = [
+        "name",
+        "stock_entry_type",
+        "purpose",
+        "work_order",
+        "company",
+        "posting_date",
+        "posting_time",
+        "docstatus",
+        "from_warehouse",
+        "to_warehouse",
+        "total_outgoing_value",
+        "total_incoming_value",
+        "value_difference",
+        "creation",
+        "modified",
+        "remarks",
+    ]
+
+    limit_page_length = int(limit) if limit else 100
+
+    stock_entries = frappe.get_all(
+        "Stock Entry",
+        filters=filters,
+        fields=fields,
+        order_by="posting_date desc, posting_time desc, creation desc",
+        limit_page_length=limit_page_length,
+    )
+
+    if not stock_entries:
+        return []
+
+    entry_names = [e.name for e in stock_entries]
+    items = frappe.get_all(
+        "Stock Entry Detail",
+        filters={"parent": ["in", entry_names]},
+        fields=[
+            "parent",
+            "name",
+            "item_code",
+            "item_name",
+            "description",
+            "qty",
+            "transfer_qty",
+            "uom",
+            "stock_uom",
+            "s_warehouse",
+            "t_warehouse",
+            "basic_rate",
+            "basic_amount",
+            "amount",
+            "batch_no",
+            "serial_no",
+        ],
+        order_by="idx asc",
+    )
+
+    items_by_parent = {}
+    for item in items:
+        items_by_parent.setdefault(item.parent, []).append(item)
+
+    for entry in stock_entries:
+        entry["items"] = items_by_parent.get(entry.name, [])
+        entry["status"] = (
+            "Draft" if entry.docstatus == 0
+            else "Submitted" if entry.docstatus == 1
+            else "Cancelled"
+        )
+
+    return stock_entries
+
+
+@frappe.whitelist()
 def save_stock_entry_draft(work_order, company, posting_date, posting_time=None, items=None, stock_entry_name=None):
     if isinstance(items, str):
         items = frappe.parse_json(items)

@@ -1,5 +1,16 @@
-const common_site_config = require('../../../sites/common_site_config.json');
-const { webserver_port } = common_site_config;
+const fs = require('fs');
+const path = require('path');
+
+let webserver_port = 8000;
+const configPath = path.resolve(__dirname, '../../../sites/common_site_config.json');
+if (fs.existsSync(configPath)) {
+	try {
+		const common_site_config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+		webserver_port = common_site_config.webserver_port || 8000;
+	} catch (e) {
+		console.warn('Could not read common_site_config.json, defaulting port to 8000');
+	}
+}
 
 export default {
 	'^/(app|api|assets|files|private)': {

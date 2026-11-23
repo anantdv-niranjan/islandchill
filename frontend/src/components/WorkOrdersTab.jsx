@@ -33,6 +33,32 @@ export default function WorkOrdersTab({
   const conn = frappe.getConnectionSettings();
   const isLiveMode = conn.isLive && conn.connected;
 
+  const [woStockTransactions, setWoStockTransactions] = React.useState({});
+  const [loadingTransactions, setLoadingTransactions] = React.useState({});
+  const [errorTransactions, setErrorTransactions] = React.useState({});
+  const [expandedTransactions, setExpandedTransactions] = React.useState({});
+
+  const loadStockTransactions = React.useCallback(async (woId) => {
+    if (!woId) return;
+    setLoadingTransactions(prev => ({ ...prev, [woId]: true }));
+    setErrorTransactions(prev => ({ ...prev, [woId]: null }));
+    try {
+      const data = await frappe.getWorkOrderStockTransactions(woId);
+      setWoStockTransactions(prev => ({ ...prev, [woId]: data }));
+    } catch (err) {
+      console.error('Failed to load stock transactions for WO:', woId, err);
+      setErrorTransactions(prev => ({ ...prev, [woId]: err.message }));
+    } finally {
+      setLoadingTransactions(prev => ({ ...prev, [woId]: false }));
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (selectedWOId && !woStockTransactions[selectedWOId] && !loadingTransactions[selectedWOId]) {
+      loadStockTransactions(selectedWOId);
+    }
+  }, [selectedWOId, loadStockTransactions, woStockTransactions, loadingTransactions]);
+
   return (
               <div className="wo-tab-container">
             <div className="wo-tab-header">
@@ -322,6 +348,163 @@ export default function WorkOrdersTab({
                               ))}
                             </div>
                           )}
+
+                          {/* Stock Transactions Section */}
+                          <div style={{ marginTop: '20px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                              <h4 className="section-subtitle" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span>📦 Stock Transactions</span>
+                                {woStockTransactions[wo.id] && (
+                                  <span style={{ fontSize: '11px', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.08)', padding: '2px 8px', borderRadius: '12px' }}>
+                                    {woStockTransactions[wo.id].length}
+                                  </span>
+                                )}
+                              </h4>
+                              <button
+                                className="secondary-btn"
+                                style={{ padding: '4px 10px', fontSize: '11px' }}
+                                onClick={() => loadStockTransactions(wo.id)}
+                                disabled={loadingTransactions[wo.id]}
+                              >
+                                {loadingTransactions[wo.id] ? 'Refreshing...' : '🔄 Refresh Transactions'}
+                              </button>
+                            </div>
+
+                            {loadingTransactions[wo.id] && (
+                              <div style={{ padding: '16px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                                Loading stock transactions...
+                              </div>
+                            )}
+
+                            {errorTransactions[wo.id] && (
+                              <div style={{ padding: '12px', borderRadius: '6px', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', fontSize: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span>Error loading stock transactions: {errorTransactions[wo.id]}</span>
+                                <button className="primary-btn" style={{ padding: '4px 8px', fontSize: '11px' }} onClick={() => loadStockTransactions(wo.id)}>
+                                  Retry
+                                </button>
+                              </div>
+                            )}
+
+                            {!loadingTransactions[wo.id] && !errorTransactions[wo.id] && (!woStockTransactions[wo.id] || woStockTransactions[wo.id].length === 0) && (
+                              <p className="text-muted" style={{ fontSize: '13px', padding: '10px 0' }}>
+                                No stock transactions recorded for this Work Order. Click <strong>"Start Run"</strong> to transfer materials to WIP or <strong>"Finish WO"</strong> upon manufacturing completion.
+                              </p>
+                            )}
+
+                            {!loadingTransactions[wo.id] && woStockTransactions[wo.id] && woStockTransactions[wo.id].length > 0 && (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                {woStockTransactions[wo.id].map(entry => {
+                                  const isTxExpanded = !!expandedTransactions[entry.name];
+                                  return (
+                                    <div
+                                      key={entry.name}
+                                      style={{
+                                        backgroundColor: 'rgba(255,255,255,0.02)',
+                                        border: '1px solid var(--border-color)',
+                                        borderRadius: '8px',
+                                        overflow: 'hidden'
+                                      }}
+                                    >
+                                      <div
+                                        style={{
+                                          padding: '10px 14px',
+                                          display: 'flex',
+                                          justifyContent: 'space-between',
+                                          alignItems: 'center',
+                                          cursor: 'pointer',
+                                          backgroundColor: isTxExpanded ? 'rgba(245, 158, 11, 0.04)' : 'transparent'
+                                        }}
+                                        onClick={() => setExpandedTransactions(prev => ({ ...prev, [entry.name]: !prev[entry.name] }))}
+                                      >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                          <span style={{ fontSize: '11px', transform: isTxExpanded ? 'rotate(90deg)' : 'rotate(0deg)', display: 'inline-block', transition: 'transform 0.2s', color: 'var(--text-muted)' }}>▶</span>
+                                          <div>
+                                            <strong style={{ color: 'var(--text-main)', fontSize: '13px' }}>{entry.name}</strong>
+                                            <span style={{ marginLeft: '10px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                                              {entry.stock_entry_type}
+                                            </span>
+                                          </div>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                            {entry.posting_date} {entry.posting_time}
+                                          </span>
+                                          <span
+                                            className="badge"
+                                            style={{
+                                              backgroundColor: entry.docstatus === 1 ? 'rgba(16, 185, 129, 0.15)' : entry.docstatus === 0 ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                                              color: entry.docstatus === 1 ? 'var(--success)' : entry.docstatus === 0 ? 'var(--warning)' : 'var(--danger)',
+                                              fontSize: '10px',
+                                              padding: '2px 8px',
+                                              borderRadius: '4px'
+                                            }}
+                                          >
+                                            {entry.status || (entry.docstatus === 1 ? 'Submitted' : entry.docstatus === 0 ? 'Draft' : 'Cancelled')}
+                                          </span>
+                                        </div>
+                                      </div>
+
+                                      {isTxExpanded && (
+                                        <div style={{ padding: '12px 14px', borderTop: '1px solid var(--border-color)', backgroundColor: 'var(--bg-content)', fontSize: '12px' }}>
+                                          <div style={{ display: 'flex', gap: '20px', marginBottom: '10px', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+                                            {entry.from_warehouse && (
+                                              <span><strong>Source:</strong> {entry.from_warehouse}</span>
+                                            )}
+                                            {entry.to_warehouse && (
+                                              <span><strong>Target:</strong> {entry.to_warehouse}</span>
+                                            )}
+                                            {entry.total_outgoing_value > 0 && (
+                                              <span><strong>Outgoing Value:</strong> ${Number(entry.total_outgoing_value).toFixed(2)}</span>
+                                            )}
+                                            {entry.total_incoming_value > 0 && (
+                                              <span><strong>Incoming Value:</strong> ${Number(entry.total_incoming_value).toFixed(2)}</span>
+                                            )}
+                                          </div>
+
+                                          {entry.items && entry.items.length > 0 ? (
+                                            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '6px' }}>
+                                              <thead>
+                                                <tr style={{ borderBottom: '1px solid var(--border-color)', textAlign: 'left', color: 'var(--text-muted)', fontSize: '11px' }}>
+                                                  <th style={{ padding: '6px 8px' }}>Item</th>
+                                                  <th style={{ padding: '6px 8px' }}>Qty</th>
+                                                  <th style={{ padding: '6px 8px' }}>UOM</th>
+                                                  <th style={{ padding: '6px 8px' }}>From</th>
+                                                  <th style={{ padding: '6px 8px' }}>To</th>
+                                                  <th style={{ padding: '6px 8px', textAlign: 'right' }}>Rate / Amount</th>
+                                                </tr>
+                                              </thead>
+                                              <tbody>
+                                                {entry.items.map(item => (
+                                                  <tr key={item.name || item.item_code} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                                    <td style={{ padding: '6px 8px' }}>
+                                                      <div style={{ fontWeight: '600', color: 'var(--text-main)' }}>{item.item_code}</div>
+                                                      {item.item_name && item.item_name !== item.item_code && (
+                                                        <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{item.item_name}</div>
+                                                      )}
+                                                    </td>
+                                                    <td style={{ padding: '6px 8px', fontWeight: 'bold' }}>{Number(item.qty || item.transfer_qty || 0).toFixed(2)}</td>
+                                                    <td style={{ padding: '6px 8px', color: 'var(--text-muted)' }}>{item.uom || item.stock_uom}</td>
+                                                    <td style={{ padding: '6px 8px', color: 'var(--text-muted)', fontSize: '11px' }}>{item.s_warehouse || '-'}</td>
+                                                    <td style={{ padding: '6px 8px', color: 'var(--text-muted)', fontSize: '11px' }}>{item.t_warehouse || '-'}</td>
+                                                    <td style={{ padding: '6px 8px', textAlign: 'right', color: 'var(--text-muted)' }}>
+                                                      {item.basic_rate ? `$${Number(item.basic_rate).toFixed(2)}` : ''}
+                                                      {item.amount ? ` ($${Number(item.amount).toFixed(2)})` : ''}
+                                                    </td>
+                                                  </tr>
+                                                ))}
+                                              </tbody>
+                                            </table>
+                                          ) : (
+                                            <div style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>No item details recorded in this entry.</div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>

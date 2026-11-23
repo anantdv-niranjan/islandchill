@@ -727,6 +727,63 @@ class FrappeService {
     return json.message || null;
   }
 
+  async getWorkOrderStockTransactions(workOrder, status = null) {
+    if (!this.connection.isLive) {
+      return [
+        {
+          name: 'STE-2026-00001',
+          stock_entry_type: 'Material Transfer for Manufacture',
+          purpose: 'Material Transfer for Manufacture',
+          work_order: workOrder,
+          posting_date: '2026-07-12',
+          posting_time: '10:00:00',
+          docstatus: 1,
+          status: 'Submitted',
+          from_warehouse: 'Stores - CW',
+          to_warehouse: 'Work In Progress - CW',
+          items: [
+            {
+              item_code: 'RM-PREFORM-330',
+              item_name: '330ml PET Preform',
+              qty: 500,
+              uom: 'Nos',
+              s_warehouse: 'Stores - CW',
+              t_warehouse: 'Work In Progress - CW'
+            }
+          ]
+        }
+      ];
+    }
+
+    const { url } = this.connection;
+    const baseUrl = this.resolveUrl(url);
+
+    let endpoint = `${baseUrl}/api/method/islandchill.api.manufacturing.get_work_order_stock_transactions?work_order=${encodeURIComponent(workOrder)}`;
+    if (status !== null && status !== undefined) {
+      endpoint += `&status=${encodeURIComponent(status)}`;
+    }
+
+    const response = await fetch(endpoint, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      },
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      let message = 'Failed to fetch Work Order Stock Transactions';
+      try {
+        const err = await response.json();
+        message = err.exception || err.message || err._server_messages || message;
+      } catch { }
+      throw new Error(this.cleanFrappeError(message));
+    }
+
+    const json = await response.json();
+    return json.message || [];
+  }
+
   // Save or update Stock Entry Draft through backend Python method.
   async saveStockEntryDraft(data) {
     if (!this.connection.isLive) {
