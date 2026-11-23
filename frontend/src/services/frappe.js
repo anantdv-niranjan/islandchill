@@ -781,7 +781,16 @@ class FrappeService {
     }
 
     const json = await response.json();
-    return json.message || [];
+    const data = json.message || [];
+    if (data && !Array.isArray(data) && (data.stock_entries || data.transactions || data.entries)) {
+      const list = data.stock_entries || data.transactions || data.entries || [];
+      list.raw_material_transfers = data.raw_material_transfers || [];
+      list.manufacture_receipts = data.manufacture_receipts || [];
+      list.assigned_batch_codes = data.assigned_batch_codes || 'None';
+      list.batch_codes = data.batch_codes || [];
+      return list;
+    }
+    return Array.isArray(data) ? data : [];
   }
 
   // Save or update Stock Entry Draft through backend Python method.

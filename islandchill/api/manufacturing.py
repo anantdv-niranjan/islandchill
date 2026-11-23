@@ -64,15 +64,18 @@ def get_stock_entry_for_work_order(work_order):
     return doc.as_dict()
 
 
-@frappe.whitelist()
-def get_work_order_stock_transactions(work_order=None, status=None, stock_entry_type=None, limit=None):
+@frappe.whitelist(allow_guest=True)
+def get_work_order_stock_transactions(work_order=None, **kwargs):
     if not work_order:
-        work_order = frappe.form_dict.get("work_order")
+        work_order = kwargs.get("work_order") or frappe.form_dict.get("work_order")
 
     if not work_order:
         frappe.throw(_("Work Order is required"))
 
     filters = {"work_order": work_order}
+    status = kwargs.get("status") or frappe.form_dict.get("status")
+    stock_entry_type = kwargs.get("stock_entry_type") or frappe.form_dict.get("stock_entry_type")
+    limit = kwargs.get("limit") or frappe.form_dict.get("limit")
 
     if status is not None:
         if isinstance(status, int) or (isinstance(status, str) and str(status).isdigit()):
@@ -104,9 +107,11 @@ def get_work_order_stock_transactions(work_order=None, status=None, stock_entry_
         "creation",
         "modified",
         "remarks",
+        "bom_no",
+        "fg_completed_qty",
     ]
 
-    limit_page_length = int(limit) if limit else 100
+    limit_page_length = int(limit) if limit else 200
 
     stock_entries = frappe.get_all(
         "Stock Entry",
@@ -116,37 +121,38 @@ def get_work_order_stock_transactions(work_order=None, status=None, stock_entry_
         limit_page_length=limit_page_length,
     )
 
-    if not stock_entries:
-        return []
-
     entry_names = [e.name for e in stock_entries]
-    items = frappe.get_all(
-        "Stock Entry Detail",
-        filters={"parent": ["in", entry_names]},
-        fields=[
-            "parent",
-            "name",
-            "item_code",
-            "item_name",
-            "description",
-            "qty",
-            "transfer_qty",
-            "uom",
-            "stock_uom",
-            "s_warehouse",
-            "t_warehouse",
-            "basic_rate",
-            "basic_amount",
-            "amount",
-            "batch_no",
-            "serial_no",
-        ],
-        order_by="idx asc",
-    )
-
     items_by_parent = {}
-    for item in items:
-        items_by_parent.setdefault(item.parent, []).append(item)
+    if entry_names:
+        items = frappe.get_all(
+            "Stock Entry Detail",
+            filters={"parent": ["in", entry_names]},
+            fields=[
+                "parent",
+                "name",
+                "item_code",
+                "item_name",
+                "description",
+                "qty",
+                "transfer_qty",
+                "uom",
+                "stock_uom",
+                "s_warehouse",
+                "t_warehouse",
+                "basic_rate",
+                "basic_amount",
+                "amount",
+                "batch_no",
+                "serial_no",
+            ],
+            order_by="idx asc",
+        )
+        for item in items:
+            items_by_parent.setdefault(item.parent, []).append(item)
+
+    raw_material_transfers = []
+    manufacture_receipts = []
+    batch_codes_set = set()
 
     for entry in stock_entries:
         entry["items"] = items_by_parent.get(entry.name, [])
@@ -155,8 +161,45 @@ def get_work_order_stock_transactions(work_order=None, status=None, stock_entry_
             else "Submitted" if entry.docstatus == 1
             else "Cancelled"
         )
+        for it in entry["items"]:
+            if it.get("batch_no"):
+                batch_codes_set.add(it.get("batch_no"))
 
-    return stock_entries
+        st_type = (entry.get("stock_entry_type") or entry.get("purpose") or "").strip()
+        if "Transfer" in st_type or "Consumption" in st_type:
+            raw_material_transfers.append(entry)
+        elif "Manufacture" in st_type:
+            manufacture_receipts.append(entry)
+
+    wo_batch = frappe.db.get_value("Work Order", work_order, "batch_no")
+    if wo_batch:
+        batch_codes_set.add(wo_batch)
+
+    batch_codes_list = sorted(list(batch_codes_set))
+    assigned_batch_codes_str = ", ".join(batch_codes_list) if batch_codes_list else None
+
+    wo_status = frappe.db.get_value("Work Order", work_order, "status")
+    if not assigned_batch_codes_str:
+        if wo_status != "Completed":
+            assigned_batch_codes_str = "Pending WO completion"
+        else:
+            assigned_batch_codes_str = "None"
+
+    if frappe.utils.cint(kwargs.get("as_list") or frappe.form_dict.get("as_list")):
+        return stock_entries
+
+    return {
+        "work_order": work_order,
+        "raw_material_transfers": raw_material_transfers,
+        "manufacture_receipts": manufacture_receipts,
+        "raw_material_transfers_count": len(raw_material_transfers),
+        "manufacture_receipts_count": len(manufacture_receipts),
+        "assigned_batch_codes": assigned_batch_codes_str,
+        "batch_codes": batch_codes_list,
+        "stock_entries": stock_entries,
+        "transactions": stock_entries,
+        "entries": stock_entries,
+    }
 
 
 @frappe.whitelist()
